@@ -237,9 +237,9 @@ export default function MembersPage() {
             onChange={(e) => setProjectId(e.target.value)}
             className="w-full pl-9 pr-4 py-2 text-sm border border-border rounded-lg bg-muted/20 appearance-none focus:outline-none focus:ring-2 focus:ring-azure-500/30 focus:border-azure-500 text-foreground"
           >
-            <option value="">All Projects</option>
+            <option value="" className="bg-zinc-900 text-foreground">All Projects</option>
             {projectsData?.data?.map((project: any) => (
-              <option key={project.id} value={project.id}>
+              <option key={project.id} value={project.id} className="bg-zinc-900 text-foreground">
                 {project.name}
               </option>
             ))}
