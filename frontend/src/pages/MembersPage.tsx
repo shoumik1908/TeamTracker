@@ -288,7 +288,7 @@ export default function MembersPage() {
                 <td>
                   <div className="relative group/tooltip inline-flex items-center justify-center">
                     <span className="text-sm font-medium">
-                      {member._count?.projectMembers || 0}
+                      {member.projectMembers?.length || 0}
                     </span>
                     {member.projectMembers && member.projectMembers.length > 0 && (
                       <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 hidden group-hover/tooltip:block z-50 animate-fade-in pointer-events-none">

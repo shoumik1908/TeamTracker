@@ -38,6 +38,11 @@ router.get('/', async (req: Request, res: Response) => {
       include: {
         manager: { select: { id: true, name: true, profilePictureUrl: true, designation: true } },
         projectMembers: {
+          where: {
+            project: {
+              status: { not: 'COMPLETED' }
+            }
+          },
           include: {
             project: { select: { name: true } }
           }
