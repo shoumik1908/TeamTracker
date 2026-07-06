@@ -37,6 +37,11 @@ router.get('/', async (req: Request, res: Response) => {
       orderBy: { [sortBy as string]: sortOrder },
       include: {
         manager: { select: { id: true, name: true, profilePictureUrl: true, designation: true } },
+        projectMembers: {
+          include: {
+            project: { select: { name: true } }
+          }
+        },
         _count: {
           select: {
             assignedCertifications: true,

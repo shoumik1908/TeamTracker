@@ -286,7 +286,23 @@ export default function MembersPage() {
                 </td>
                 <td><span className="text-sm text-muted-foreground">{member.designation}</span></td>
                 <td>
-                  <span className="text-sm font-medium">{member._count?.projectMembers || 0}</span>
+                  <div className="relative group/tooltip inline-flex items-center justify-center">
+                    <span className="text-sm font-medium">
+                      {member._count?.projectMembers || 0}
+                    </span>
+                    {member.projectMembers && member.projectMembers.length > 0 && (
+                      <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 hidden group-hover/tooltip:block z-50 animate-fade-in pointer-events-none">
+                        <div className="bg-popover border border-border text-foreground text-xs rounded-lg py-2 px-3 shadow-xl whitespace-nowrap">
+                          {member.projectMembers.map((pm, i) => (
+                            <div key={i} className="mb-1 last:mb-0">• {pm.project.name}</div>
+                          ))}
+                        </div>
+                        {/* Triangle */}
+                        <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-px border-4 border-transparent border-t-border" />
+                        <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-popover" />
+                      </div>
+                    )}
+                  </div>
                 </td>
                 <td>
                   <MemberMenu

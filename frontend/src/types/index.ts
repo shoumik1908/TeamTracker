@@ -22,6 +22,7 @@ export interface TeamMember {
   profilePictureUrl?: string;
   managerId?: string;
   manager?: Pick<TeamMember, 'id' | 'name' | 'profilePictureUrl' | 'designation'>;
+  projectMembers?: { project: { name: string } }[];
   createdAt: string;
   updatedAt: string;
   _count?: {
