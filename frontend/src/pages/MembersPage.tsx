@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { membersApi } from '@/lib/api';
-import { Plus, Search, Pencil, Trash2, X, Upload, Loader2, MoreVertical } from 'lucide-react';
+import { membersApi, projectsApi } from '@/lib/api';
+import { Plus, Search, Pencil, Trash2, X, Upload, Loader2, MoreVertical, Filter } from 'lucide-react';
 import { getInitials } from '@/lib/utils';
 import type { TeamMember, PaginatedResponse } from '@/types';
 
@@ -169,15 +169,21 @@ function MemberFormModal({
 
 export default function MembersPage() {
   const [search, setSearch] = useState('');
+  const [projectId, setProjectId] = useState<string>('');
   const [showForm, setShowForm] = useState(false);
   const [editMember, setEditMember] = useState<TeamMember | undefined>();
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const navigate = useNavigate();
   const qc = useQueryClient();
 
+  const { data: projectsData } = useQuery({
+    queryKey: ['projects-filter'],
+    queryFn: () => projectsApi.list({ limit: 100 }).then(r => r.data),
+  });
+
   const { data, isLoading } = useQuery<PaginatedResponse<TeamMember>>({
-    queryKey: ['members', search],
-    queryFn: () => membersApi.list({ search, limit: 1000 }).then(r => r.data),
+    queryKey: ['members', search, projectId],
+    queryFn: () => membersApi.list({ search, projectId, limit: 1000 }).then(r => r.data),
   });
 
   const createMember = useMutation({
@@ -211,9 +217,9 @@ export default function MembersPage() {
         </button>
       </div>
 
-      {/* Search */}
-      <div className="bg-card rounded-xl border border-border p-4">
-        <div className="relative max-w-sm">
+      {/* Search and Filters */}
+      <div className="bg-card rounded-xl border border-border p-4 flex flex-col sm:flex-row gap-4">
+        <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input
             type="text"
@@ -222,6 +228,22 @@ export default function MembersPage() {
             onChange={e => { setSearch(e.target.value); }}
             className="w-full pl-9 pr-4 py-2 text-sm border border-border rounded-lg bg-muted/20 focus:outline-none focus:ring-2 focus:ring-azure-500/30 focus:border-azure-500"
           />
+        </div>
+        
+        <div className="relative flex-1 max-w-xs">
+          <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+          <select
+            value={projectId}
+            onChange={(e) => setProjectId(e.target.value)}
+            className="w-full pl-9 pr-4 py-2 text-sm border border-border rounded-lg bg-muted/20 appearance-none focus:outline-none focus:ring-2 focus:ring-azure-500/30 focus:border-azure-500 text-foreground"
+          >
+            <option value="">All Projects</option>
+            {projectsData?.data?.map((project: any) => (
+              <option key={project.id} value={project.id}>
+                {project.name}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 

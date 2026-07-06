@@ -9,7 +9,7 @@ const prisma = new PrismaClient();
 
 // GET /api/members - List all members with search & pagination
 router.get('/', async (req: Request, res: Response) => {
-  const { search, page = '1', limit = '10', sortBy = 'name', sortOrder = 'asc' } = req.query;
+  const { search, projectId, page = '1', limit = '10', sortBy = 'name', sortOrder = 'asc' } = req.query;
 
   const pageNum = parseInt(page as string);
   const limitNum = parseInt(limit as string);
@@ -21,6 +21,12 @@ router.get('/', async (req: Request, res: Response) => {
       { name: { contains: search as string, mode: 'insensitive' } },
       { designation: { contains: search as string, mode: 'insensitive' } },
     ];
+  }
+
+  if (projectId) {
+    where.projectMembers = {
+      some: { projectId: projectId as string }
+    };
   }
 
   const [members, total] = await Promise.all([
