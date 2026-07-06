@@ -102,20 +102,6 @@ export default function Sidebar() {
         {collapsed ? <ChevronRight className="w-3 h-3" /> : <ChevronLeft className="w-3 h-3" />}
       </button>
 
-      {/* Footer */}
-      <div className={cn('px-4 py-3 border-t border-border', collapsed && 'px-2')}>
-        <div className={cn('flex items-center gap-2', collapsed && 'justify-center')}>
-          <div className="w-7 h-7 rounded-full bg-azure-500/10 border border-azure-400/30 flex items-center justify-center flex-shrink-0">
-            <span className="text-azure-600 text-xs font-bold">TT</span>
-          </div>
-          {!collapsed && (
-            <div className="overflow-hidden animate-fade-in">
-              <p className="text-muted-foreground text-xs font-medium truncate">Team Tracker v1.0</p>
-              <p className="text-muted-foreground/50 text-[10px]">Phase 1 MVP</p>
-            </div>
-          )}
-        </div>
-      </div>
     </aside>
   );
 }

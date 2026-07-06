@@ -26,7 +26,7 @@ router.get('/team', async (req: Request, res: Response) => {
   });
 
   const rows = members.map(m => [
-    m.name, m.phone || '', m.designation,
+    m.name, m.phone || '', m.designation || '',
     m.joiningDate.toLocaleDateString(),
     m.skills.join(', '),
     String(m._count.projectMembers),

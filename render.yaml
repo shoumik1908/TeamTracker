@@ -1,0 +1,29 @@
+# Render Blueprint — deploys the Team Tracker backend (Express + Prisma).
+# In Render: New + → Blueprint → pick this repo. Then set the secret env vars
+# (marked sync:false) in the dashboard. The DB/Blob are your existing Azure resources.
+services:
+  - type: web
+    name: teamtracker-backend
+    runtime: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm install && npx prisma generate && npm run build
+    startCommand: npm run start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      # Secrets — set these in the Render dashboard (do NOT commit real values):
+      - key: DATABASE_URL
+        sync: false
+      - key: DIRECT_URL
+        sync: false
+      - key: AZURE_STORAGE_CONNECTION_STRING
+        sync: false
+      - key: AZURE_STORAGE_ACCOUNT_NAME
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      # Your Vercel frontend URL, e.g. https://team-tracker.vercel.app
+      - key: FRONTEND_URL
+        sync: false

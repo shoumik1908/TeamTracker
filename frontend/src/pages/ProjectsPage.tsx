@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { projectsApi, membersApi } from '@/lib/api';
-import { Plus, Search, Pencil, Trash2, Users, X, Loader2, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, Users, X, Loader2, Calendar, UserPlus, MoreVertical } from 'lucide-react';
 import { cn, formatDate, formatStatus, getStatusColor, getPriorityColor, getProgressColor } from '@/lib/utils';
 import type { Project, PaginatedResponse, TeamMember } from '@/types';
 
@@ -14,6 +14,53 @@ interface ProjectFormData {
   managerId: string;
 }
 const INIT: ProjectFormData = { name: '', description: '', client: '', startDate: '', endDate: '', priority: 'MEDIUM', status: 'PLANNING', progress: '0', managerId: '' };
+
+function ProjectMenu({ onEdit, onDelete }: {
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  return (
+    <div ref={ref} className="relative flex justify-end" onClick={e => e.stopPropagation()}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-white/5 rounded-lg transition-colors"
+        title="Options"
+      >
+        <MoreVertical className="w-4 h-4" />
+      </button>
+
+      {open && (
+        <div className="absolute right-0 top-8 z-30 w-36 bg-popover border border-border rounded-xl shadow-xl overflow-hidden animate-fade-in">
+          <button
+            onClick={() => { setOpen(false); onEdit(); }}
+            className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-foreground hover:bg-muted/40 transition-colors text-left"
+          >
+            <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
+            Edit
+          </button>
+          <button
+            onClick={() => { setOpen(false); onDelete(); }}
+            className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-red-400 hover:bg-red-950/40 transition-colors text-left"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            Delete
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function ProjectModal({ project, onClose, onSave }: { project?: Project; onClose: () => void; onSave: (d: Record<string, unknown>) => void }) {
   const [form, setForm] = useState<ProjectFormData>(project ? {
@@ -130,7 +177,7 @@ function ProjectModal({ project, onClose, onSave }: { project?: Project; onClose
 export default function ProjectsPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
-  const [page, setPage] = useState(1);
+  const [, setPage] = useState(1);
   const [showForm, setShowForm] = useState(false);
   const [editProject, setEditProject] = useState<Project | undefined>();
   const [manageTeamProject, setManageTeamProject] = useState<Project | undefined>();
@@ -138,13 +185,19 @@ export default function ProjectsPage() {
   const qc = useQueryClient();
 
   const { data, isLoading } = useQuery<PaginatedResponse<Project>>({
-    queryKey: ['projects', search, statusFilter, page],
-    queryFn: () => projectsApi.list({ search, status: statusFilter || undefined, page, limit: 10 }).then(r => r.data),
+    queryKey: ['projects', search, statusFilter],
+    queryFn: () => projectsApi.list({ search, status: statusFilter || undefined, page: 1, limit: 1000 }).then(r => r.data),
   });
 
-  const create = useMutation({ mutationFn: (d: Record<string, unknown>) => projectsApi.create(d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['projects'] }); qc.invalidateQueries({ queryKey: ['dashboard-stats'] }); setShowForm(false); } });
-  const update = useMutation({ mutationFn: ({ id, d }: { id: string; d: Record<string, unknown> }) => projectsApi.update(id, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['projects'] }); setEditProject(undefined); } });
-  const del = useMutation({ mutationFn: (id: string) => projectsApi.delete(id), onSuccess: () => { qc.invalidateQueries({ queryKey: ['projects'] }); qc.invalidateQueries({ queryKey: ['dashboard-stats'] }); setDeleteId(null); } });
+  const create = useMutation({ mutationFn: (d: Record<string, unknown>) => projectsApi.create(d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['projects'] }); qc.invalidateQueries({ queryKey: ['dashboard-stats'] }); qc.invalidateQueries({ queryKey: ['project-progress-chart'] }); setShowForm(false); } });
+  const update = useMutation({ mutationFn: ({ id, d }: { id: string; d: Record<string, unknown> }) => projectsApi.update(id, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['projects'] }); qc.invalidateQueries({ queryKey: ['dashboard-stats'] }); qc.invalidateQueries({ queryKey: ['project-progress-chart'] }); setEditProject(undefined); } });
+  const del = useMutation({ mutationFn: (id: string) => projectsApi.delete(id), onSuccess: () => { qc.invalidateQueries({ queryKey: ['projects'] }); qc.invalidateQueries({ queryKey: ['dashboard-stats'] }); qc.invalidateQueries({ queryKey: ['project-progress-chart'] }); setDeleteId(null); } });
+
+  const sortedProjects = data?.data ? [...data.data].sort((a, b) => {
+    if (a.status === 'COMPLETED' && b.status !== 'COMPLETED') return 1;
+    if (a.status !== 'COMPLETED' && b.status === 'COMPLETED') return -1;
+    return 0;
+  }) : [];
 
   return (
     <div className="space-y-5">
@@ -181,11 +234,14 @@ export default function ProjectsPage() {
             <div className="h-12 bg-muted rounded mb-3" />
           </div>
         ))}
-        {data?.data.map(project => (
-          <div key={project.id} className="bg-card rounded-xl border border-border p-5 hover-card">
+        {sortedProjects.map(project => (
+          <div key={project.id} 
+            onClick={() => setManageTeamProject(project)}
+            className="bg-card rounded-xl border border-border p-5 hover-card cursor-pointer hover:border-azure-500/40 transition-colors"
+          >
             <div className="flex items-start justify-between gap-3 mb-3">
               <div className="flex-1 min-w-0">
-                <h3 className="font-semibold truncate">{project.name}</h3>
+                <h3 className="font-semibold truncate group-hover:text-azure-400">{project.name}</h3>
                 {project.client && <p className="text-xs text-muted-foreground mt-0.5">Client: {project.client}</p>}
                 <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1">
                   {project.manager && (
@@ -228,8 +284,7 @@ export default function ProjectsPage() {
               <div className="flex items-center gap-3">
                 {/* Member avatars */}
                 {project.members && project.members.length > 0 ? (
-                  <button onClick={() => setManageTeamProject(project)}
-                    className="flex items-center hover:opacity-80 transition-opacity">
+                  <div className="flex items-center">
                     <div className="flex -space-x-2">
                       {project.members.slice(0, 3).map(pm => (
                         <div key={pm.id} className="w-6 h-6 rounded-full bg-azure-500/10 border-2 border-card flex items-center justify-center text-[9px] text-azure-600 font-bold overflow-hidden">
@@ -245,12 +300,11 @@ export default function ProjectsPage() {
                     <span className="text-xs text-muted-foreground ml-1.5 flex items-center gap-1">
                       <Users className="w-3 h-3 text-azure-500" />{project.members.length}
                     </span>
-                  </button>
+                  </div>
                 ) : (
-                  <button onClick={() => setManageTeamProject(project)}
-                    className="text-xs text-muted-foreground hover:text-azure-400 flex items-center gap-1 transition-colors">
+                  <span className="text-xs text-muted-foreground flex items-center gap-1">
                     <Users className="w-3.5 h-3.5" /> Assign Team
-                  </button>
+                  </span>
                 )}
                 {project.endDate && (
                   <span className="text-xs text-muted-foreground flex items-center gap-1">
@@ -258,16 +312,10 @@ export default function ProjectsPage() {
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-1">
-                <button onClick={() => setEditProject(project)}
-                  className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors">
-                  <Pencil className="w-4 h-4" />
-                </button>
-                <button onClick={() => setDeleteId(project.id)}
-                  className="p-1.5 text-muted-foreground hover:text-red-400 hover:bg-red-950/40 rounded-lg transition-colors">
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
+              <ProjectMenu
+                onEdit={() => setEditProject(project)}
+                onDelete={() => setDeleteId(project.id)}
+              />
             </div>
           </div>
         ))}
@@ -278,13 +326,6 @@ export default function ProjectsPage() {
         )}
       </div>
 
-      {data && data.pagination.totalPages > 1 && (
-        <div className="flex items-center justify-center gap-3">
-          <button onClick={() => setPage(p => Math.max(1, p-1))} disabled={page === 1} className="p-2 rounded-lg hover:bg-card border border-border disabled:opacity-40 bg-card"><ChevronLeft className="w-4 h-4" /></button>
-          <span className="text-sm">{page} / {data.pagination.totalPages}</span>
-          <button onClick={() => setPage(p => Math.min(data.pagination.totalPages, p+1))} disabled={page === data.pagination.totalPages} className="p-2 rounded-lg hover:bg-card border border-border disabled:opacity-40 bg-card"><ChevronRight className="w-4 h-4" /></button>
-        </div>
-      )}
 
       {(showForm || editProject) && (
         <ProjectModal project={editProject} onClose={() => { setShowForm(false); setEditProject(undefined); }}
@@ -312,6 +353,33 @@ export default function ProjectsPage() {
       )}
     </div>
   );
+}
+
+function getRoleBadgeStyle(role: string) {
+  switch (role) {
+    case 'PROJECT_MANAGER':
+      return 'bg-purple-950/50 text-purple-300 border-purple-800/40';
+    case 'TEAM_LEADER':
+      return 'bg-amber-950/50 text-amber-300 border-amber-800/40';
+    case 'BUSINESS_ANALYST':
+    case 'DATA_ANALYST':
+    case 'DATA_ENGINEER':
+    case 'BI_DEVELOPER':
+    case 'DASHBOARD_DEVELOPER':
+      return 'bg-cyan-950/50 text-cyan-300 border-cyan-800/40';
+    case 'DESIGNER':
+      return 'bg-rose-950/50 text-rose-300 border-rose-800/40';
+    case 'QA_SPECIALIST':
+      return 'bg-red-950/50 text-red-300 border-red-800/40';
+    case 'DEVELOPER':
+    case 'FRONTEND_DEVELOPER':
+    case 'BACKEND_DEVELOPER':
+    case 'CLOUD_ENGINEER':
+    case 'SOLUTION_ARCHITECT':
+      return 'bg-emerald-950/50 text-emerald-300 border-emerald-800/40';
+    default:
+      return 'bg-slate-900/60 text-slate-300 border-slate-800/40';
+  }
 }
 
 function ManageTeamModal({ project, onClose }: { project: Project; onClose: () => void }) {
@@ -352,99 +420,153 @@ function ManageTeamModal({ project, onClose }: { project: Project; onClose: () =
   const assignableMembers = allMembers?.data.filter(m => !currentMemberIds.includes(m.id)) || [];
 
   return (
-    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-fade-in animate-duration-200">
-      <div className="bg-card rounded-2xl shadow-2xl w-full max-w-md border border-border overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-          <div>
-            <h2 className="font-semibold text-base">Manage Project Team</h2>
-            <p className="text-xs text-muted-foreground truncate max-w-[280px]">{projectDetail.name}</p>
+    <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
+      <div className="bg-card rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-border/80 flex flex-col max-h-[85vh] transform transition-all">
+        {/* Header */}
+        <div className="relative flex items-center justify-between px-6 py-5 border-b border-border/80 bg-gradient-to-b from-muted/30 to-card">
+          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-azure-500/20 via-azure-500 to-azure-500/20" />
+          <div className="space-y-1">
+            <h2 className="font-bold text-lg text-foreground tracking-tight flex items-center gap-2">
+              <Users className="w-5 h-5 text-azure-400" />
+              Manage Project Team
+            </h2>
+            <p className="text-xs text-muted-foreground flex items-center gap-1.5 font-medium">
+              <span className="w-1.5 h-1.5 rounded-full bg-azure-500 animate-pulse" />
+              {projectDetail.name}
+            </p>
           </div>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
+          <button onClick={onClose} className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all">
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
-          <div>
-            <label className="block text-xs font-medium text-muted-foreground mb-2">Current Members</label>
-            <div className="space-y-2">
+        {/* Scrollable Body */}
+        <div className="p-6 space-y-6 overflow-y-auto flex-1">
+          {/* Current Members Section */}
+          <div className="space-y-3">
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Current Members ({projectDetail.members?.length || 0})
+            </h3>
+            <div className="space-y-2.5 max-h-[30vh] overflow-y-auto pr-1">
               {projectDetail.members && projectDetail.members.length > 0 ? (
                 projectDetail.members.map(pm => (
-                  <div key={pm.id} className="flex items-center justify-between p-2 rounded-xl bg-muted/10 border border-border">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-azure-500/10 border border-border flex items-center justify-center text-azure-600 text-xs font-bold flex-shrink-0 overflow-hidden">
-                        {pm.member.profilePictureUrl
-                          ? <img src={pm.member.profilePictureUrl} alt="" className="w-full h-full object-cover" />
-                          : pm.member.name[0]}
+                  <div key={pm.id} className="group flex items-center justify-between p-3 rounded-xl bg-muted/20 border border-border/40 hover:border-azure-500/30 transition-all hover:bg-muted/35">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-azure-500/10 border border-azure-500/20 flex items-center justify-center text-azure-400 text-sm font-bold flex-shrink-0 overflow-hidden group-hover:scale-105 transition-transform">
+                        {pm.member.profilePictureUrl ? (
+                          <img src={pm.member.profilePictureUrl} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          pm.member.name[0]
+                        )}
                       </div>
-                      <div>
-                        <p className="text-xs font-semibold">{pm.member.name}</p>
-                        <p className="text-[10px] text-muted-foreground truncate max-w-[150px]">{pm.member.designation}</p>
+                      <div className="space-y-0.5">
+                        <p className="text-sm font-semibold text-foreground tracking-tight group-hover:text-azure-400 transition-colors">
+                          {pm.member.name}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground font-medium">
+                          {pm.member.designation || 'Team Member'}
+                        </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-[9px] px-2 py-0.5 rounded-full bg-azure-500/10 border border-azure-500/20 text-azure-600 font-semibold">
+                    <div className="flex items-center gap-3">
+                      <span className={cn('text-[10px] px-2.5 py-0.5 rounded-full border font-semibold tracking-wide', getRoleBadgeStyle(pm.role || ''))}>
                         {pm.role === 'TEAM_LEADER' ? '👑 Team Leader' : pm.role ? pm.role.replace(/_/g, ' ') : 'Developer'}
                       </span>
-                      <button onClick={() => removeMember.mutate(pm.memberId)}
+                      <button 
+                        onClick={() => removeMember.mutate(pm.memberId)}
                         disabled={removeMember.isPending}
-                        className="p-1.5 text-muted-foreground hover:text-red-400 rounded-lg hover:bg-muted transition-colors">
+                        className="p-1.5 text-muted-foreground hover:text-red-400 hover:bg-red-950/40 rounded-lg opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all"
+                        title="Remove member"
+                      >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   </div>
                 ))
               ) : (
-                <p className="text-xs text-muted-foreground text-center py-6 bg-muted/5 rounded-xl border border-dashed border-border">No team members assigned yet.</p>
+                <div className="flex flex-col items-center justify-center py-10 rounded-2xl border border-dashed border-border/60 bg-muted/5 text-center">
+                  <Users className="w-10 h-10 text-muted-foreground/20 mb-2.5" />
+                  <p className="text-xs text-muted-foreground font-medium">No team members assigned yet</p>
+                  <p className="text-[10px] text-muted-foreground/50 mt-0.5">Assign members below to get started</p>
+                </div>
               )}
             </div>
           </div>
 
-          <div className="pt-4 border-t border-border">
-            <label className="block text-xs font-medium text-muted-foreground mb-2">Add Member & Select Role</label>
-            <div className="space-y-3">
+          {/* Add Member Form Section */}
+          <div className="pt-5 border-t border-border/80 space-y-3 bg-card">
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+              <UserPlus className="w-4 h-4 text-azure-400" />
+              Add Project Team Member
+            </h3>
+            <div className="grid grid-cols-1 gap-3.5 p-4 rounded-2xl bg-muted/15 border border-border/60">
               <div>
-                <select value={selectedMemberId} onChange={e => setSelectedMemberId(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-azure-500/30">
-                  <option value="">Select a team member...</option>
+                <label className="block text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Select Member</label>
+                <select 
+                  value={selectedMemberId} 
+                  onChange={e => setSelectedMemberId(e.target.value)}
+                  className="w-full px-3 py-2.5 text-sm border border-border rounded-xl bg-background/80 text-foreground focus:outline-none focus:ring-2 focus:ring-azure-500/40 focus:border-azure-500/60 transition-all cursor-pointer"
+                >
+                  <option value="">Choose a team member…</option>
                   {assignableMembers.map(m => (
-                    <option key={m.id} value={m.id}>{m.name} ({m.designation})</option>
+                    <option key={m.id} value={m.id}>{m.name} ({m.designation || 'No designation'})</option>
                   ))}
                 </select>
               </div>
-              <div className="flex gap-2">
-                <select value={role} onChange={e => setRole(e.target.value)}
-                  className="flex-1 px-3 py-2 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-azure-500/30">
-                  <option value="PROJECT_MANAGER">Project Manager</option>
-                  <option value="TEAM_LEADER">Team Leader</option>
-                  <option value="BUSINESS_ANALYST">Business Analyst</option>
-                  <option value="DATA_ANALYST">Data Analyst</option>
-                  <option value="DATA_ENGINEER">Data Engineer</option>
-                  <option value="BI_DEVELOPER">BI Developer</option>
-                  <option value="DASHBOARD_DEVELOPER">Dashboard Developer</option>
-                  <option value="DEVELOPER">Full Stack Developer</option>
-                  <option value="FRONTEND_DEVELOPER">Frontend Developer</option>
-                  <option value="BACKEND_DEVELOPER">Backend Developer</option>
-                  <option value="CLOUD_ENGINEER">Cloud Engineer</option>
-                  <option value="DESIGNER">UI/UX Designer</option>
-                  <option value="QA_SPECIALIST">QA Specialist</option>
-                  <option value="SOLUTION_ARCHITECT">Solution Architect</option>
-                  <option value="CLIENT_LIAISON">Client Liaison</option>
-                  <option value="CONSULTANT">Consultant</option>
-                  <option value="TRAINEE">Trainee</option>
-                </select>
-                <button onClick={() => { if (selectedMemberId) addMember.mutate({ memberId: selectedMemberId, role }); }}
+              <div className="grid grid-cols-3 gap-2 items-end">
+                <div className="col-span-2">
+                  <label className="block text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Select Role</label>
+                  <select 
+                    value={role} 
+                    onChange={e => setRole(e.target.value)}
+                    className="w-full px-3 py-2.5 text-sm border border-border rounded-xl bg-background/80 text-foreground focus:outline-none focus:ring-2 focus:ring-azure-500/40 focus:border-azure-500/60 transition-all cursor-pointer"
+                  >
+                    <option value="PROJECT_MANAGER">Project Manager</option>
+                    <option value="TEAM_LEADER">Team Leader</option>
+                    <option value="BUSINESS_ANALYST">Business Analyst</option>
+                    <option value="DATA_ANALYST">Data Analyst</option>
+                    <option value="DATA_ENGINEER">Data Engineer</option>
+                    <option value="BI_DEVELOPER">BI Developer</option>
+                    <option value="DASHBOARD_DEVELOPER">Dashboard Developer</option>
+                    <option value="DEVELOPER">Full Stack Developer</option>
+                    <option value="FRONTEND_DEVELOPER">Frontend Developer</option>
+                    <option value="BACKEND_DEVELOPER">Backend Developer</option>
+                    <option value="CLOUD_ENGINEER">Cloud Engineer</option>
+                    <option value="DESIGNER">UI/UX Designer</option>
+                    <option value="QA_SPECIALIST">QA Specialist</option>
+                    <option value="SOLUTION_ARCHITECT">Solution Architect</option>
+                    <option value="CLIENT_LIAISON">Client Liaison</option>
+                    <option value="CONSULTANT">Consultant</option>
+                    <option value="TRAINEE">Trainee</option>
+                  </select>
+                </div>
+                <button 
+                  onClick={() => { if (selectedMemberId) addMember.mutate({ memberId: selectedMemberId, role }); }}
                   disabled={!selectedMemberId || addMember.isPending}
-                  className="px-4 py-2 text-sm bg-azure-500 text-white rounded-lg hover:bg-azure-600 disabled:opacity-60 flex items-center justify-center gap-1 font-medium transition-colors">
-                  {addMember.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Add'}
+                  className="w-full py-2.5 rounded-xl text-sm font-semibold transition-all bg-azure-500 hover:bg-azure-600 text-white shadow-lg shadow-azure-500/20 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 h-[42px]"
+                >
+                  {addMember.isPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <>
+                      <Plus className="w-4 h-4" />
+                      Add
+                    </>
+                  )}
                 </button>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="px-6 py-4 border-t border-border flex justify-end bg-muted/5">
-          <button onClick={onClose} className="px-4 py-2 text-sm border border-border rounded-lg hover:bg-muted bg-card font-medium transition-colors">Close</button>
+        {/* Footer */}
+        <div className="px-6 py-4.5 border-t border-border/80 flex justify-end bg-muted/20">
+          <button 
+            onClick={onClose} 
+            className="px-5 py-2.5 text-sm border border-border/85 rounded-xl hover:bg-muted bg-card text-foreground font-semibold hover:border-border transition-colors"
+          >
+            Close
+          </button>
         </div>
       </div>
     </div>

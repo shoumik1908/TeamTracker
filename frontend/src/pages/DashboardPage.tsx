@@ -1,13 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { dashboardApi } from '@/lib/api';
 import {
-  Users, FolderKanban, Award, CheckCircle, Clock, AlertTriangle, Calendar
+  Users, FolderKanban, CheckCircle, Calendar
 } from 'lucide-react';
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer
-} from 'recharts';
-import type { DashboardStats, ProjectProgressData, Notification } from '@/types';
+import type { DashboardStats, Notification } from '@/types';
 import { cn, formatRelative, formatDate } from '@/lib/utils';
 
 interface KPICardProps {
@@ -17,11 +14,22 @@ interface KPICardProps {
   color: string;
   bgColor: string;
   subtitle?: string;
+  to?: string;
 }
 
-function KPICard({ title, value, icon: Icon, color, bgColor, subtitle }: KPICardProps) {
+function KPICard({ title, value, icon: Icon, color, bgColor, subtitle, to }: KPICardProps) {
+  const navigate = useNavigate();
   return (
-    <div className="bg-card rounded-xl border border-border p-5 hover-card animate-fade-in">
+    <div
+      onClick={to ? () => navigate(to) : undefined}
+      role={to ? 'button' : undefined}
+      tabIndex={to ? 0 : undefined}
+      onKeyDown={to ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(to); } } : undefined}
+      className={cn(
+        'bg-card rounded-xl border border-border p-5 hover-card animate-fade-in',
+        to && 'cursor-pointer hover:border-azure-500/50 focus:outline-none focus:ring-2 focus:ring-azure-500/40 transition-colors'
+      )}
+    >
       <div className="flex items-start justify-between">
         <div>
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{title}</p>
@@ -38,22 +46,6 @@ function KPICard({ title, value, icon: Icon, color, bgColor, subtitle }: KPICard
 
 
 
-function CustomTooltip({ active, payload, label }: any) {
-  if (active && payload?.length) {
-    return (
-      <div className="bg-card border border-border rounded-lg px-3 py-2 shadow-lg">
-        {label && <p className="text-xs font-semibold text-muted-foreground mb-1">{label}</p>}
-        {payload.map((p: any, i: number) => (
-          <p key={i} className="text-sm font-bold" style={{ color: p.color || p.fill }}>
-            {p.name}: {p.value}
-          </p>
-        ))}
-      </div>
-    );
-  }
-  return null;
-}
-
 export default function DashboardPage() {
   const { data: stats, isLoading: statsLoading } = useQuery<DashboardStats>({
     queryKey: ['dashboard-stats'],
@@ -63,10 +55,6 @@ export default function DashboardPage() {
 
 
 
-  const { data: projectProgress } = useQuery<ProjectProgressData[]>({
-    queryKey: ['project-progress-chart'],
-    queryFn: () => dashboardApi.projectProgress().then(r => r.data),
-  });
 
 
 
@@ -83,14 +71,11 @@ export default function DashboardPage() {
   });
 
   const kpiCards = stats ? [
-    { title: 'Total Team Members', value: stats.totalMembers, icon: Users, color: 'text-azure-400', bgColor: 'bg-azure-900/20' },
-    { title: 'Active Projects', value: stats.activeProjects, icon: FolderKanban, color: 'text-purple-400', bgColor: 'bg-purple-900/20' },
-    { title: 'Completed Projects', value: stats.completedProjects, icon: CheckCircle, color: 'text-green-400', bgColor: 'bg-green-900/20' },
-    { title: 'Total Certifications', value: stats.totalCertifications, icon: Award, color: 'text-indigo-400', bgColor: 'bg-indigo-900/20' },
-    { title: 'Completed Certs', value: stats.completedCertifications, icon: CheckCircle, color: 'text-green-400', bgColor: 'bg-green-900/20', subtitle: `${stats.totalCertifications > 0 ? Math.round((stats.completedCertifications / stats.totalCertifications) * 100) : 0}% completion rate` },
-    { title: 'Pending Certs', value: stats.pendingCertifications, icon: Clock, color: 'text-yellow-400', bgColor: 'bg-yellow-900/20' },
-    { title: 'Overdue Certs', value: stats.overdueCertifications, icon: AlertTriangle, color: 'text-red-400', bgColor: 'bg-red-900/20' },
-    { title: 'Upcoming Deadlines', value: stats.upcomingDeadlines, icon: Calendar, color: 'text-orange-400', bgColor: 'bg-orange-900/20', subtitle: 'Within 7 days' },
+    { title: 'Total Team Members', value: stats.totalMembers, icon: Users, color: 'text-azure-400', bgColor: 'bg-azure-900/20', to: '/members' },
+    { title: 'Active Projects', value: stats.activeProjects, icon: FolderKanban, color: 'text-purple-400', bgColor: 'bg-purple-900/20', to: '/projects' },
+    { title: 'Completed Projects', value: stats.completedProjects, icon: CheckCircle, color: 'text-green-400', bgColor: 'bg-green-900/20', to: '/projects' },
+    { title: 'Total Team Certificates', value: stats.completedCertifications, icon: CheckCircle, color: 'text-green-400', bgColor: 'bg-green-900/20', to: '/tracker' },
+    { title: 'Upcoming Deadlines', value: stats.upcomingDeadlines, icon: Calendar, color: 'text-orange-400', bgColor: 'bg-orange-900/20', subtitle: 'Within 7 days', to: '/deadlines' },
   ] : [];
 
   const notifTypeIcon: Record<string, string> = {
@@ -102,7 +87,7 @@ export default function DashboardPage() {
   if (statsLoading) {
     return (
       <div className="grid grid-cols-4 gap-4 mb-6">
-        {Array.from({ length: 8 }).map((_, i) => (
+        {Array.from({ length: 5 }).map((_, i) => (
           <div key={i} className="bg-card rounded-xl border border-border p-5 h-24 animate-pulse">
             <div className="h-3 bg-muted rounded w-1/2 mb-3" />
             <div className="h-8 bg-muted rounded w-1/3" />
@@ -119,20 +104,6 @@ export default function DashboardPage() {
         {kpiCards.map((card, i) => (
           <KPICard key={i} {...card} />
         ))}
-      </div>
-
-      {/* Project Progress Bar - Full Width */}
-      <div className="bg-card rounded-xl border border-border p-5">
-        <h3 className="font-semibold text-sm mb-4">Project Progress</h3>
-        <ResponsiveContainer width="100%" height={220}>
-          <BarChart data={projectProgress} layout="vertical" barSize={10}>
-            <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#261a3c" />
-            <XAxis type="number" domain={[0, 100]} tickFormatter={v => `${v}%`} tick={{ fontSize: 11, fill: '#8c80a6' }} />
-            <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: '#8c80a6' }} width={140} />
-            <Tooltip content={<CustomTooltip />} formatter={(v) => [`${v}%`, 'Progress']} />
-            <Bar dataKey="progress" fill="#8b5cf6" radius={[0, 5, 5, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
       </div>
 
       {/* Recent Activities - Full Width */}

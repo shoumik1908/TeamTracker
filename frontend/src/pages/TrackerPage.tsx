@@ -1,12 +1,101 @@
-import { useState, useRef, useMemo } from 'react';
+import { useState, useRef, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { certificationsApi, membersApi } from '@/lib/api';
-import { Search, Upload, Pencil, Trash2, FileText, ChevronDown, ChevronUp, X, Loader2, Plus } from 'lucide-react';
+import { Search, Upload, Pencil, Trash2, FileText, ChevronDown, ChevronUp, X, Loader2, Plus, MoreVertical, CheckCircle2, Clock, AlertCircle } from 'lucide-react';
 import { cn, formatDate, formatStatus, getStatusColor, getInitials } from '@/lib/utils';
 import type { AssignedCertification, PaginatedResponse, TeamMember, Certification } from '@/types';
+import AddCertificationModal from '@/components/AddCertificationModal';
 
 const STATUSES = ['NOT_STARTED', 'IN_PROGRESS', 'COMPLETED', 'OVERDUE', 'EXPIRED'];
 const PRIORITIES = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
+
+function QuickUpdateMenu({
+  assignment, onEdit, onUpload, onDelete, onQuickStatus
+}: {
+  assignment: AssignedCertification;
+  onEdit: () => void;
+  onUpload: () => void;
+  onDelete: () => void;
+  onQuickStatus: (status: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener('mousedown', handleOutside);
+    return () => document.removeEventListener('mousedown', handleOutside);
+  }, []);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-white/5 rounded-lg transition-colors"
+        title="Quick Update"
+      >
+        <MoreVertical className="w-3.5 h-3.5" />
+      </button>
+      {open && (
+        <div className="absolute right-0 bottom-8 z-40 w-48 bg-popover border border-border rounded-xl shadow-2xl overflow-hidden animate-fade-in">
+          {/* Quick Status Section */}
+          <div className="px-3 py-2 border-b border-border/60">
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Quick Status</p>
+            <div className="space-y-1">
+              <button
+                onClick={() => { onQuickStatus('NOT_STARTED'); setOpen(false); }}
+                className={`w-full flex items-center gap-2 px-2 py-1.5 text-xs rounded-lg transition-colors text-left ${
+                  assignment.status === 'NOT_STARTED' ? 'bg-slate-800/60 text-slate-300' : 'hover:bg-muted/40 text-muted-foreground'
+                }`}
+              >
+                <AlertCircle className="w-3 h-3" /> Not Started
+              </button>
+              <button
+                onClick={() => { onQuickStatus('IN_PROGRESS'); setOpen(false); }}
+                className={`w-full flex items-center gap-2 px-2 py-1.5 text-xs rounded-lg transition-colors text-left ${
+                  assignment.status === 'IN_PROGRESS' ? 'bg-azure-900/40 text-azure-300' : 'hover:bg-muted/40 text-muted-foreground'
+                }`}
+              >
+                <Clock className="w-3 h-3" /> In Progress
+              </button>
+              <button
+                onClick={() => { onQuickStatus('COMPLETED'); setOpen(false); }}
+                className={`w-full flex items-center gap-2 px-2 py-1.5 text-xs rounded-lg transition-colors text-left ${
+                  assignment.status === 'COMPLETED' ? 'bg-emerald-900/40 text-emerald-300' : 'hover:bg-muted/40 text-muted-foreground'
+                }`}
+              >
+                <CheckCircle2 className="w-3 h-3" /> Mark Completed
+              </button>
+            </div>
+          </div>
+          {/* Actions Section */}
+          <div className="py-1">
+            <button
+              onClick={() => { setOpen(false); onEdit(); }}
+              className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-foreground hover:bg-muted/40 transition-colors text-left"
+            >
+              <Pencil className="w-3 h-3 text-muted-foreground" /> Edit Details
+            </button>
+            <button
+              onClick={() => { setOpen(false); onUpload(); }}
+              className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-azure-400 hover:bg-azure-950/40 transition-colors text-left"
+            >
+              <Upload className="w-3 h-3" /> Upload Certificate
+            </button>
+            <button
+              onClick={() => { setOpen(false); onDelete(); }}
+              className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-red-400 hover:bg-red-950/40 transition-colors text-left"
+            >
+              <Trash2 className="w-3 h-3" /> Delete
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function AssignModal({ onClose, onSave }: { onClose: () => void; onSave: (d: Record<string, string>) => void }) {
   const [form, setForm] = useState({ memberId: '', certificationId: '', deadline: '', priority: 'MEDIUM', notes: '' });
@@ -163,6 +252,7 @@ export default function TrackerPage() {
   const [provider] = useState('');
   const [deadline, setDeadline] = useState('');
   const [showAssign, setShowAssign] = useState(false);
+  const [addFor, setAddFor] = useState<{ id: string; name: string } | null>(null);
   const [editAssignment, setEditAssignment] = useState<AssignedCertification | undefined>();
   const [uploadId, setUploadId] = useState<string | null>(null);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
@@ -275,7 +365,6 @@ export default function TrackerPage() {
       <div className="page-header">
         <div>
           <h2 className="page-title">Certification Tracker</h2>
-          <p className="page-subtitle">{data?.pagination.total || 0} total assignments</p>
         </div>
         <button onClick={() => setShowAssign(true)}
           className="flex items-center gap-2 px-4 py-2.5 bg-azure-500 text-white text-sm font-medium rounded-xl hover:bg-azure-600 transition-colors shadow-lg shadow-azure-500/25">
@@ -317,7 +406,8 @@ export default function TrackerPage() {
           const progress = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
           return (
             <div key={group.member.id} className="bg-card rounded-xl border border-border shadow-sm overflow-hidden transition-all duration-300">
-              <button onClick={() => toggleMember(group.member.id)} className="w-full flex items-center justify-between p-4 hover:bg-muted/10 transition-colors">
+              <div onClick={() => toggleMember(group.member.id)}
+                className="w-full flex items-center justify-between p-4 hover:bg-muted/10 transition-colors cursor-pointer select-none">
                 <div className="flex items-center gap-4">
                   <div className="w-10 h-10 rounded-full bg-azure-900/40 flex items-center justify-center text-azure-300 text-xs font-bold flex-shrink-0 overflow-hidden border border-azure-800/40">
                     {group.member.profilePictureUrl
@@ -329,16 +419,22 @@ export default function TrackerPage() {
                     <p className="text-xs text-muted-foreground">{group.member.designation}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-6">
+                <div className="flex items-center gap-4">
                   <div className="text-right hidden sm:block">
                     <p className="text-xs font-medium">{completedCount} / {totalCount} Completed</p>
                     <div className="w-24 h-1.5 bg-muted rounded-full mt-1 overflow-hidden">
                       <div className="h-full bg-azure-500 rounded-full transition-all" style={{ width: `${progress}%` }} />
                     </div>
                   </div>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setAddFor({ id: group.member.id, name: group.member.name }); }}
+                    title={`Add certification for ${group.member.name}`}
+                    className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 bg-azure-500/10 text-azure-300 border border-azure-800/40 rounded-lg hover:bg-azure-500 hover:text-white transition-colors">
+                    <Plus className="w-3.5 h-3.5" /> Add
+                  </button>
                   {expandedMembers.has(group.member.id) ? <ChevronUp className="w-5 h-5 text-muted-foreground" /> : <ChevronDown className="w-5 h-5 text-muted-foreground" />}
                 </div>
-              </button>
+              </div>
               
               {expandedMembers.has(group.member.id) && (
                 <div className="border-t border-border overflow-x-auto bg-muted/5">
@@ -414,20 +510,15 @@ export default function TrackerPage() {
                               )}
                             </td>
                             <td>
-                              <div className="flex items-center gap-1">
-                                <button onClick={() => setEditAssignment(a)} title="Edit"
-                                  className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors">
-                                  <Pencil className="w-3.5 h-3.5" />
-                                </button>
-                                <button onClick={() => setUploadId(a.id)} title="Upload Certificate"
-                                  className="p-1.5 text-muted-foreground hover:text-azure-400 hover:bg-azure-950/40 rounded-lg transition-colors">
-                                  <Upload className="w-3.5 h-3.5" />
-                                </button>
-                                <button onClick={() => deleteAssign.mutate(a.id)} title="Delete"
-                                  className="p-1.5 text-muted-foreground hover:text-red-400 hover:bg-red-950/40 rounded-lg transition-colors">
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
+                              <QuickUpdateMenu
+                                assignment={a}
+                                onEdit={() => setEditAssignment(a)}
+                                onUpload={() => setUploadId(a.id)}
+                                onDelete={() => deleteAssign.mutate(a.id)}
+                                onQuickStatus={(newStatus) =>
+                                  updateAssign.mutate({ id: a.id, d: { status: newStatus, progress: newStatus === 'COMPLETED' ? 100 : newStatus === 'IN_PROGRESS' ? 50 : a.progress } })
+                                }
+                              />
                             </td>
                           </tr>
                         );
@@ -442,6 +533,14 @@ export default function TrackerPage() {
       </div>
 
       {showAssign && <AssignModal onClose={() => setShowAssign(false)} onSave={d => assign.mutate(d)} />}
+      {addFor && (
+        <AddCertificationModal
+          memberId={addFor.id}
+          memberName={addFor.name}
+          onClose={() => setAddFor(null)}
+          onSaved={() => setAddFor(null)}
+        />
+      )}
       {editAssignment && (
         <EditProgressModal assignment={editAssignment} onClose={() => setEditAssignment(undefined)}
           onSave={d => updateAssign.mutate({ id: editAssignment.id, d })} />

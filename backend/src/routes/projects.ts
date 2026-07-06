@@ -169,6 +169,17 @@ router.post('/:id/members', async (req: Request, res: Response) => {
   res.status(201).json(pm);
 });
 
+// PUT /api/projects/:id/members/:memberId - Update a member's role in a project
+router.put('/:id/members/:memberId', async (req: Request, res: Response) => {
+  const { role } = req.body;
+  const result = await prisma.projectMember.updateMany({
+    where: { projectId: req.params.id, memberId: req.params.memberId },
+    data: { role: role || null },
+  });
+  if (result.count === 0) throw new AppError('Project member not found', 404);
+  res.json({ message: 'Project member updated' });
+});
+
 // DELETE /api/projects/:id/members/:memberId
 router.delete('/:id/members/:memberId', async (req: Request, res: Response) => {
   await prisma.projectMember.deleteMany({

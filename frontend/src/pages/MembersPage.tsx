@@ -233,7 +233,7 @@ export default function MembersPage() {
               <th className="text-left">Member</th>
               <th className="text-left">Designation</th>
               <th className="text-left">Projects</th>
-              <th className="text-left">Actions</th>
+              <th className="text-left"></th>
             </tr>
           </thead>
           <tbody>

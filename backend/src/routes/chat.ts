@@ -51,24 +51,43 @@ async function buildContext(): Promise<string> {
     return ac.status !== 'COMPLETED' && daysLeft >= 0 && daysLeft <= 7;
   });
 
+  // Aggregate assignment status counts — avoids dumping every assignment (which blows past
+  // the model's token-per-minute limit once there are hundreds of them)
+  const statusCounts = assignedCerts.reduce((acc, ac) => {
+    acc[ac.status] = (acc[ac.status] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+  const statusSummary = Object.entries(statusCounts).map(([s, n]) => `${n} ${s}`).join(', ') || 'none';
+
+  const activeProjects = projects.filter(p => p.status !== 'COMPLETED');
+  const completedProjects = projects.filter(p => p.status === 'COMPLETED');
+
+  // Cap the catalog list so a large catalog can't bloat the prompt
+  const CATALOG_CAP = 60;
+  const catalogList = certifications.slice(0, CATALOG_CAP).map(c => `• ${c.name} (${c.provider})`).join('\n')
+    + (certifications.length > CATALOG_CAP ? `\n…and ${certifications.length - CATALOG_CAP} more` : '');
+
   const context = `
 === TEAM TRACKER DASHBOARD — LIVE DATA ===
 
 DATE: ${today.toDateString()}
 
---- TEAM MEMBERS (${members.length} total) ---
-${members.map(m => `
-• ${m.name} | ${m.designation}
-  Skills: ${m.skills.join(', ') || 'None listed'}
-  Certifications: ${m.assignedCertifications.length} assigned
-  Projects: ${m.projectMembers.map(pm => pm.project.name).join(', ') || 'None'}
-`).join('')}
+--- SUMMARY ---
+Members: ${members.length}
+Certification catalog: ${certifications.length}
+Certification assignments: ${assignedCerts.length} (${statusSummary})
+Overdue certifications: ${overdue.length}
+Projects: ${projects.length} (${activeProjects.length} active, ${completedProjects.length} completed)
 
---- CERTIFICATION CATALOG (${certifications.length} total) ---
-${certifications.map(c => `• ${c.name} | Provider: ${c.provider}`).join('\n')}
+--- TEAM MEMBERS (${members.length}) — per-member certification summary ---
+${members.map(m => {
+    const acs = m.assignedCertifications;
+    const done = acs.filter(a => a.status === 'COMPLETED').length;
+    return `• ${m.name} (${m.designation || '—'}) | Certs: ${acs.length} total, ${done} completed | Projects: ${m.projectMembers.map(pm => pm.project.name).join(', ') || 'None'}`;
+  }).join('\n')}
 
---- CERTIFICATION ASSIGNMENTS (${assignedCerts.length} total) ---
-${assignedCerts.map(ac => `• ${ac.member?.name} → ${ac.certification?.name} | Status: ${ac.status} | Progress: ${ac.progress}% | Deadline: ${new Date(ac.deadline).toDateString()} | Priority: ${ac.priority}`).join('\n')}
+--- CERTIFICATION CATALOG (${certifications.length}) ---
+${catalogList}
 
 --- OVERDUE CERTIFICATIONS (${overdue.length}) ---
 ${overdue.length === 0 ? 'None! Great job.' : overdue.map(ac => `• ${ac.member?.name} → ${ac.certification?.name} (Deadline was: ${new Date(ac.deadline).toDateString()}, Progress: ${ac.progress}%)`).join('\n')}
@@ -80,15 +99,14 @@ ${upcoming.length === 0 ? 'None this week.' : upcoming.map(ac => {
   }).join('\n')}
 
 --- PROJECTS (${projects.length} total) ---
-${projects.map(p => `• ${p.name} | Status: ${p.status} | Progress: ${p.progress}% | Priority: ${p.priority}
-  Manager: ${p.manager?.name || 'None'}
-  Team: ${p.members.map(pm => pm.member.name).join(', ') || 'No members assigned'}
-  ${p.endDate ? `End date: ${new Date(p.endDate).toDateString()}` : 'No end date set'}`).join('\n')}
+${projects.map(p => `• ${p.name} | Status: ${p.status} | Progress: ${p.progress}% | Priority: ${p.priority} | Team: ${p.members.map(pm => pm.member.name).join(', ') || 'None'}${p.endDate ? ` | Ends ${new Date(p.endDate).toDateString()}` : ''}`).join('\n')}
 
 --- RECENT ACTIVITY (last 10 events) ---
 ${notifications.map(n => `• ${n.title}: ${n.message}`).join('\n')}
 
 ===========================================
+
+NOTE: The full list of every individual certification assignment is not included to keep responses fast. You have per-member totals, all overdue items, and all upcoming deadlines. If asked for a specific member's detailed certifications, answer from their summary and suggest opening that member's profile page for the full breakdown.
   `;
 
   return context;
@@ -150,12 +168,12 @@ ${context}`;
         });
 
         if (!response.ok) {
-          const errBody = await response.json().catch(() => ({}));
+          const errBody: any = await response.json().catch(() => ({}));
           const status = response.status;
           throw { status, message: errBody.error?.message || 'Groq API error' };
         }
 
-        const data = await response.json();
+        const data: any = await response.json();
         return data.choices?.[0]?.message?.content || '';
       } catch (err: any) {
         if (err.status === 429 && retryCount === 0) {

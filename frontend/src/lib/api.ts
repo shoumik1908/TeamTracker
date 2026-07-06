@@ -50,6 +50,7 @@ export const projectsApi = {
   update: (id: string, data: Record<string, unknown>) => api.put(`/projects/${id}`, data),
   delete: (id: string) => api.delete(`/projects/${id}`),
   addMember: (id: string, data: Record<string, unknown>) => api.post(`/projects/${id}/members`, data),
+  updateMember: (id: string, memberId: string, data: Record<string, unknown>) => api.put(`/projects/${id}/members/${memberId}`, data),
   removeMember: (id: string, memberId: string) => api.delete(`/projects/${id}/members/${memberId}`),
 };
 

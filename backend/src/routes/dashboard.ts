@@ -23,7 +23,7 @@ router.get('/stats', async (_req: Request, res: Response) => {
     upcomingDeadlines,
   ] = await Promise.all([
     prisma.teamMember.count(),
-    prisma.project.count({ where: { status: 'IN_PROGRESS' } }),
+    prisma.project.count({ where: { status: { in: ['PLANNING', 'IN_PROGRESS', 'ON_HOLD'] } } }),
     prisma.project.count({ where: { status: 'COMPLETED' } }),
     prisma.assignedCertification.count(),
     prisma.assignedCertification.count({ where: { status: 'COMPLETED' } }),
