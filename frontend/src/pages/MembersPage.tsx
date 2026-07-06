@@ -218,7 +218,7 @@ export default function MembersPage() {
       </div>
 
       {/* Search and Filters */}
-      <div className="bg-card rounded-xl border border-border p-4 flex flex-col sm:flex-row gap-4">
+      <div className="bg-card rounded-xl border border-border p-4 flex flex-col sm:flex-row sm:justify-between gap-4">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input
@@ -230,7 +230,7 @@ export default function MembersPage() {
           />
         </div>
         
-        <div className="relative flex-1 max-w-xs">
+        <div className="relative w-full sm:max-w-xs">
           <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
           <select
             value={projectId}
