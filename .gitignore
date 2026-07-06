@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+
+# Environment variables (secrets)
+.env
+.env.local
+.env.*.local
+
+# Build output
+dist/
+build/
+.vite/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+
+# Prisma
+prisma/*.db
+prisma/*.db-journal

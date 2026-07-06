@@ -1,0 +1,180 @@
+import { Router, Request, Response } from 'express';
+import { PrismaClient, ProjectStatus, Priority } from '@prisma/client';
+import { AppError } from '../middleware/errorHandler';
+
+const router = Router();
+const prisma = new PrismaClient();
+
+// GET /api/projects
+router.get('/', async (req: Request, res: Response) => {
+  const { search, status, priority, page = '1', limit = '10', sortBy = 'createdAt', sortOrder = 'desc' } = req.query;
+  const pageNum = parseInt(page as string);
+  const limitNum = parseInt(limit as string);
+
+  const where: any = {};
+  if (search) {
+    where.OR = [
+      { name: { contains: search as string, mode: 'insensitive' } },
+      { description: { contains: search as string, mode: 'insensitive' } },
+      { client: { contains: search as string, mode: 'insensitive' } },
+    ];
+  }
+  if (status) where.status = status as ProjectStatus;
+  if (priority) where.priority = priority as Priority;
+
+  const [projects, total] = await Promise.all([
+    prisma.project.findMany({
+      where,
+      skip: (pageNum - 1) * limitNum,
+      take: limitNum,
+      orderBy: { [sortBy as string]: sortOrder },
+      include: {
+        manager: { select: { id: true, name: true, profilePictureUrl: true, designation: true } },
+        members: {
+          include: {
+            member: { select: { id: true, name: true, profilePictureUrl: true, designation: true } },
+          },
+        },
+        _count: { select: { members: true } },
+      },
+    }),
+    prisma.project.count({ where }),
+  ]);
+
+  res.json({ data: projects, pagination: { page: pageNum, limit: limitNum, total, totalPages: Math.ceil(total / limitNum) } });
+});
+
+// GET /api/projects/:id
+router.get('/:id', async (req: Request, res: Response) => {
+  const project = await prisma.project.findUnique({
+    where: { id: req.params.id },
+    include: {
+      manager: { select: { id: true, name: true, profilePictureUrl: true, designation: true } },
+      members: {
+        include: {
+          member: {
+            select: {
+              id: true, name: true, profilePictureUrl: true,
+              designation: true,
+            },
+          },
+        },
+      },
+    },
+  });
+  if (!project) throw new AppError('Project not found', 404);
+  res.json(project);
+});
+
+// POST /api/projects
+router.post('/', async (req: Request, res: Response) => {
+  const { name, description, client, startDate, endDate, priority, status, progress, memberIds, managerId } = req.body;
+
+  if (!name || !startDate) throw new AppError('Name and start date are required', 400);
+
+  const project = await prisma.project.create({
+    data: {
+      name,
+      description,
+      client,
+      startDate: new Date(startDate),
+      endDate: endDate ? new Date(endDate) : undefined,
+      priority: priority || Priority.MEDIUM,
+      status: status || ProjectStatus.PLANNING,
+      progress: progress || 0,
+      managerId: managerId || undefined,
+      members: memberIds?.length
+        ? { create: memberIds.map((memberId: string) => ({ memberId })) }
+        : undefined,
+    },
+    include: {
+      members: { include: { member: { select: { id: true, name: true, profilePictureUrl: true } } } },
+    },
+  });
+
+  await prisma.notification.create({
+    data: {
+      type: 'PROJECT_UPDATED',
+      title: 'New Project Created',
+      message: `Project "${name}" has been created`,
+    },
+  });
+
+  res.status(201).json(project);
+});
+
+// PUT /api/projects/:id
+router.put('/:id', async (req: Request, res: Response) => {
+  const { name, description, client, startDate, endDate, priority, status, progress, managerId } = req.body;
+
+  const existing = await prisma.project.findUnique({ where: { id: req.params.id } });
+  if (!existing) throw new AppError('Project not found', 404);
+
+  const project = await prisma.project.update({
+    where: { id: req.params.id },
+    data: {
+      ...(name && { name }),
+      ...(description !== undefined && { description }),
+      ...(client !== undefined && { client }),
+      ...(startDate && { startDate: new Date(startDate) }),
+      ...(endDate !== undefined && { endDate: endDate ? new Date(endDate) : null }),
+      ...(priority && { priority }),
+      ...(status && { status }),
+      ...(progress !== undefined && { progress: parseInt(progress) }),
+      ...(managerId !== undefined && { managerId: managerId || null }),
+    },
+    include: {
+      members: { include: { member: { select: { id: true, name: true, profilePictureUrl: true } } } },
+    },
+  });
+
+  await prisma.notification.create({
+    data: {
+      type: 'PROJECT_UPDATED',
+      title: 'Project Updated',
+      message: `Project "${project.name}" has been updated`,
+    },
+  });
+
+  res.json(project);
+});
+
+// DELETE /api/projects/:id
+router.delete('/:id', async (req: Request, res: Response) => {
+  const existing = await prisma.project.findUnique({ where: { id: req.params.id } });
+  if (!existing) throw new AppError('Project not found', 404);
+  await prisma.project.delete({ where: { id: req.params.id } });
+  res.json({ message: 'Project deleted' });
+});
+
+// POST /api/projects/:id/members - Add member to project
+router.post('/:id/members', async (req: Request, res: Response) => {
+  const { memberId, role } = req.body;
+  if (!memberId) throw new AppError('memberId is required', 400);
+
+  const pm = await prisma.projectMember.create({
+    data: { projectId: req.params.id, memberId, role },
+    include: { member: { select: { id: true, name: true, profilePictureUrl: true, designation: true } } },
+  });
+
+  await prisma.notification.create({
+    data: {
+      memberId,
+      type: 'PROJECT_ASSIGNED',
+      title: 'Assigned to Project',
+      message: `You have been assigned to project`,
+    },
+  });
+
+  res.status(201).json(pm);
+});
+
+// DELETE /api/projects/:id/members/:memberId
+router.delete('/:id/members/:memberId', async (req: Request, res: Response) => {
+  await prisma.projectMember.deleteMany({
+    where: { projectId: req.params.id, memberId: req.params.memberId },
+  });
+  res.json({ message: 'Member removed from project' });
+});
+
+export default router;

@@ -1,0 +1,143 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 240 10% 4%;
+    --foreground: 240 5% 90%;
+    --card: 240 6% 10%;
+    --card-foreground: 240 5% 90%;
+    --popover: 240 6% 10%;
+    --popover-foreground: 240 5% 90%;
+    --primary: 210 90% 50%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 5% 15%;
+    --secondary-foreground: 240 5% 90%;
+    --muted: 240 5% 15%;
+    --muted-foreground: 240 5% 65%;
+    --accent: 210 90% 50%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 240 5% 18%;
+    --input: 240 5% 18%;
+    --ring: 210 90% 50%;
+    --radius: 0.5rem;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased selection:bg-primary/30 selection:text-primary-foreground;
+  }
+
+  input[type="text"],
+  input[type="email"],
+  input[type="date"],
+  input[type="number"],
+  input[type="password"],
+  input[type="tel"],
+  input[type="url"],
+  select,
+  textarea {
+    @apply bg-zinc-900 text-foreground border-border;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-border rounded-full;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/30;
+  }
+}
+
+@layer components {
+  /* KPI Card shimmer effect */
+  .shimmer-bg {
+    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.05) 50%, transparent 100%);
+    background-size: 200% 100%;
+    animation: shimmer 2s linear infinite;
+  }
+
+  /* Sidebar */
+  .sidebar-link {
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium
+           text-sidebar-text transition-all duration-200 cursor-pointer select-none;
+  }
+  .sidebar-link:hover {
+    @apply bg-sidebar-hover text-sidebar-text-active;
+  }
+  .sidebar-link.active {
+    @apply bg-primary text-white shadow-lg shadow-primary/20;
+  }
+
+  /* Status badges */
+  .badge-not-started    { @apply bg-slate-900/60 text-slate-400 border border-slate-800; }
+  .badge-in-progress    { @apply bg-blue-950/40 text-blue-400 border border-blue-900/40; }
+  .badge-completed      { @apply bg-green-950/40 text-green-400 border border-green-900/40; }
+  .badge-overdue        { @apply bg-red-950/40 text-red-400 border border-red-900/40; }
+  .badge-expired        { @apply bg-orange-950/40 text-orange-400 border border-orange-900/40; }
+  .badge-planning       { @apply bg-purple-950/40 text-purple-400 border border-purple-900/40; }
+  .badge-on-hold        { @apply bg-yellow-950/40 text-yellow-400 border border-yellow-900/40; }
+
+  /* Priority badges */
+  .badge-low      { @apply bg-slate-900/40 text-slate-400 border border-slate-800/40; }
+  .badge-medium   { @apply bg-yellow-950/40 text-yellow-400 border border-yellow-900/40; }
+  .badge-high     { @apply bg-orange-950/40 text-orange-400 border border-orange-900/40; }
+  .badge-critical { @apply bg-red-950/40 text-red-400 border border-red-900/40; }
+
+  /* Card hover */
+  .hover-card {
+    @apply transition-all duration-200 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5;
+  }
+
+  /* Glass card */
+  .glass-card {
+    @apply bg-zinc-900/70 backdrop-blur-md border border-border shadow-md shadow-black/20;
+  }
+
+  /* Page header */
+  .page-header {
+    @apply flex items-center justify-between mb-6;
+  }
+  .page-title {
+    @apply text-2xl font-bold text-foreground;
+  }
+  .page-subtitle {
+    @apply text-sm text-muted-foreground mt-0.5;
+  }
+
+  /* Table styles */
+  .data-table th {
+    @apply bg-muted/50 text-muted-foreground text-xs font-semibold uppercase tracking-wider px-4 py-3;
+  }
+  .data-table td {
+    @apply px-4 py-3 text-sm border-b border-border/50;
+  }
+  .data-table tr:hover td {
+    @apply bg-muted/30;
+  }
+}
+
+/* Recharts custom styles */
+.recharts-tooltip-wrapper {
+  @apply !shadow-lg !rounded-lg !border-0;
+}
+.recharts-default-tooltip {
+  @apply !bg-white !border !border-border !rounded-lg !shadow-lg;
+}
+
+/* Animations */
+.animate-in {
+  animation: fade-in 0.3s ease-out;
+}

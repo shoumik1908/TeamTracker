@@ -1,0 +1,175 @@
+// This is your Prisma schema file
+// Learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+
+}
+
+model TeamMember {
+  id                     String                  @id @default(cuid())
+  name                   String
+  phone                  String?
+  designation            String?
+  joiningDate            DateTime
+  skills                 String[]
+  profilePictureUrl      String?
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+
+  assignedCertifications AssignedCertification[]
+  projectMembers         ProjectMember[]
+  managedProjects        Project[]               @relation("ProjectManager")
+  notifications          Notification[]
+  projectUpdates         ProjectUpdate[]
+
+  managerId              String?
+  manager                TeamMember?             @relation("TeamManager", fields: [managerId], references: [id], onDelete: SetNull)
+  subordinates           TeamMember[]            @relation("TeamManager")
+
+  @@map("team_members")
+}
+
+model Certification {
+  id                     String                  @id @default(cuid())
+  name                   String
+  provider               String
+  description            String?
+  duration               String?
+  learningLink           String?
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+
+  assignedCertifications AssignedCertification[]
+
+  @@map("certifications")
+}
+
+model AssignedCertification {
+  id                String              @id @default(cuid())
+  memberId          String
+  certificationId   String
+  assignedDate      DateTime            @default(now())
+  deadline          DateTime
+  priority          Priority            @default(MEDIUM)
+  notes             String?
+  progress          Int                 @default(0)
+  status            CertificationStatus @default(NOT_STARTED)
+  completionDate    DateTime?
+  expiryDate        DateTime?
+  certificateUrl    String?
+  credentialId      String?
+  uploadDate        DateTime?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  member            TeamMember          @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  certification     Certification       @relation(fields: [certificationId], references: [id], onDelete: Cascade)
+
+  @@unique([memberId, certificationId])
+  @@map("assigned_certifications")
+}
+
+model Project {
+  id          String        @id @default(cuid())
+  name        String
+  description String?
+  client      String?
+  startDate   DateTime
+  endDate     DateTime?
+  priority    Priority      @default(MEDIUM)
+  status      ProjectStatus @default(PLANNING)
+  progress    Int           @default(0)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  members        ProjectMember[]
+  managerId      String?
+  manager        TeamMember?   @relation("ProjectManager", fields: [managerId], references: [id], onDelete: SetNull)
+  projectUpdates ProjectUpdate[]
+
+  @@map("projects")
+}
+
+model ProjectMember {
+  id        String     @id @default(cuid())
+  projectId String
+  memberId  String
+  role      String?
+  joinedAt  DateTime   @default(now())
+
+  project   Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  member    TeamMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, memberId])
+  @@map("project_members")
+}
+
+model ProjectUpdate {
+  id            String     @id @default(cuid())
+  projectId     String
+  memberId      String
+  updateText    String
+  updateType    String     // Progress / Blocker / Milestone / General
+  progressValue Int?
+  createdAt     DateTime   @default(now())
+
+  project       Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  member        TeamMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@map("project_updates")
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  memberId  String?
+  type      NotificationType
+  title     String
+  message   String
+  read      Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  member    TeamMember?      @relation(fields: [memberId], references: [id], onDelete: SetNull)
+
+  @@map("notifications")
+}
+
+// Enums
+
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum CertificationStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  OVERDUE
+  EXPIRED
+}
+
+enum ProjectStatus {
+  PLANNING
+  IN_PROGRESS
+  ON_HOLD
+  COMPLETED
+}
+
+enum NotificationType {
+  CERTIFICATION_ASSIGNED
+  DEADLINE_APPROACHING
+  CERTIFICATE_UPLOADED
+  CERTIFICATION_COMPLETED
+  PROJECT_UPDATED
+  PROJECT_ASSIGNED
+}

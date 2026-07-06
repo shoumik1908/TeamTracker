@@ -1,0 +1,121 @@
+import { useState } from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
+import {
+  LayoutDashboard, Users, Award, ClipboardList, FolderKanban,
+  Clock, Bell, FileBarChart, ChevronLeft, ChevronRight,
+  Zap, MessageSquareDiff,
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { useQuery } from '@tanstack/react-query';
+import { notificationsApi } from '@/lib/api';
+
+const navItems = [
+  { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/members', icon: Users, label: 'Team Members' },
+  { to: '/certifications', icon: Award, label: 'Certifications' },
+  { to: '/tracker', icon: ClipboardList, label: 'Cert Tracker' },
+  { to: '/projects', icon: FolderKanban, label: 'Projects' },
+  { to: '/project-updates', icon: MessageSquareDiff, label: 'Project Updates' },
+  { to: '/deadlines', icon: Clock, label: 'Deadlines' },
+  { to: '/notifications', icon: Bell, label: 'Notifications' },
+  { to: '/reports', icon: FileBarChart, label: 'Reports' },
+];
+
+export default function Sidebar() {
+  const [collapsed, setCollapsed] = useState(false);
+  const location = useLocation();
+
+  const { data } = useQuery({
+    queryKey: ['notifications-count'],
+    queryFn: () => notificationsApi.list({ unreadOnly: 'true', limit: '1' }),
+    refetchInterval: 30000,
+  });
+  const unreadCount = data?.data?.unreadCount || 0;
+
+  return (
+    <aside
+      className={cn(
+        'flex flex-col h-screen bg-sidebar transition-all duration-300 ease-in-out relative z-20 flex-shrink-0',
+        collapsed ? 'w-16' : 'w-64'
+      )}
+    >
+      {/* Logo */}
+      <div className={cn('flex items-center gap-3 px-4 py-5 border-b border-border', collapsed && 'justify-center px-2')}>
+        <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-azure-500 flex items-center justify-center shadow-lg shadow-azure-500/40">
+          <Zap className="w-4 h-4 text-white" />
+        </div>
+        {!collapsed && (
+          <div className="animate-fade-in overflow-hidden">
+            <p className="text-foreground font-bold text-sm leading-tight">Team Tracker</p>
+            <p className="text-muted-foreground text-xs">Enterprise Dashboard</p>
+          </div>
+        )}
+      </div>
+
+      {/* Navigation */}
+      <nav className="flex-1 px-2 py-4 space-y-0.5 overflow-y-auto">
+        {navItems.map(({ to, icon: Icon, label }) => {
+          const isActive = to === '/' ? location.pathname === '/' : location.pathname.startsWith(to);
+          const isNotifications = to === '/notifications';
+
+          return (
+            <NavLink
+              key={to}
+              to={to}
+              className={cn(
+                'sidebar-link group relative',
+                isActive && 'active',
+                collapsed && 'justify-center px-2'
+              )}
+              title={collapsed ? label : undefined}
+            >
+              <div className="relative flex-shrink-0">
+                <Icon className="w-5 h-5" />
+                {isNotifications && unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-[10px] font-bold text-white flex items-center justify-center">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </div>
+              {!collapsed && (
+                <span className="truncate">{label}</span>
+              )}
+              {collapsed && (
+                <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded-md
+                                opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50
+                                transition-opacity duration-150">
+                  {label}
+                </div>
+              )}
+            </NavLink>
+          );
+        })}
+      </nav>
+
+      {/* Collapse toggle */}
+      <button
+        onClick={() => setCollapsed(!collapsed)}
+        className="absolute -right-3 top-20 w-6 h-6 bg-card border border-border rounded-full
+                   flex items-center justify-center shadow-md hover:shadow-lg transition-shadow
+                   text-muted-foreground hover:text-foreground z-30"
+      >
+        {collapsed ? <ChevronRight className="w-3 h-3" /> : <ChevronLeft className="w-3 h-3" />}
+      </button>
+
+      {/* Footer */}
+      <div className={cn('px-4 py-3 border-t border-border', collapsed && 'px-2')}>
+        <div className={cn('flex items-center gap-2', collapsed && 'justify-center')}>
+          <div className="w-7 h-7 rounded-full bg-azure-500/10 border border-azure-400/30 flex items-center justify-center flex-shrink-0">
+            <span className="text-azure-600 text-xs font-bold">TT</span>
+          </div>
+          {!collapsed && (
+            <div className="overflow-hidden animate-fade-in">
+              <p className="text-muted-foreground text-xs font-medium truncate">Team Tracker v1.0</p>
+              <p className="text-muted-foreground/50 text-[10px]">Phase 1 MVP</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </aside>
+  );
+}
