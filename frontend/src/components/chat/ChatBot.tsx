@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { MessageCircle, X, Send, Bot, User, Loader2, Minimize2, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import axios from 'axios';
+import api from '@/lib/api';
 
 interface Message {
   id: string;
@@ -73,7 +73,7 @@ export default function ChatBot() {
         .filter(m => m.id !== '0') // Skip the initial greeting
         .map(m => ({ role: m.role, content: m.content }));
 
-      const response = await axios.post('/api/chat', {
+      const response = await api.post('/chat', {
         message: text.trim(),
         history,
       });
