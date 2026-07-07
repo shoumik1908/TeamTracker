@@ -93,6 +93,8 @@ model Project {
   managerId      String?
   manager        TeamMember?   @relation("ProjectManager", fields: [managerId], references: [id], onDelete: SetNull)
   projectUpdates ProjectUpdate[]
+  teamsMeetings  TeamsMeeting[]
+  teamsChannelId String?       // Optional channel ID for auto-syncing
 
   @@map("projects")
 }
@@ -138,6 +140,26 @@ model Notification {
   member    TeamMember?      @relation(fields: [memberId], references: [id], onDelete: SetNull)
 
   @@map("notifications")
+}
+
+model TeamsMeeting {
+  id                String   @id @default(uuid())
+  projectId         String?
+  teamsMeetingId    String
+  subject           String
+  organizer         String
+  startTime         DateTime
+  endTime           DateTime
+  recordingUrl      String?
+  transcriptText    String?
+  aiSummary         String?
+  channelName       String?
+  fetchedAt         DateTime @default(now())
+  createdAt         DateTime @default(now())
+
+  project           Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("teams_meetings")
 }
 
 // Enums

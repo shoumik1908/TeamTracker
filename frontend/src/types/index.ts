@@ -174,3 +174,33 @@ export interface DeadlineTrackerData {
   dueThisWeek: AssignedCertification[];
   upcoming: AssignedCertification[];
 }
+
+export interface TeamsMeeting {
+  id: string;
+  projectId?: string;
+  teamsMeetingId: string;
+  subject: string;
+  organizer: string;
+  startTime: string;
+  endTime: string;
+  recordingUrl?: string;
+  transcriptText?: string;
+  aiSummary?: string;
+  channelName?: string;
+  fetchedAt: string;
+}
+
+export interface TeamsMeeting {
+  id: string;
+  projectId?: string;
+  teamsMeetingId: string;
+  subject: string;
+  organizer: string;
+  startTime: string;
+  endTime: string;
+  recordingUrl?: string;
+  transcriptText?: string;
+  aiSummary?: string;
+  channelName?: string;
+  fetchedAt: string;
+}

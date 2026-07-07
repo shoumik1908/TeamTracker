@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { projectsApi, membersApi } from '@/lib/api';
-import { Plus, Search, Pencil, Trash2, Users, X, Loader2, Calendar, UserPlus, MoreVertical } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, Users, X, Loader2, Calendar, UserPlus, MoreVertical, Video, Play, FileText, Sparkles } from 'lucide-react';
 import { cn, formatDate, formatStatus, getStatusColor, getPriorityColor, getProgressColor } from '@/lib/utils';
-import type { Project, PaginatedResponse, TeamMember } from '@/types';
+import type { Project, PaginatedResponse, TeamMember, TeamsMeeting } from '@/types';
 
 const STATUSES = ['PLANNING', 'IN_PROGRESS', 'ON_HOLD', 'COMPLETED'];
 const PRIORITIES = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
@@ -181,6 +181,7 @@ export default function ProjectsPage() {
   const [showForm, setShowForm] = useState(false);
   const [editProject, setEditProject] = useState<Project | undefined>();
   const [manageTeamProject, setManageTeamProject] = useState<Project | undefined>();
+  const [meetingsProject, setMeetingsProject] = useState<Project | undefined>();
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const qc = useQueryClient();
 
@@ -307,10 +308,16 @@ export default function ProjectsPage() {
                   </span>
                 )}
                 {project.endDate && (
-                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                  <span className="text-xs text-muted-foreground flex items-center gap-1 ml-3">
                     <Calendar className="w-3 h-3" />{formatDate(project.endDate)}
                   </span>
                 )}
+                <button 
+                  onClick={(e) => { e.stopPropagation(); setMeetingsProject(project); }} 
+                  className="px-2.5 py-1 text-[11px] font-medium bg-azure-900/30 text-azure-400 border border-azure-800/40 rounded-lg hover:bg-azure-800/50 transition-colors flex items-center gap-1.5 ml-4"
+                >
+                  <Video className="w-3 h-3" /> Meetings
+                </button>
               </div>
               <ProjectMenu
                 onEdit={() => setEditProject(project)}
@@ -350,6 +357,10 @@ export default function ProjectsPage() {
 
       {manageTeamProject && (
         <ManageTeamModal project={manageTeamProject} onClose={() => setManageTeamProject(undefined)} />
+      )}
+
+      {meetingsProject && (
+        <ProjectMeetingsModal project={meetingsProject} onClose={() => setMeetingsProject(undefined)} />
       )}
     </div>
   );
@@ -567,6 +578,148 @@ function ManageTeamModal({ project, onClose }: { project: Project; onClose: () =
           >
             Close
           </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ProjectMeetingsModal({ project, onClose }: { project: Project; onClose: () => void }) {
+  const qc = useQueryClient();
+  const [selectedMeeting, setSelectedMeeting] = useState<TeamsMeeting | null>(null);
+
+  const { data: meetings, isLoading } = useQuery<TeamsMeeting[]>({
+    queryKey: ['project-meetings', project.id],
+    queryFn: () => fetch(`/api/projects/${project.id}/meetings`).then(r => r.json()),
+  });
+
+  const syncMeetings = useMutation({
+    mutationFn: () => fetch(`/api/projects/${project.id}/sync-meetings`, { method: 'POST' }).then(r => r.json()),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['project-meetings', project.id] }),
+  });
+
+  const generateSummary = useMutation({
+    mutationFn: (meetingId: string) => fetch(`/api/meetings/${meetingId}/summary`, { method: 'POST' }).then(r => r.json()),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['project-meetings', project.id] }),
+  });
+
+  return (
+    <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
+      <div className="bg-card rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden border border-border/80 flex flex-col h-[85vh] transform transition-all">
+        {/* Header */}
+        <div className="relative flex items-center justify-between px-6 py-5 border-b border-border/80 bg-gradient-to-b from-muted/30 to-card flex-shrink-0">
+          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-azure-500/20 via-azure-500 to-azure-500/20" />
+          <div className="space-y-1">
+            <h2 className="font-bold text-lg text-foreground tracking-tight flex items-center gap-2">
+              <Video className="w-5 h-5 text-azure-400" />
+              Recordings & Transcripts
+            </h2>
+            <p className="text-xs text-muted-foreground font-medium">
+              Teams integration for {project.name}
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => syncMeetings.mutate()} 
+              disabled={syncMeetings.isPending}
+              className="px-3 py-1.5 text-xs font-medium bg-muted/40 border border-border rounded-lg hover:bg-muted transition-colors flex items-center gap-1.5"
+            >
+              {syncMeetings.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Sync Meetings"}
+            </button>
+            <button onClick={onClose} className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+
+        {/* Body */}
+        <div className="flex flex-1 min-h-0">
+          {/* List */}
+          <div className="w-1/3 border-r border-border overflow-y-auto bg-muted/5 p-4 space-y-3">
+            {isLoading && <div className="text-sm text-muted-foreground text-center py-8">Loading meetings...</div>}
+            {!isLoading && meetings?.length === 0 && <div className="text-sm text-muted-foreground text-center py-8">No meetings found. Click Sync to pull from Teams.</div>}
+            
+            {meetings?.map(m => (
+              <div 
+                key={m.id} 
+                onClick={() => setSelectedMeeting(m)}
+                className={cn(
+                  "p-4 rounded-xl border cursor-pointer transition-all hover:border-azure-500/40",
+                  selectedMeeting?.id === m.id ? "bg-azure-900/20 border-azure-500" : "bg-card border-border"
+                )}
+              >
+                <h4 className="font-semibold text-sm line-clamp-1 mb-1">{m.subject}</h4>
+                <div className="flex justify-between items-center text-xs text-muted-foreground">
+                  <span>{new Date(m.startTime).toLocaleDateString([], { month: 'short', day: 'numeric' })}</span>
+                  <span>{Math.round((new Date(m.endTime).getTime() - new Date(m.startTime).getTime()) / 60000)} min</span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Details */}
+          <div className="w-2/3 overflow-y-auto p-6">
+            {selectedMeeting ? (
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-xl font-bold mb-2">{selectedMeeting.subject}</h3>
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                    <span className="flex items-center gap-1.5"><Users className="w-4 h-4" /> Organizer: {selectedMeeting.organizer}</span>
+                    <span className="flex items-center gap-1.5"><Calendar className="w-4 h-4" /> {new Date(selectedMeeting.startTime).toLocaleString()}</span>
+                  </div>
+                </div>
+
+                <div className="flex gap-3">
+                  {selectedMeeting.recordingUrl && (
+                    <a href={selectedMeeting.recordingUrl} target="_blank" rel="noreferrer"
+                      className="px-4 py-2 bg-blue-600/20 text-blue-400 hover:bg-blue-600/30 border border-blue-600/30 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors">
+                      <Play className="w-4 h-4" /> Watch Recording
+                    </a>
+                  )}
+                  {selectedMeeting.transcriptText && !selectedMeeting.aiSummary && (
+                    <button 
+                      onClick={() => generateSummary.mutate(selectedMeeting.id)}
+                      disabled={generateSummary.isPending}
+                      className="px-4 py-2 bg-gradient-to-r from-azure-600 to-purple-600 text-white rounded-lg text-sm font-medium flex items-center gap-2 hover:opacity-90 transition-opacity"
+                    >
+                      {generateSummary.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                      Generate AI Summary
+                    </button>
+                  )}
+                </div>
+
+                {selectedMeeting.aiSummary && (
+                  <div className="bg-azure-950/20 border border-azure-800/40 rounded-xl p-5 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
+                      <Sparkles className="w-24 h-24 text-azure-400" />
+                    </div>
+                    <h4 className="text-sm font-bold text-azure-400 flex items-center gap-2 mb-3">
+                      <Sparkles className="w-4 h-4" /> AI Meeting Summary
+                    </h4>
+                    <div className="text-sm text-foreground/90 whitespace-pre-wrap leading-relaxed">
+                      {selectedMeeting.aiSummary}
+                    </div>
+                  </div>
+                )}
+
+                {selectedMeeting.transcriptText && (
+                  <div>
+                    <h4 className="text-sm font-bold flex items-center gap-2 mb-3 text-muted-foreground">
+                      <FileText className="w-4 h-4" /> Full Transcript
+                    </h4>
+                    <div className="bg-muted/10 border border-border rounded-xl p-4 text-xs font-mono text-muted-foreground whitespace-pre-wrap h-64 overflow-y-auto">
+                      {selectedMeeting.transcriptText}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="h-full flex flex-col items-center justify-center text-muted-foreground">
+                <Video className="w-12 h-12 mb-4 opacity-20" />
+                <p>Select a meeting from the left to view details</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
