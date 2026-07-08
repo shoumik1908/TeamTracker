@@ -14,7 +14,6 @@ import reportsRouter from './routes/reports';
 import chatRouter from './routes/chat';
 import projectUpdatesRouter from './routes/projectUpdates';
 import teamsRouter from './routes/teams';
-import zohoRouter from './routes/zoho';
 import { errorHandler } from './middleware/errorHandler';
 
 const app = express();
@@ -46,7 +45,6 @@ app.use('/api/chat', chatRouter);
 app.use('/api/project-updates', projectUpdatesRouter);
 app.use('/api/reports', reportsRouter);
 app.use('/api', teamsRouter);
-app.use('/api', zohoRouter);
 
 // 404 handler
 app.use((_req, res) => {
