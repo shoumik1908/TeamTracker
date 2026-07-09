@@ -1,7 +1,7 @@
 import { BlobServiceClient, ContainerClient, StorageSharedKeyCredential, generateBlobSASQueryParameters, BlobSASPermissions } from '@azure/storage-blob';
 import { v4 as uuidv4 } from 'uuid';
 
-const connectionString = process.env.AZURE_STORAGE_CONNECTION_STRING || '';
+const connectionString = (process.env.AZURE_STORAGE_CONNECTION_STRING || '').trim();
 
 function parseConnectionString(connStr: string) {
   const parts = connStr.split(';');
@@ -16,8 +16,8 @@ function parseConnectionString(connStr: string) {
 }
 
 const parsedCreds = parseConnectionString(connectionString);
-export const accountName = parsedCreds['AccountName'] || process.env.AZURE_STORAGE_ACCOUNT_NAME || '';
-const accountKey = parsedCreds['AccountKey'] || process.env.AZURE_STORAGE_ACCOUNT_KEY || '';
+export const accountName = parsedCreds['AccountName']?.trim() || process.env.AZURE_STORAGE_ACCOUNT_NAME?.trim() || '';
+const accountKey = parsedCreds['AccountKey']?.trim() || process.env.AZURE_STORAGE_ACCOUNT_KEY?.trim() || '';
 
 const sharedKeyCredential = (accountName && accountKey) ? new StorageSharedKeyCredential(accountName, accountKey) : null;
 
