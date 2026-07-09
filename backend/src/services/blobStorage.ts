@@ -19,7 +19,7 @@ function getBlobServiceClient(): BlobServiceClient {
 async function getContainerClient(containerName: string): Promise<ContainerClient> {
   const client = getBlobServiceClient();
   const containerClient = client.getContainerClient(containerName);
-  await containerClient.createIfNotExists();
+  // await containerClient.createIfNotExists();
   return containerClient;
 }
 
