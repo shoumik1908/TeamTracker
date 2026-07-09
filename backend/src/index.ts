@@ -14,6 +14,7 @@ import reportsRouter from './routes/reports';
 import chatRouter from './routes/chat';
 import projectUpdatesRouter from './routes/projectUpdates';
 import teamsRouter from './routes/teams';
+import presalesRouter from './routes/presales';
 import { errorHandler } from './middleware/errorHandler';
 
 const app = express();
@@ -44,6 +45,7 @@ app.use('/api/search', searchRouter);
 app.use('/api/chat', chatRouter);
 app.use('/api/project-updates', projectUpdatesRouter);
 app.use('/api/reports', reportsRouter);
+app.use('/api/presales', presalesRouter);
 app.use('/api', teamsRouter);
 
 // 404 handler

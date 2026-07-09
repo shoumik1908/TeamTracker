@@ -80,6 +80,32 @@ router.put('/:id', async (req: Request, res: Response) => {
     },
   });
 
+  // Also update the associated notification to keep it in sync on the dashboard
+  try {
+    const project = await prisma.project.findUnique({ where: { id: existing.projectId } });
+    if (project) {
+      const match = await prisma.notification.findFirst({
+        where: {
+          memberId: existing.memberId,
+          type: 'PROJECT_UPDATED',
+          title: `${existing.updateType} Update: ${project.name}`,
+          message: existing.updateText.trim().slice(0, 120),
+        }
+      });
+      if (match) {
+        await prisma.notification.update({
+          where: { id: match.id },
+          data: {
+            title: `${updated.updateType} Update: ${project.name}`,
+            message: updated.updateText.trim().slice(0, 120),
+          }
+        });
+      }
+    }
+  } catch (error) {
+    console.error('Failed to sync notification on update edit:', error);
+  }
+
   res.json(updated);
 });
 
@@ -87,7 +113,27 @@ router.put('/:id', async (req: Request, res: Response) => {
 router.delete('/:id', async (req: Request, res: Response) => {
   const existing = await prisma.projectUpdate.findUnique({ where: { id: req.params.id } });
   if (!existing) throw new AppError('Update not found', 404);
+  
+  // Delete the update
   await prisma.projectUpdate.delete({ where: { id: req.params.id } });
+
+  // Delete the associated notification so it disappears from the dashboard feed
+  try {
+    const project = await prisma.project.findUnique({ where: { id: existing.projectId } });
+    if (project) {
+      await prisma.notification.deleteMany({
+        where: {
+          memberId: existing.memberId,
+          type: 'PROJECT_UPDATED',
+          title: `${existing.updateType} Update: ${project.name}`,
+          message: existing.updateText.trim().slice(0, 120),
+        }
+      });
+    }
+  } catch (error) {
+    console.error('Failed to delete associated notification:', error);
+  }
+
   res.json({ message: 'Update deleted' });
 });
 

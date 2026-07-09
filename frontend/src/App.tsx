@@ -10,6 +10,7 @@ import ProjectUpdatesPage from './pages/ProjectUpdatesPage';
 import DeadlinesPage from './pages/DeadlinesPage';
 import NotificationsPage from './pages/NotificationsPage';
 import ReportsPage from './pages/ReportsPage';
+import PreSalesPage from './pages/PreSalesPage';
 
 export default function App() {
   return (
@@ -26,8 +27,10 @@ export default function App() {
           <Route path="deadlines" element={<DeadlinesPage />} />
           <Route path="notifications" element={<NotificationsPage />} />
           <Route path="reports" element={<ReportsPage />} />
+          <Route path="presales" element={<PreSalesPage />} />
         </Route>
       </Routes>
     </BrowserRouter>
   );
 }
+

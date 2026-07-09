@@ -195,3 +195,17 @@ enum NotificationType {
   PROJECT_UPDATED
   PROJECT_ASSIGNED
 }
+
+model PreSalesOpportunity {
+  id                String   @id @default(cuid())
+  name              String
+  clientName        String
+  account           String   // 'PNB' or 'TNM'
+  stages            String[]
+  currentStageIndex Int      @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("presales_opportunities")
+}
+

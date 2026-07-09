@@ -150,7 +150,7 @@ function UpdateForm({
             className="w-full bg-background border border-border rounded-xl px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-azure-500/40 transition-all"
           >
             <option value="">Select project…</option>
-            {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+            {projects.filter(p => p.status !== 'COMPLETED').map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
         </div>
       )}
@@ -287,6 +287,35 @@ export default function ProjectUpdatesPage() {
   const members  = membersData?.data  ?? [];
   const updates  = updatesData?.data  ?? [];
 
+  // Group updates by project
+  interface GroupedProject {
+    projectId: string;
+    projectName: string;
+    latestUpdateAt: string;
+    updates: ProjectUpdate[];
+  }
+
+  const groupedProjects = updates.reduce<GroupedProject[]>((acc, u) => {
+    let group = acc.find(g => g.projectId === u.projectId);
+    if (!group) {
+      group = {
+        projectId: u.projectId,
+        projectName: u.project.name,
+        latestUpdateAt: u.createdAt,
+        updates: [],
+      };
+      acc.push(group);
+    }
+    group.updates.push(u);
+    if (new Date(u.createdAt) > new Date(group.latestUpdateAt)) {
+      group.latestUpdateAt = u.createdAt;
+    }
+    return acc;
+  }, []);
+
+  // Sort projects so the one with the most recent update is at the top
+  groupedProjects.sort((a, b) => new Date(b.latestUpdateAt).getTime() - new Date(a.latestUpdateAt).getTime());
+
   // ── Mutations ────────────────────────────────────────────────────────────
 
   const createMutation = useMutation({
@@ -371,63 +400,72 @@ export default function ProjectUpdatesPage() {
       )}
 
       {/* Feed */}
-      <div className="space-y-3">
-        {updates.map(u => {
-          const meta = getTypeMeta(u.updateType);
-          const Icon = meta.icon;
-          return (
-            <div
-              key={u.id}
-              className={cn(
-                'flex gap-4 p-4 rounded-xl border transition-all hover:shadow-md',
-                meta.bg
-              )}
-            >
-              {/* Avatar */}
-              <div className="flex-shrink-0">
-                {u.member.profilePictureUrl ? (
-                  <img src={u.member.profilePictureUrl} alt={u.member.name}
-                    className="w-10 h-10 rounded-full object-cover border border-border" />
-                ) : (
-                  <div className="w-10 h-10 rounded-full bg-azure-500/10 border border-azure-500/30 flex items-center justify-center">
-                    <span className="text-azure-400 text-xs font-bold">{getInitials(u.member.name)}</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Content */}
-              <div className="flex-1 min-w-0 space-y-1.5">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm font-semibold text-foreground">{u.member.name}</span>
-                    {u.member.designation && (
-                      <span className="text-xs text-muted-foreground">· {u.member.designation}</span>
-                    )}
-                    <span className={cn(
-                      'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold border',
-                      meta.badge
-                    )}>
-                      <Icon className="w-3 h-3" />
-                      {u.updateType}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1.5 flex-shrink-0">
-                    <span className="text-xs text-muted-foreground/60">{formatRelative(u.createdAt)}</span>
-                    {/* ⋮ Three-dot menu */}
-                    <UpdateMenu
-                      onEdit={() => setEditTarget(u)}
-                      onDelete={() => deleteMutation.mutate(u.id)}
-                      isDeleting={deleteMutation.isPending && deleteMutation.variables === u.id}
-                    />
-                  </div>
-                </div>
-
-                <p className="text-xs text-azure-400 font-medium">📁 {u.project.name}</p>
-                <p className="text-sm text-foreground/90 leading-relaxed">{u.updateText}</p>
+      <div className="space-y-4">
+        {groupedProjects.map(p => (
+          <div key={p.projectId} className="bg-card rounded-xl border border-border shadow-sm">
+            {/* Project Header */}
+            <div className="bg-muted/10 border-b border-border px-5 py-3 rounded-t-xl flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-semibold text-azure-400">📁 {p.projectName}</span>
+                <span className="text-[11px] text-muted-foreground bg-muted/40 px-2 py-0.5 rounded-full font-medium">
+                  {p.updates.length} {p.updates.length === 1 ? 'update' : 'updates'}
+                </span>
               </div>
             </div>
-          );
-        })}
+
+            {/* Updates List */}
+            <div className="divide-y divide-border/40">
+              {p.updates.map(u => {
+                const meta = getTypeMeta(u.updateType);
+                const Icon = meta.icon;
+                return (
+                  <div key={u.id} className="p-4 flex gap-4 hover:bg-muted/5 transition-colors last:rounded-b-xl">
+                    {/* Avatar */}
+                    <div className="flex-shrink-0">
+                      {u.member.profilePictureUrl ? (
+                        <img src={u.member.profilePictureUrl} alt={u.member.name}
+                          className="w-10 h-10 rounded-full object-cover border border-border" />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-azure-500/10 border border-azure-500/30 flex items-center justify-center">
+                          <span className="text-azure-400 text-xs font-bold">{getInitials(u.member.name)}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Content */}
+                    <div className="flex-1 min-w-0 space-y-1.5">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm font-semibold text-foreground">{u.member.name}</span>
+                          {u.member.designation && (
+                            <span className="text-xs text-muted-foreground">· {u.member.designation}</span>
+                          )}
+                          <span className={cn(
+                            'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold border',
+                            meta.badge
+                          )}>
+                            <Icon className="w-3 h-3" />
+                            {u.updateType}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                          <span className="text-xs text-muted-foreground/60">{formatRelative(u.createdAt)}</span>
+                          {/* ⋮ Three-dot menu */}
+                          <UpdateMenu
+                            onEdit={() => setEditTarget(u)}
+                            onDelete={() => deleteMutation.mutate(u.id)}
+                            isDeleting={deleteMutation.isPending && deleteMutation.variables === u.id}
+                          />
+                        </div>
+                      </div>
+                      <p className="text-sm text-foreground/90 leading-relaxed">{u.updateText}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </div>
 
       {/* Add modal */}

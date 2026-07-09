@@ -3,7 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Award, ClipboardList, FolderKanban,
   Clock, Bell, FileBarChart, ChevronLeft, ChevronRight,
-  Zap, MessageSquareDiff,
+  Zap, MessageSquareDiff, Target,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
@@ -15,11 +15,13 @@ const navItems = [
   { to: '/certifications', icon: Award, label: 'Certifications' },
   { to: '/tracker', icon: ClipboardList, label: 'Cert Tracker' },
   { to: '/projects', icon: FolderKanban, label: 'Projects' },
+  { to: '/presales', icon: Target, label: 'PreSales' },
   { to: '/project-updates', icon: MessageSquareDiff, label: 'Project Updates' },
   { to: '/deadlines', icon: Clock, label: 'Deadlines' },
   { to: '/notifications', icon: Bell, label: 'Notifications' },
   { to: '/reports', icon: FileBarChart, label: 'Reports' },
 ];
+
 
 export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);

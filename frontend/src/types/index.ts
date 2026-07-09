@@ -204,3 +204,13 @@ export interface TeamsMeeting {
   channelName?: string;
   fetchedAt: string;
 }
+
+export interface PreSalesOpportunity {
+  id: string;
+  name: string;
+  clientName: string;
+  account: 'PNB' | 'TNM';
+  stages: string[];
+  currentStageIndex: number;
+}
+
