@@ -19,7 +19,7 @@ function getBlobServiceClient(): BlobServiceClient {
 async function getContainerClient(containerName: string): Promise<ContainerClient> {
   const client = getBlobServiceClient();
   const containerClient = client.getContainerClient(containerName);
-  await containerClient.createIfNotExists({ access: 'blob' });
+  await containerClient.createIfNotExists();
   return containerClient;
 }
 
@@ -46,6 +46,16 @@ export async function deleteFile(containerName: string, blobName: string): Promi
   const containerClient = await getContainerClient(containerName);
   const blockBlobClient = containerClient.getBlockBlobClient(blobName);
   await blockBlobClient.deleteIfExists();
+}
+
+export async function downloadFileStream(containerName: string, blobName: string): Promise<NodeJS.ReadableStream> {
+  const containerClient = await getContainerClient(containerName);
+  const blockBlobClient = containerClient.getBlockBlobClient(blobName);
+  const downloadResponse = await blockBlobClient.download(0);
+  if (!downloadResponse.readableStreamBody) {
+    throw new Error('Readable stream not available');
+  }
+  return downloadResponse.readableStreamBody;
 }
 
 export function extractBlobName(url: string): string {

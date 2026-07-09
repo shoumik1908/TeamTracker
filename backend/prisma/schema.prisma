@@ -95,6 +95,9 @@ model Project {
   projectUpdates ProjectUpdate[]
   teamsMeetings  TeamsMeeting[]
   teamsChannelId String?       // Optional channel ID for auto-syncing
+  files          ProjectFile[]
+  links          ProjectLink[]
+  notes          ProjectNote[]
 
   @@map("projects")
 }
@@ -207,5 +210,47 @@ model PreSalesOpportunity {
   updatedAt         DateTime @updatedAt
 
   @@map("presales_opportunities")
+}
+
+model ProjectFile {
+  id         String   @id @default(cuid())
+  projectId  String
+  name       String
+  url        String
+  type       String
+  size       Int
+  uploadedBy String
+  uploadedAt DateTime @default(now())
+
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("project_files")
+}
+
+model ProjectLink {
+  id          String   @id @default(cuid())
+  projectId   String
+  title       String
+  url         String
+  description String?
+  addedBy     String
+  addedAt     DateTime @default(now())
+
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("project_links")
+}
+
+model ProjectNote {
+  id        String   @id @default(cuid())
+  projectId String
+  title     String
+  content   String   @db.Text
+  updatedBy String
+  updatedAt DateTime @updatedAt
+
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("project_notes")
 }
 

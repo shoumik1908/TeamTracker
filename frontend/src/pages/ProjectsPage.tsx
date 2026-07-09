@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { projectsApi, membersApi } from '@/lib/api';
 import { Plus, Search, Pencil, Trash2, Users, X, Loader2, Calendar, UserPlus, MoreVertical, Video, Play, FileText, Sparkles } from 'lucide-react';
@@ -318,6 +319,13 @@ export default function ProjectsPage() {
                 >
                   <Video className="w-3 h-3" /> Meetings
                 </button>
+                <Link 
+                  to={`/projects/${project.id}/documentation`}
+                  onClick={(e) => e.stopPropagation()} 
+                  className="px-2.5 py-1 text-[11px] font-medium bg-zinc-800 text-zinc-300 border border-border/80 rounded-lg hover:bg-zinc-700/80 hover:text-foreground transition-colors flex items-center gap-1.5 ml-2"
+                >
+                  <FileText className="w-3.5 h-3.5 text-azure-400" /> Docs
+                </Link>
               </div>
               <ProjectMenu
                 onEdit={() => setEditProject(project)}

@@ -11,6 +11,7 @@ import DeadlinesPage from './pages/DeadlinesPage';
 import NotificationsPage from './pages/NotificationsPage';
 import ReportsPage from './pages/ReportsPage';
 import PreSalesPage from './pages/PreSalesPage';
+import ProjectDocumentationPage from './pages/ProjectDocumentationPage';
 
 export default function App() {
   return (
@@ -23,6 +24,7 @@ export default function App() {
           <Route path="certifications" element={<CertificationsPage />} />
           <Route path="tracker" element={<TrackerPage />} />
           <Route path="projects" element={<ProjectsPage />} />
+          <Route path="projects/:projectId/documentation" element={<ProjectDocumentationPage />} />
           <Route path="project-updates" element={<ProjectUpdatesPage />} />
           <Route path="deadlines" element={<DeadlinesPage />} />
           <Route path="notifications" element={<NotificationsPage />} />

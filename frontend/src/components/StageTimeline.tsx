@@ -44,6 +44,82 @@ export default function StageTimeline({
 
   const isVerticalConnectorActive = currentStageIndex >= half;
 
+  const isSingleRow = stages.length <= 6;
+
+  if (isSingleRow) {
+    return (
+      <div className="w-full">
+        {/* Scrollable container for responsiveness */}
+        <div className="overflow-x-auto pb-8 pt-2 scrollbar-thin">
+          <div className="relative min-w-[760px] md:min-w-0 md:w-full px-8 flex items-center justify-between">
+            {stages.map((stage, idx) => {
+              const isCompleted = idx < currentStageIndex;
+              const isCurrent = idx === currentStageIndex;
+              const isUpcoming = idx > currentStageIndex;
+              const isLast = idx === stages.length - 1;
+
+              // Horizontal connector (extends to the right)
+              const isConnectorActive = idx < currentStageIndex;
+              const connectorColor = isConnectorActive ? connectorActiveColorClass : 'bg-border';
+
+              return (
+                <div key={idx} className="relative flex-1 flex flex-col items-center">
+                  
+                  {/* Horizontal Line Connector (extends to right) */}
+                  {!isLast && (
+                    <div
+                      className={cn(
+                        'absolute top-3 left-1/2 w-full h-[2px] z-0 transition-all duration-500 ease-in-out',
+                        connectorColor
+                      )}
+                    />
+                  )}
+
+                  {/* Node */}
+                  <button
+                    onClick={() => onStageClick(stage, idx)}
+                    className={cn(
+                      'w-6 h-6 rounded-full flex items-center justify-center border-2 z-10 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background',
+                      isCompleted && 'bg-zinc-800 border-azure-500/50 hover:bg-zinc-700/80 hover:border-azure-500 text-azure-400',
+                      isCurrent && cn('ring-2 animate-fade-in shadow-md scale-105 font-bold', themeColorClass, 'border-background'),
+                      isUpcoming && 'bg-zinc-900 border-border hover:border-muted-foreground/60 text-muted-foreground hover:text-foreground'
+                    )}
+                    aria-label={`Move ${opportunityName} to ${stage}`}
+                    title={isCurrent ? `Current stage: ${stage}` : `Move to ${stage}`}
+                  >
+                    {isCompleted ? (
+                      <Check className="w-3 h-3 stroke-[3]" />
+                    ) : isCurrent ? (
+                      isWon ? (
+                        <Check className="w-3 h-3 stroke-[3]" />
+                      ) : isLost ? (
+                        <AlertCircle className="w-3 h-3" />
+                      ) : (
+                        <span className="text-[10px]">{idx + 1}</span>
+                      )
+                    ) : (
+                      <span className="text-[10px]">{idx + 1}</span>
+                    )}
+                  </button>
+
+                  {/* Label */}
+                  <div
+                    className={cn(
+                      'absolute top-8 whitespace-nowrap text-center text-[9px] font-semibold tracking-wide transition-colors duration-200 pointer-events-none z-10',
+                      isCurrent ? themeTextClass : isCompleted ? 'text-foreground/80' : 'text-muted-foreground'
+                    )}
+                  >
+                    {stage}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full">
       {/* Scrollable container for responsiveness */}

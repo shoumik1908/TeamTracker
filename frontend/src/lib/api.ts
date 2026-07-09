@@ -93,3 +93,28 @@ export const projectUpdatesApi = {
   update: (id: string, data: Record<string, unknown>) => api.put(`/project-updates/${id}`, data),
   delete: (id: string) => api.delete(`/project-updates/${id}`),
 };
+
+// ---- Documentation ----
+export const documentationApi = {
+  get: (projectId: string) => api.get(`/projects/${projectId}/documentation`),
+  
+  uploadFile: (projectId: string, data: FormData) =>
+    api.post(`/projects/${projectId}/documentation/files`, data, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  deleteFile: (projectId: string, fileId: string, memberId: string) =>
+    api.delete(`/projects/${projectId}/documentation/files/${fileId}`, { params: { memberId } }),
+
+  createLink: (projectId: string, data: Record<string, unknown>) =>
+    api.post(`/projects/${projectId}/documentation/links`, data),
+  updateLink: (projectId: string, linkId: string, data: Record<string, unknown>) =>
+    api.put(`/projects/${projectId}/documentation/links/${linkId}`, data),
+  deleteLink: (projectId: string, linkId: string, memberId: string) =>
+    api.delete(`/projects/${projectId}/documentation/links/${linkId}`, { params: { memberId } }),
+
+  createNote: (projectId: string, data: Record<string, unknown>) =>
+    api.post(`/projects/${projectId}/documentation/notes`, data),
+  updateNote: (projectId: string, noteId: string, data: Record<string, unknown>) =>
+    api.put(`/projects/${projectId}/documentation/notes/${noteId}`, data),
+  deleteNote: (projectId: string, noteId: string, memberId: string) =>
+    api.delete(`/projects/${projectId}/documentation/notes/${noteId}`, { params: { memberId } }),
+};
+

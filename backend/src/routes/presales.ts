@@ -6,32 +6,21 @@ const prisma = new PrismaClient();
 
 // Standardized stage lists
 const pnbStages = [
-  'Opportunity Identification',
-  'Qualification',
+  'Opportunity & Qualification',
   'Requirement Analysis',
-  'Solution Design',
-  'Effort Estimation',
-  'Costing & Pricing',
-  'Proposal Preparation',
-  'Internal Review & Approval',
-  'Client Presentation/Demo',
-  'Negotiation',
-  'Contract Award',
-  'Project Handover'
+  'Solution & Estimation',
+  'Proposal & Pricing',
+  'Client Engagement',
+  'Project Award & Handover'
 ];
 
 const tnmStages = [
-  'Requirement Discussion',
-  'Resource Planning',
-  'Rate Card Preparation',
-  'Proposal Submission',
-  'Client Approval',
-  'Resource Onboarding',
-  'Time Tracking',
-  'Progress Reporting',
-  'Change Requests',
-  'Billing & Invoicing',
-  'Project Closure'
+  'Requirement & Resource Planning',
+  'Rate Card & Proposal',
+  'Client Approval & Onboarding',
+  'Execution & Tracking',
+  'Change Management',
+  'Billing & Project Closure'
 ];
 
 // GET /api/presales
