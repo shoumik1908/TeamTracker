@@ -74,7 +74,7 @@ export function generateSasUrl({ containerName, blobName, permissions, expiryMin
     containerName,
     blobName,
     permissions: BlobSASPermissions.parse(permissions),
-    startsOn: new Date(Date.now() - 60 * 1000), // clock skew buffer
+    startsOn: new Date(Date.now() - 15 * 60 * 1000), // 15 min clock skew buffer
     expiresOn: new Date(Date.now() + expiryMinutes * 60 * 1000),
     protocol: "https" as any,
   };
