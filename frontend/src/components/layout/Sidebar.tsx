@@ -23,7 +23,13 @@ const navItems = [
 ];
 
 
-export default function Sidebar() {
+export default function Sidebar({ 
+  isMobileMenuOpen, 
+  setIsMobileMenuOpen 
+}: { 
+  isMobileMenuOpen: boolean; 
+  setIsMobileMenuOpen: (val: boolean) => void; 
+}) {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
 
@@ -35,12 +41,23 @@ export default function Sidebar() {
   const unreadCount = data?.data?.unreadCount || 0;
 
   return (
-    <aside
-      className={cn(
-        'flex flex-col h-screen bg-sidebar transition-all duration-300 ease-in-out relative z-20 flex-shrink-0',
-        collapsed ? 'w-16' : 'w-64'
+    <>
+      {/* Mobile Backdrop */}
+      {isMobileMenuOpen && (
+        <div 
+          className="fixed inset-0 bg-black/60 z-40 md:hidden animate-in fade-in"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
       )}
-    >
+
+      <aside
+        className={cn(
+          'flex flex-col h-screen bg-sidebar transition-all duration-300 ease-in-out relative z-50 flex-shrink-0',
+          'md:relative absolute top-0 left-0',
+          isMobileMenuOpen ? 'translate-x-0 w-64 shadow-2xl' : '-translate-x-full md:translate-x-0',
+          collapsed ? 'md:w-16 w-64' : 'w-64'
+        )}
+      >
       {/* Logo */}
       <div className={cn('flex items-center gap-3 px-4 py-5 border-b border-border', collapsed && 'justify-center px-2')}>
         <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-azure-500 flex items-center justify-center shadow-lg shadow-azure-500/40">
@@ -94,16 +111,17 @@ export default function Sidebar() {
         })}
       </nav>
 
-      {/* Collapse toggle */}
+      {/* Collapse toggle (Desktop only) */}
       <button
         onClick={() => setCollapsed(!collapsed)}
-        className="absolute -right-3 top-20 w-6 h-6 bg-card border border-border rounded-full
-                   flex items-center justify-center shadow-md hover:shadow-lg transition-shadow
+        className="hidden md:flex absolute -right-3 top-20 w-6 h-6 bg-card border border-border rounded-full
+                   items-center justify-center shadow-md hover:shadow-lg transition-shadow
                    text-muted-foreground hover:text-foreground z-30"
       >
         {collapsed ? <ChevronRight className="w-3 h-3" /> : <ChevronLeft className="w-3 h-3" />}
       </button>
 
     </aside>
+    </>
   );
 }

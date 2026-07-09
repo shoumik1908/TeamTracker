@@ -114,8 +114,8 @@ export default function ChatBot() {
       {/* Chat Panel */}
       {isOpen && (
         <div className={cn(
-          'fixed bottom-20 right-6 w-96 bg-card rounded-2xl shadow-2xl border border-border z-50 flex flex-col overflow-hidden transition-all duration-300',
-          isMinimized ? 'h-14' : 'h-[560px]',
+          'fixed bottom-20 right-4 sm:right-6 w-[calc(100vw-32px)] sm:w-96 bg-card rounded-2xl shadow-2xl border border-border z-50 flex flex-col overflow-hidden transition-all duration-300',
+          isMinimized ? 'h-14' : 'h-[560px] max-h-[80vh]',
         )}>
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-azure-800 via-azure-700 to-purple-800 flex-shrink-0">

@@ -1,12 +1,20 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Bell, X, Loader2 } from 'lucide-react';
+import { Search, Bell, X, Loader2, Menu } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { searchApi, notificationsApi } from '@/lib/api';
 import { cn, formatRelative, getInitials } from '@/lib/utils';
 import type { SearchResults, Notification } from '@/types';
 
-export default function Header({ title }: { title?: string }) {
+export default function Header({ 
+  title,
+  isMobileMenuOpen,
+  setIsMobileMenuOpen
+}: { 
+  title?: string;
+  isMobileMenuOpen: boolean;
+  setIsMobileMenuOpen: (val: boolean) => void;
+}) {
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -59,9 +67,17 @@ export default function Header({ title }: { title?: string }) {
   };
 
   return (
-    <header className="h-14 bg-card border-b border-border flex items-center justify-between px-6 flex-shrink-0 z-10">
-      {/* Page title */}
-      <h1 className="text-lg font-semibold text-foreground truncate">{title}</h1>
+    <header className="h-14 bg-card border-b border-border flex items-center justify-between px-4 md:px-6 flex-shrink-0 z-10 w-full">
+      <div className="flex items-center gap-3">
+        <button
+          onClick={() => setIsMobileMenuOpen(true)}
+          className="md:hidden p-2 -ml-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+        {/* Page title */}
+        <h1 className="text-base md:text-lg font-semibold text-foreground truncate max-w-[120px] sm:max-w-none">{title}</h1>
+      </div>
 
       <div className="flex items-center gap-3">
         {/* Global Search */}
@@ -70,11 +86,11 @@ export default function Header({ title }: { title?: string }) {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input
               type="text"
-              placeholder="Search members, certs, projects…"
+              placeholder="Search..."
               value={searchQuery}
               onFocus={() => setShowSearch(true)}
               onChange={e => { setSearchQuery(e.target.value); setShowSearch(true); }}
-              className="w-72 pl-9 pr-8 py-2 text-sm bg-muted/30 border border-border rounded-lg
+              className="w-32 sm:w-48 md:w-72 pl-9 pr-8 py-2 text-sm bg-muted/30 border border-border rounded-lg
                          focus:outline-none focus:ring-2 focus:ring-azure-500/30 focus:border-azure-500
                          placeholder:text-muted-foreground/60 transition-all"
             />
@@ -166,7 +182,7 @@ export default function Header({ title }: { title?: string }) {
           </button>
 
           {showNotifications && (
-            <div className="absolute right-0 top-full mt-2 w-96 bg-card rounded-xl border border-border shadow-xl z-50 overflow-hidden animate-fade-in">
+            <div className="absolute right-0 top-full mt-2 w-[85vw] sm:w-96 bg-card rounded-xl border border-border shadow-xl z-50 overflow-hidden animate-fade-in -mr-2 sm:mr-0">
               <div className="flex items-center justify-between px-4 py-3 border-b border-border">
                 <p className="font-semibold text-sm">Notifications</p>
                 <button onClick={() => markAllRead.mutate()} className="text-xs text-azure-400 hover:text-azure-300 font-medium">Mark all read</button>

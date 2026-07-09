@@ -248,7 +248,7 @@ export default function MembersPage() {
       </div>
 
       {/* Table */}
-      <div className="bg-card rounded-xl border border-border overflow-hidden">
+      <div className="bg-card rounded-xl border border-border table-container overflow-hidden">
         <table className="w-full data-table">
           <thead>
             <tr>

@@ -108,16 +108,22 @@
 
   /* Page header */
   .page-header {
-    @apply flex items-center justify-between mb-6;
+    @apply flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4;
   }
   .page-title {
-    @apply text-2xl font-bold text-foreground;
+    @apply text-xl md:text-2xl font-bold text-foreground;
   }
   .page-subtitle {
     @apply text-sm text-muted-foreground mt-0.5;
   }
 
   /* Table styles */
+  .table-container {
+    @apply w-full overflow-x-auto;
+  }
+  .data-table {
+    @apply w-full min-w-[600px];
+  }
   .data-table th {
     @apply bg-muted/50 text-muted-foreground text-xs font-semibold uppercase tracking-wider px-4 py-3;
   }

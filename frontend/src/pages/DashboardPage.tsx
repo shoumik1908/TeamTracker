@@ -86,7 +86,7 @@ export default function DashboardPage() {
 
   if (statsLoading) {
     return (
-      <div className="grid grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {Array.from({ length: 5 }).map((_, i) => (
           <div key={i} className="bg-card rounded-xl border border-border p-5 h-24 animate-pulse">
             <div className="h-3 bg-muted rounded w-1/2 mb-3" />
@@ -100,7 +100,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {kpiCards.map((card, i) => (
           <KPICard key={i} {...card} />
         ))}
