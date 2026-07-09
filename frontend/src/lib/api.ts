@@ -98,10 +98,17 @@ export const projectUpdatesApi = {
 export const documentationApi = {
   get: (projectId: string) => api.get(`/projects/${projectId}/documentation`),
   
-  uploadFile: (projectId: string, data: FormData) =>
-    api.post(`/projects/${projectId}/documentation/files`, data, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  getUploadUrl: (projectId: string, data: { fileName: string; fileType: string; uploadedBy: string }) =>
+    api.post(`/projects/${projectId}/documentation/upload-url`, data),
+    
+  createFileMetadata: (projectId: string, data: { blobName: string; fileName: string; fileType: string; size: number; uploadedBy: string }) =>
+    api.post(`/projects/${projectId}/documentation/files`, data),
+    
   deleteFile: (projectId: string, fileId: string, memberId: string) =>
     api.delete(`/projects/${projectId}/documentation/files/${fileId}`, { params: { memberId } }),
+
+  getDownloadUrl: (projectId: string, fileId: string, memberId: string) =>
+    api.get(`/projects/${projectId}/documentation/files/${fileId}/download-url`, { params: { memberId } }),
 
   createLink: (projectId: string, data: Record<string, unknown>) =>
     api.post(`/projects/${projectId}/documentation/links`, data),

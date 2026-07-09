@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { documentationApi } from '@/lib/api';
+import axios from 'axios';
 import {
   FileText, Link2, Notebook, Plus, Trash2, ExternalLink,
   Pencil, Calendar, TrendingUp, AlertCircle, Loader2,
@@ -79,13 +80,39 @@ export default function ProjectDocumentationPage() {
 
   // Mutations
   const uploadFileMutation = useMutation({
-    mutationFn: (formData: FormData) => documentationApi.uploadFile(projectId || '', formData),
+    mutationFn: async (file: File) => {
+      // 1. Get SAS URL
+      const { data: { uploadUrl, blobName, contentType } } = await documentationApi.getUploadUrl(projectId || '', {
+        fileName: file.name,
+        fileType: file.type,
+        uploadedBy: actingMemberId
+      });
+
+      // 2. Direct upload to Azure
+      await axios.put(uploadUrl, file, {
+        headers: {
+          "x-ms-blob-type": "BlockBlob",
+          "Content-Type": contentType,
+        },
+      });
+
+      // 3. Save metadata
+      const { data: savedFile } = await documentationApi.createFileMetadata(projectId || '', {
+        blobName,
+        fileName: file.name,
+        fileType: file.type,
+        size: file.size,
+        uploadedBy: actingMemberId
+      });
+
+      return savedFile;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project-documentation', projectId] });
       setUploadError(null);
     },
     onError: (err: any) => {
-      setUploadError(err.response?.data?.error || 'Failed to upload file.');
+      setUploadError(err.response?.data?.error || err.message || 'Failed to upload file.');
     }
   });
 
@@ -227,15 +254,20 @@ export default function ProjectDocumentationPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const fd = new FormData();
-    fd.append('file', file);
-    fd.append('uploadedBy', actingMemberId);
-
     setUploadError(null);
-    uploadFileMutation.mutate(fd);
+    uploadFileMutation.mutate(file);
     
     // Clear selection
     e.target.value = '';
+  };
+
+  const handleDownload = async (fileId: string) => {
+    try {
+      const { data: { downloadUrl } } = await documentationApi.getDownloadUrl(projectId || '', fileId, actingMemberId);
+      window.open(downloadUrl, "_blank");
+    } catch (err: any) {
+      alert(err.response?.data?.error || 'Failed to generate download link.');
+    }
   };
 
   if (isLoading) {
@@ -534,15 +566,14 @@ export default function ProjectDocumentationPage() {
                           </div>
 
                           <div className="flex items-center gap-1">
-                            <a
-                              href={`${(import.meta as any).env.VITE_API_URL || 'http://localhost:3001/api'}/projects/${projectId}/documentation/files/${file.id}/view`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="p-1.5 hover:bg-zinc-800 text-muted-foreground hover:text-foreground rounded-lg transition-all"
+                            <button
+                              onClick={() => handleDownload(file.id)}
+                              disabled={!actingMemberId}
+                              className="p-1.5 hover:bg-zinc-800 text-muted-foreground hover:text-foreground rounded-lg transition-all disabled:opacity-40"
                               title="Download/Open file"
                             >
                               <FileDown className="w-3.5 h-3.5" />
-                            </a>
+                            </button>
                             <button
                               onClick={() => {
                                 if (confirm('Are you sure you want to delete this file?')) {

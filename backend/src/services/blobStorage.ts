@@ -1,8 +1,25 @@
-import { BlobServiceClient, ContainerClient } from '@azure/storage-blob';
+import { BlobServiceClient, ContainerClient, StorageSharedKeyCredential, generateBlobSASQueryParameters, BlobSASPermissions } from '@azure/storage-blob';
 import { v4 as uuidv4 } from 'uuid';
 
 const connectionString = process.env.AZURE_STORAGE_CONNECTION_STRING || '';
-const accountName = process.env.AZURE_STORAGE_ACCOUNT_NAME || '';
+
+function parseConnectionString(connStr: string) {
+  const parts = connStr.split(';');
+  const dict: Record<string, string> = {};
+  for (const p of parts) {
+    const idx = p.indexOf('=');
+    if (idx > 0) {
+      dict[p.substring(0, idx)] = p.substring(idx + 1);
+    }
+  }
+  return dict;
+}
+
+const parsedCreds = parseConnectionString(connectionString);
+export const accountName = parsedCreds['AccountName'] || process.env.AZURE_STORAGE_ACCOUNT_NAME || '';
+const accountKey = parsedCreds['AccountKey'] || process.env.AZURE_STORAGE_ACCOUNT_KEY || '';
+
+const sharedKeyCredential = (accountName && accountKey) ? new StorageSharedKeyCredential(accountName, accountKey) : null;
 
 let blobServiceClient: BlobServiceClient | null = null;
 
@@ -48,14 +65,23 @@ export async function deleteFile(containerName: string, blobName: string): Promi
   await blockBlobClient.deleteIfExists();
 }
 
-export async function downloadFileStream(containerName: string, blobName: string): Promise<NodeJS.ReadableStream> {
-  const containerClient = await getContainerClient(containerName);
-  const blockBlobClient = containerClient.getBlockBlobClient(blobName);
-  const downloadResponse = await blockBlobClient.download(0);
-  if (!downloadResponse.readableStreamBody) {
-    throw new Error('Readable stream not available');
+export function generateSasUrl({ containerName, blobName, permissions, expiryMinutes = 15 }: { containerName: string; blobName: string; permissions: string; expiryMinutes?: number }): string {
+  if (!sharedKeyCredential) {
+    throw new Error('StorageSharedKeyCredential is not configured properly. Ensure AccountKey is provided in the connection string.');
   }
-  return downloadResponse.readableStreamBody;
+
+  const sasOptions = {
+    containerName,
+    blobName,
+    permissions: BlobSASPermissions.parse(permissions),
+    startsOn: new Date(Date.now() - 60 * 1000), // clock skew buffer
+    expiresOn: new Date(Date.now() + expiryMinutes * 60 * 1000),
+    protocol: "https" as any,
+  };
+
+  const sasToken = generateBlobSASQueryParameters(sasOptions, sharedKeyCredential).toString();
+
+  return `https://${accountName}.blob.core.windows.net/${containerName}/${encodeURIComponent(blobName)}?${sasToken}`;
 }
 
 export function extractBlobName(url: string): string {

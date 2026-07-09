@@ -1,17 +1,11 @@
 import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
-import multer from 'multer';
-import { uploadFile, deleteFile, downloadFileStream, extractBlobName, CONTAINERS } from '../services/blobStorage';
+import { v4 as uuidv4 } from 'uuid';
+import { deleteFile, generateSasUrl, extractBlobName, CONTAINERS, accountName } from '../services/blobStorage';
 import { AppError } from '../middleware/errorHandler';
 
 const router = Router({ mergeParams: true });
 const prisma = new PrismaClient();
-
-// Multer memory configuration for documents, images, and other file types (up to 25MB)
-const uploadDoc = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 25 * 1024 * 1024 }, // 25MB
-});
 
 // Helper to verify that the team member is assigned to the project or is the manager
 async function verifyProjectMember(projectId: string, memberId: string) {
@@ -73,38 +67,50 @@ router.get('/', async (req: Request, res: Response) => {
 
 // ─── FILES ────────────────────────────────────────────────────────────────────
 
-// POST /api/projects/:projectId/documentation/files
-// Upload a file to Azure Storage and register it in the database
-router.post('/files', uploadDoc.single('file'), async (req: Request, res: Response) => {
+// POST /api/projects/:projectId/documentation/upload-url
+// Request a SAS URL to upload a file directly to Azure
+router.post('/upload-url', async (req: Request, res: Response) => {
   const { projectId } = req.params;
-  const { uploadedBy } = req.body;
+  const { fileName, fileType, uploadedBy } = req.body;
 
-  if (!uploadedBy) {
-    throw new AppError('uploadedBy memberId is required.', 400);
+  if (!uploadedBy || !fileName) {
+    throw new AppError('uploadedBy and fileName are required.', 400);
   }
   await verifyProjectMember(projectId, uploadedBy);
 
-  const file = req.file;
-  if (!file) {
-    throw new AppError('No file provided for upload.', 400);
+  const ext = fileName.split('.').pop() || '';
+  const blobName = `${uuidv4()}-${fileName.replace(/[^a-zA-Z0-9.\-_]/g, '_')}`;
+
+  const uploadUrl = generateSasUrl({
+    containerName: CONTAINERS.PROJECT_DOCS,
+    blobName,
+    permissions: "cw",
+    expiryMinutes: 10,
+  });
+
+  res.json({ uploadUrl, blobName, contentType: fileType });
+});
+
+// POST /api/projects/:projectId/documentation/files
+// Register uploaded file metadata in the database
+router.post('/files', async (req: Request, res: Response) => {
+  const { projectId } = req.params;
+  const { blobName, fileName, fileType, size, uploadedBy } = req.body;
+
+  if (!uploadedBy || !blobName || !fileName) {
+    throw new AppError('uploadedBy, blobName, and fileName are required.', 400);
   }
+  await verifyProjectMember(projectId, uploadedBy);
 
-  // Upload file buffer to Azure Blob Storage
-  const uploadResult = await uploadFile(
-    CONTAINERS.PROJECT_DOCS,
-    file.buffer,
-    file.originalname,
-    file.mimetype
-  );
+  const url = `https://${accountName}.blob.core.windows.net/${CONTAINERS.PROJECT_DOCS}/${blobName}`;
 
-  // Record details in database
   const newFile = await prisma.projectFile.create({
     data: {
       projectId,
-      name: file.originalname,
-      url: uploadResult.url,
-      type: file.mimetype,
-      size: file.size,
+      name: fileName,
+      url: url,
+      type: fileType,
+      size: size,
       uploadedBy,
     },
   });
@@ -140,10 +146,13 @@ router.delete('/files/:fileId', async (req: Request, res: Response) => {
   res.json({ success: true, message: 'File deleted successfully.' });
 });
 
-// GET /api/projects/:projectId/documentation/files/:fileId/view
-// Streams files from Azure to the browser for secure downloading and inline viewing
-router.get('/files/:fileId/view', async (req: Request, res: Response) => {
-  const { fileId } = req.params;
+// GET /api/projects/:projectId/documentation/files/:fileId/download-url
+// Generate a short-lived read-only SAS URL for file download
+router.get('/files/:fileId/download-url', async (req: Request, res: Response) => {
+  const { projectId, fileId } = req.params;
+  const memberId = (req.query.memberId as string) || req.body.memberId;
+
+  await verifyProjectMember(projectId, memberId);
 
   const dbFile = await prisma.projectFile.findUnique({
     where: { id: fileId },
@@ -154,12 +163,14 @@ router.get('/files/:fileId/view', async (req: Request, res: Response) => {
   }
 
   const blobName = extractBlobName(dbFile.url);
-  const stream = await downloadFileStream(CONTAINERS.PROJECT_DOCS, blobName);
+  const downloadUrl = generateSasUrl({
+    containerName: CONTAINERS.PROJECT_DOCS,
+    blobName,
+    permissions: "r",
+    expiryMinutes: 5,
+  });
 
-  res.setHeader('Content-Type', dbFile.type);
-  res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(dbFile.name)}"`);
-
-  (stream as any).pipe(res);
+  res.json({ downloadUrl, fileName: dbFile.name });
 });
 
 // ─── LINKS ────────────────────────────────────────────────────────────────────
