@@ -31,5 +31,16 @@ export const presalesApi = {
       params: { name, clientName, account }
     });
     return res.data;
+  },
+
+  // Update name and clientName for an opportunity group
+  updateDetails: async (params: {
+    oldName: string;
+    oldClientName: string;
+    newName: string;
+    newClientName: string;
+  }): Promise<{ success: boolean }> => {
+    const res = await api.put('/presales', params);
+    return res.data;
   }
 };

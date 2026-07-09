@@ -4,6 +4,7 @@ import { presalesApi } from '@/lib/presalesApi';
 import StageTimeline from '@/components/StageTimeline';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import AddOpportunityModal from '@/components/AddOpportunityModal';
+import EditOpportunityModal from '@/components/EditOpportunityModal';
 import {
   Target,
   Trophy,
@@ -16,7 +17,8 @@ import {
   Plus,
   X,
   Loader2,
-  MoreVertical
+  MoreVertical,
+  Pencil
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { PreSalesOpportunity } from '@/types';
@@ -47,6 +49,7 @@ export default function PreSalesPage() {
   const [pendingChange, setPendingChange] = useState<PendingChange | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [oppToDelete, setOppToDelete] = useState<DeletionTarget | null>(null);
+  const [oppToEdit, setOppToEdit] = useState<GroupedOpportunity | null>(null);
   const [openMenuKey, setOpenMenuKey] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'info' | 'success' } | null>(null);
 
@@ -422,10 +425,21 @@ export default function PreSalesPage() {
                       >
                         <button
                           onClick={() => {
+                            setOppToEdit(grouped);
+                            setOpenMenuKey(null);
+                          }}
+                          className="w-full text-left px-3.5 py-2 text-xs hover:bg-zinc-800 text-foreground transition-colors flex items-center gap-1.5"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                          Edit details
+                        </button>
+
+                        <button
+                          onClick={() => {
                             setOppToDelete({ name: grouped.name, clientName: grouped.clientName });
                             setOpenMenuKey(null);
                           }}
-                          className="w-full text-left px-3.5 py-2 text-xs font-semibold hover:bg-zinc-800 text-red-400 hover:text-red-300 transition-colors flex items-center gap-1.5"
+                          className="w-full text-left px-3.5 py-2 text-xs font-semibold hover:bg-zinc-800 text-red-400 hover:text-red-300 transition-colors flex items-center gap-1.5 border-t border-border/30"
                         >
                           <X className="w-3.5 h-3.5" />
                           Remove {grouped.name}
@@ -533,6 +547,18 @@ export default function PreSalesPage() {
         isPending={updateStageMutation.isPending}
         onClose={() => setPendingChange(null)}
         onConfirm={handleConfirmChange}
+      />
+
+      {/* Edit Opportunity Modal */}
+      <EditOpportunityModal
+        isOpen={oppToEdit !== null}
+        oldName={oppToEdit?.name || ''}
+        oldClientName={oppToEdit?.clientName || ''}
+        onClose={() => setOppToEdit(null)}
+        onSaved={() => {
+          setOppToEdit(null);
+          showToast('Opportunity details updated successfully.', 'success');
+        }}
       />
 
       {/* Delete Confirmation Modal */}

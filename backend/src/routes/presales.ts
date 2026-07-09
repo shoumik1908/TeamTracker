@@ -145,4 +145,28 @@ router.delete('/', async (req: Request, res: Response) => {
   res.json({ success: true });
 });
 
+// PUT /api/presales
+// Update opportunity and client names for all matching timelines
+router.put('/', async (req: Request, res: Response) => {
+  const { oldName, oldClientName, newName, newClientName } = req.body;
+
+  if (!oldName || !oldClientName || !newName || !newClientName) {
+    return res.status(400).json({ error: 'oldName, oldClientName, newName, and newClientName are required.' });
+  }
+
+  const updated = await prisma.preSalesOpportunity.updateMany({
+    where: {
+      name: { equals: oldName.trim(), mode: 'insensitive' },
+      clientName: { equals: oldClientName.trim(), mode: 'insensitive' }
+    },
+    data: {
+      name: newName.trim(),
+      clientName: newClientName.trim()
+    }
+  });
+
+  res.json({ success: true, count: updated.count });
+});
+
 export default router;
+
