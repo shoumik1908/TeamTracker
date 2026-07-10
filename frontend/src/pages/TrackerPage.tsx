@@ -353,19 +353,22 @@ export default function TrackerPage() {
           return bDate - aDate;
         }
 
-        // Tier 2: uncompleted — sort by deadline asc, then alpha by cert name
-        const aDeadline = a.deadline ? new Date(a.deadline).getTime() : null;
-        const bDeadline = b.deadline ? new Date(b.deadline).getTime() : null;
+        // Tier 2: uncompleted — sort by deadline date (truncated to day) asc,
+        // then alphabetically by certification name as a tiebreaker
+        const aDeadlineDay = a.deadline ? a.deadline.slice(0, 10) : null;
+        const bDeadlineDay = b.deadline ? b.deadline.slice(0, 10) : null;
 
-        if (aDeadline !== null && bDeadline !== null) {
-          if (aDeadline !== bDeadline) return aDeadline - bDeadline;
-        } else if (aDeadline !== null) {
+        if (aDeadlineDay !== null && bDeadlineDay !== null) {
+          if (aDeadlineDay < bDeadlineDay) return -1;
+          if (aDeadlineDay > bDeadlineDay) return 1;
+          // Same day → fall through to alpha
+        } else if (aDeadlineDay !== null) {
           return -1; // a has deadline, b doesn't → a first
-        } else if (bDeadline !== null) {
+        } else if (bDeadlineDay !== null) {
           return 1;  // b has deadline, a doesn't → b first
         }
 
-        // Same deadline (or both null) → alphabetical by certification name
+        // Same deadline day (or both null) → alphabetical by certification name
         const aName = a.certification?.name ?? '';
         const bName = b.certification?.name ?? '';
         return aName.localeCompare(bName);
