@@ -1,12 +1,16 @@
 import { DocumentAnalysisClient, AzureKeyCredential } from '@azure/ai-form-recognizer';
+import { TextAnalyticsClient, AzureKeyCredential as LanguageKeyCredential } from '@azure/ai-text-analytics';
 import { parse, isValid } from 'date-fns';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const fuzz = require('fuzzball') as { ratio: (a: string, b: string) => number };
 
 const endpoint = process.env.AZURE_DOC_INTEL_ENDPOINT || '';
 const apiKey = process.env.AZURE_DOC_INTEL_KEY || '';
+const languageEndpoint = process.env.AZURE_LANGUAGE_ENDPOINT || '';
+const languageKey = process.env.AZURE_LANGUAGE_KEY || '';
 
 let client: DocumentAnalysisClient | null = null;
+let textClient: TextAnalyticsClient | null = null;
 
 function getClient(): DocumentAnalysisClient {
   if (!client) {
@@ -18,8 +22,21 @@ function getClient(): DocumentAnalysisClient {
   return client;
 }
 
+function getTextClient(): TextAnalyticsClient | null {
+  if (!textClient) {
+    if (languageEndpoint && languageKey) {
+      textClient = new TextAnalyticsClient(languageEndpoint, new LanguageKeyCredential(languageKey));
+    }
+  }
+  return textClient;
+}
+
 export function isConfigured(): boolean {
   return !!(process.env.AZURE_DOC_INTEL_ENDPOINT && process.env.AZURE_DOC_INTEL_KEY);
+}
+
+export function isLanguageConfigured(): boolean {
+  return !!(process.env.AZURE_LANGUAGE_ENDPOINT && process.env.AZURE_LANGUAGE_KEY);
 }
 
 // Normalize a wide variety of date strings → YYYY-MM-DD
@@ -85,114 +102,115 @@ function extractDatesFromRawText(rawLines: string[]): { completionDate: string |
   }
 
   return result;
-}
-
-// Pass 2 — trigger phrases for name AFTER trigger
-const TRIGGER_PHRASES = [
-  'certifies that',
-  'this certifies that',
-  'presented to',
-  'awarded to',
-  'this is to certify that',
-  'is hereby awarded to',
-  'congratulations to',
-  'is presented to',
+}// Phrases where the NAME comes BEFORE the phrase (your Databricks cert pattern)
+const NAME_BEFORE_PHRASES = [
+  "has successfully completed",
+  "has completed the requirements",
+  "has completed the course",
+  "has successfully passed",
+  "has met the requirements",
+  "has demonstrated",
+  "has fulfilled the requirements",
+  "successfully completed",
+  "successfully passed",
+  "successfully finished"
 ];
 
-// Pass 2 — phrases indicating name appears BEFORE trigger
-const COMPLETION_PHRASES = [
-  'has successfully completed',
-  'has completed the requirements',
-  'successfully completed',
-  'completed the requirements to',
-  'has successfully completed the',
+// Phrases where the NAME comes AFTER the phrase (generic template pattern)
+const NAME_AFTER_PHRASES = [
+  "certifies that",
+  "presented to",
+  "awarded to",
+  "this is to certify that",
+  "this certifies that",
+  "this is presented to",
+  "in recognition of",
+  "proudly presented to",
+  "granted to",
+  "conferred upon",
+  "this award is presented to",
+  "recipient:",
+  "name:",
+  "candidate name",
+  "participant name",
+  "student name"
 ];
 
-function isValidNameCandidate(name: string): boolean {
-  const trimmed = name.trim();
-  // 1. Cannot contain digits
-  if (/\d/.test(trimmed)) return false;
-  // 2. Length check: between 2 and 40 characters
-  if (trimmed.length < 3 || trimmed.length > 40) return false;
-  // 3. Word count: must contain 2 to 4 words
-  const words = trimmed.split(/\s+/).filter(Boolean);
-  if (words.length < 2 || words.length > 4) return false;
-  // 4. Exclude noise/technical words
-  const noiseWords = [
-    'certified', 'certification', 'certificate', 'date', 'issue', 'expir',
-    'page', 'successful', 'completion', 'obtained', 'requirements', 'course',
-    'program', 'pathway', 'university', 'institute', 'academy', 'credentials',
-    'verification', 'verify', 'signature', 'id', 'score', 'percent', 'exam',
-    'administrator', 'instructor', 'ceo', 'president', 'director', 'vice'
-  ];
-  const lower = trimmed.toLowerCase();
-  for (const word of noiseWords) {
-    if (lower.includes(word)) return false;
-  }
+function isLikelyName(line: string): boolean {
+  if (!line) return false;
+  const cleaned = line.trim();
+  if (cleaned.length > 45 || cleaned.length < 3) return false;
+  if (/\d/.test(cleaned)) return false; // no digits — rules out dates/IDs
+  if (/certified|certificate|databricks|azure|aws|google|date|issue|expir|valid|requirement|training|course|module/i.test(cleaned)) return false;
+
+  const wordCount = cleaned.split(/\s+/).length;
+  if (wordCount < 2 || wordCount > 5) return false;
+
+  // Reject lines that are ALL CAPS longer than a typical name (likely a heading)
+  if (cleaned === cleaned.toUpperCase() && wordCount > 3) return false;
+
   return true;
 }
 
-function extractNameFromLines(lines: string[]): string | null {
-  console.log('[DocIntel] Running name extraction layout scans on raw text lines:', lines);
+function extractNameFallback(rawLines: string[]): string | null {
+  for (let i = 0; i < rawLines.length; i++) {
+    const line = rawLines[i];
+    const lower = line.toLowerCase();
 
-  // 1. First run Pattern A (Name BEFORE completion phrase)
-  for (let i = 0; i < lines.length; i++) {
-    const lower = lines[i].toLowerCase();
-    for (const phrase of COMPLETION_PHRASES) {
-      if (lower.includes(phrase)) {
-        console.log(`[DocIntel] Pattern A: Found completion phrase "${phrase}" at line ${i}: "${lines[i]}"`);
-        // Check the line immediately before
-        if (i > 0) {
-          const candidate = lines[i - 1].trim();
-          console.log(`[DocIntel] Pattern A candidate (line ${i-1}): "${candidate}"`);
-          if (isValidNameCandidate(candidate)) {
-            console.log(`[DocIntel] Pattern A SUCCESS: Valid candidate found: "${candidate}"`);
-            return candidate;
-          } else {
-            console.log(`[DocIntel] Pattern A FAILED: Candidate "${candidate}" is invalid`);
-          }
-        }
+    // Pattern A: name is on the line BEFORE this phrase
+    const beforeMatch = NAME_BEFORE_PHRASES.find(p => lower.includes(p));
+    if (beforeMatch) {
+      const candidate = rawLines[i - 1];
+      if (candidate && isLikelyName(candidate)) {
+        console.log(`[DocIntel] Name matched (Pattern A, name-before-phrase: "${beforeMatch}"): "${candidate}"`);
+        return candidate.trim();
+      }
+    }
+
+    // Pattern B: name is on the same line (after a colon/phrase) or the next line
+    const afterMatch = NAME_AFTER_PHRASES.find(p => lower.includes(p));
+    if (afterMatch) {
+      const sameLineRemainder = line.split(new RegExp(afterMatch, "i"))[1]?.trim();
+      const candidate = (sameLineRemainder && sameLineRemainder.length > 1)
+        ? sameLineRemainder
+        : rawLines[i + 1];
+      if (candidate && isLikelyName(candidate)) {
+        console.log(`[DocIntel] Name matched (Pattern B, name-after-phrase: "${afterMatch}"): "${candidate}"`);
+        return candidate.trim();
       }
     }
   }
 
-  // 2. Fallback to Pattern B (Name AFTER / SAME LINE as trigger phrase)
-  for (let i = 0; i < lines.length; i++) {
-    const lower = lines[i].toLowerCase();
-    for (const phrase of TRIGGER_PHRASES) {
-      if (lower.includes(phrase)) {
-        console.log(`[DocIntel] Pattern B: Found trigger phrase "${phrase}" at line ${i}: "${lines[i]}"`);
-        
-        // Try same line after phrase first
-        const afterPhrase = lines[i].split(new RegExp(phrase, 'i'))[1]?.trim();
-        if (afterPhrase) {
-          const cleanedSameLine = afterPhrase.replace(/^(that\s+)/i, '').trim();
-          console.log(`[DocIntel] Pattern B same-line candidate: "${cleanedSameLine}"`);
-          if (isValidNameCandidate(cleanedSameLine)) {
-            console.log(`[DocIntel] Pattern B SUCCESS: Valid same-line candidate found: "${cleanedSameLine}"`);
-            return cleanedSameLine;
-          }
-        }
-
-        // Try the lines immediately following (up to 2 lines down)
-        for (let nextOffset = 1; nextOffset <= 2; nextOffset++) {
-          const nextIndex = i + nextOffset;
-          if (nextIndex < lines.length) {
-            const nextLine = lines[nextIndex].trim();
-            console.log(`[DocIntel] Pattern B next-line candidate (+${nextOffset}): "${nextLine}"`);
-            if (isValidNameCandidate(nextLine)) {
-              console.log(`[DocIntel] Pattern B SUCCESS: Valid next-line candidate found: "${nextLine}"`);
-              return nextLine;
-            }
-          }
-        }
-      }
-    }
-  }
-
-  console.log('[DocIntel] Layout name extraction scan returned no valid candidates.');
   return null;
 }
+
+async function extractNameWithNER(rawText: string): Promise<string | null> {
+  const client = getTextClient();
+  if (!client) {
+    console.log('[DocIntel] NER fallback skipped: Azure AI Language credentials not configured.');
+    return null;
+  }
+
+  try {
+    const [result] = await client.recognizeEntities([rawText]);
+    if (!result.error) {
+      const personEntities = result.entities
+        .filter(e => e.category === "Person" && e.confidenceScore > 0.6)
+        .sort((a, b) => b.confidenceScore - a.confidenceScore);
+
+      if (personEntities.length > 0) {
+        console.log(`[DocIntel] NER SUCCESS: Found person entity: "${personEntities[0].text}" with score ${personEntities[0].confidenceScore}`);
+        return personEntities[0].text.trim();
+      }
+    } else {
+      console.error('[DocIntel] NER API error:', result.error);
+    }
+  } catch (err: any) {
+    console.error('[DocIntel] Failed to extract name via NER:', err?.message);
+  }
+  return null;
+}
+
 
 export interface NameMatchResult {
   matches: boolean;    // true if fuzz score >= 80
@@ -212,7 +230,7 @@ export interface ExtractedCertificateFields {
   expiryDate: string | null;
   credentialId: string | null;
   recipientName: string | null;
-  recipientNameSource: 'labeled' | 'layout' | null;  // how we found the name
+  recipientNameSource: 'labeled' | 'layout' | 'ner' | null;  // how we found the name
   rawLines: string[];
   rawFields: Record<string, string>;
 }
@@ -228,7 +246,7 @@ export async function extractCertificateFields(fileBuffer: Buffer, mimeType: str
   let expiryDate: string | null = null;
   let credentialId: string | null = null;
   let recipientName: string | null = null;
-  let recipientNameSource: 'labeled' | 'layout' | null = null;
+  let recipientNameSource: 'labeled' | 'layout' | 'ner' | null = null;
 
   // ── Pass 1: labeled key-value pairs ──────────────────────────────────────
   for (const kv of result.keyValuePairs || []) {
@@ -285,10 +303,19 @@ export async function extractCertificateFields(fileBuffer: Buffer, mimeType: str
 
   // ── Pass 2: layout fallback for unlabeled / stylized name text ────────────
   if (!recipientName) {
-    const nameFromLayout = extractNameFromLines(rawLines);
+    const nameFromLayout = extractNameFallback(rawLines);
     if (nameFromLayout) {
       recipientName = nameFromLayout;
       recipientNameSource = 'layout';
+    }
+  }
+
+  // ── Pass 3: NER fallback for missing name ────────────────────────────────
+  if (!recipientName) {
+    const nameFromNER = await extractNameWithNER(result.content || '');
+    if (nameFromNER) {
+      recipientName = nameFromNER;
+      recipientNameSource = 'ner';
     }
   }
 
