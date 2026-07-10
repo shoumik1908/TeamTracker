@@ -155,28 +155,45 @@ router.post('/assign', async (req: Request, res: Response) => {
   if (!member) throw new AppError('Member not found', 404);
   if (!cert) throw new AppError('Certification not found', 404);
 
-  const assignment = await prisma.assignedCertification.create({
-    data: {
-      memberId,
-      certificationId,
-      deadline: new Date(deadline),
-      priority: priority || Priority.MEDIUM,
-      notes,
-      assignedDate: assignedDate ? new Date(assignedDate) : new Date(),
-    },
-    include: { member: true, certification: true },
+  const existingAssignment = await prisma.assignedCertification.findUnique({
+    where: { memberId_certificationId: { memberId, certificationId } },
   });
 
-  await prisma.notification.create({
-    data: {
-      memberId,
-      type: 'CERTIFICATION_ASSIGNED',
-      title: 'New Certification Assigned',
-      message: `${cert.name} has been assigned to ${member.name}. Deadline: ${new Date(deadline).toLocaleDateString()}`,
-    },
-  });
+  let assignment;
+  if (existingAssignment) {
+    assignment = await prisma.assignedCertification.update({
+      where: { id: existingAssignment.id },
+      data: {
+        deadline: new Date(deadline),
+        priority: priority || existingAssignment.priority,
+        notes: notes !== undefined ? notes : existingAssignment.notes,
+      },
+      include: { member: true, certification: true },
+    });
+  } else {
+    assignment = await prisma.assignedCertification.create({
+      data: {
+        memberId,
+        certificationId,
+        deadline: new Date(deadline),
+        priority: priority || Priority.MEDIUM,
+        notes,
+        assignedDate: assignedDate ? new Date(assignedDate) : new Date(),
+      },
+      include: { member: true, certification: true },
+    });
 
-  res.status(201).json(assignment);
+    await prisma.notification.create({
+      data: {
+        memberId,
+        type: 'CERTIFICATION_ASSIGNED',
+        title: 'New Certification Assigned',
+        message: `${cert.name} has been assigned to ${member.name}. Deadline: ${new Date(deadline).toLocaleDateString()}`,
+      },
+    });
+  }
+
+  res.status(existingAssignment ? 200 : 201).json(assignment);
 });
 
 // PUT /api/certifications/assignments/:id - Update assignment

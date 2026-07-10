@@ -72,7 +72,7 @@ export default function AddCertificationModal({ memberId, memberName, onClose, o
       <div className="bg-card rounded-2xl shadow-2xl w-full max-w-md border border-border">
         <div className="flex items-center justify-between px-6 py-4 border-b border-border">
           <div>
-            <h2 className="font-semibold text-lg">Add Certification</h2>
+            <h2 className="font-semibold text-lg">Add / Update Certification</h2>
             <p className="text-xs text-muted-foreground">For {memberName}</p>
           </div>
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X className="w-5 h-5" /></button>
@@ -149,7 +149,7 @@ export default function AddCertificationModal({ memberId, memberName, onClose, o
           <button onClick={onClose} className="flex-1 px-4 py-2 text-sm border border-border rounded-lg hover:bg-muted">Cancel</button>
           <button onClick={() => { setError(null); save.mutate(); }} disabled={!canSave || save.isPending}
             className="flex-1 px-4 py-2 text-sm bg-azure-500 text-white rounded-lg hover:bg-azure-600 disabled:opacity-60 flex items-center justify-center gap-2">
-            {save.isPending && <Loader2 className="w-4 h-4 animate-spin" />} Add Certification
+            {save.isPending && <Loader2 className="w-4 h-4 animate-spin" />} Add / Update Certification
           </button>
         </div>
       </div>
