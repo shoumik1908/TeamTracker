@@ -518,6 +518,22 @@ router.post('/certificate/upload-universal', upload.single('certificate'), async
     });
   }
 
+  // Fetch certification name for the notification message
+  const certName = await prisma.certification.findUnique({
+    where: { id: certificationId },
+    select: { name: true },
+  });
+
+  // 🔔 Fire notification (mirrors per-row upload behaviour)
+  await prisma.notification.create({
+    data: {
+      memberId,
+      type: 'CERTIFICATE_UPLOADED',
+      title: 'Certificate Uploaded',
+      message: `Certificate for ${certName?.name ?? 'Unknown Certification'} uploaded for ${member.name}`,
+    },
+  });
+
   res.json(assignment);
 });
 
