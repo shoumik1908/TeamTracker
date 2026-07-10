@@ -363,9 +363,9 @@ export default function TrackerPage() {
   });
 
   const uploadCert = useMutation({
-    mutationFn: ({ id, file, completionDate, expiryDate, memberId, certificationId }: { id: string; file: File; completionDate?: string; expiryDate?: string; memberId?: string; certificationId?: string }) => {
+    mutationFn: ({ id, file, completionDate, expiryDate, memberId, certificationId }: { id: string; file?: File; completionDate?: string; expiryDate?: string; memberId?: string; certificationId?: string }) => {
       const fd = new FormData();
-      fd.append('certificate', file);
+      if (file) fd.append('certificate', file);
       if (completionDate) fd.append('completionDate', completionDate);
       if (expiryDate) fd.append('expiryDate', expiryDate);
 
@@ -850,18 +850,18 @@ export default function TrackerPage() {
                 className="flex-1 px-4 py-2 text-sm border border-border rounded-lg hover:bg-muted font-medium">Cancel</button>
               <button
                 onClick={() => {
-                  if (uploadFile && selectedMemberId && selectedCertId) {
+                  if (selectedMemberId && selectedCertId) {
                     uploadCert.mutate({
                       id: uploadId,
-                      file: uploadFile,
-                      completionDate: completionDateInput,
-                      expiryDate: expiryDateInput,
+                      file: uploadFile || undefined,
+                      completionDate: completionDateInput || undefined,
+                      expiryDate: expiryDateInput || undefined,
                       memberId: selectedMemberId,
                       certificationId: selectedCertId
                     });
                   }
                 }}
-                disabled={!uploadFile || isAnalyzing || uploadCert.isPending}
+                disabled={isAnalyzing || uploadCert.isPending || !selectedMemberId || !selectedCertId}
                 className="flex-1 px-4 py-2 text-sm bg-azure-500 text-white rounded-lg hover:bg-azure-600 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium">
                 {uploadCert.isPending && <Loader2 className="w-4 h-4 animate-spin" />} Save Certificate
               </button>

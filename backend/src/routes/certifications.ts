@@ -356,7 +356,6 @@ router.post('/certificate/analyze-universal', upload.single('certificate'), asyn
 router.post('/certificate/upload-universal', upload.single('certificate'), async (req: Request, res: Response) => {
   const { memberId, certificationId, expiryDate, completionDate } = req.body;
   if (!memberId || !certificationId) throw new AppError('memberId and certificationId are required', 400);
-  if (!req.file) throw new AppError('Certificate file is required', 400);
 
   const member = await prisma.teamMember.findUnique({
     where: { id: memberId },
@@ -374,15 +373,22 @@ router.post('/certificate/upload-universal', upload.single('certificate'), async
     },
   });
 
-  // Upload to blob storage / ADLS Gen2
-  const { url } = await uploadFile(
-    CONTAINERS.CERTIFICATES,
-    req.file.buffer,
-    req.file.originalname,
-    req.file.mimetype,
-    memberId,
-    member.name
-  );
+  // Upload to blob storage / ADLS Gen2 if file provided
+  let url = assignment ? assignment.certificateUrl : null;
+  let uploadDate = assignment ? assignment.uploadDate : null;
+
+  if (req.file) {
+    const uploadResult = await uploadFile(
+      CONTAINERS.CERTIFICATES,
+      req.file.buffer,
+      req.file.originalname,
+      req.file.mimetype,
+      memberId,
+      member.name
+    );
+    url = uploadResult.url;
+    uploadDate = new Date();
+  }
 
   const finalCompletionDate = completionDate ? new Date(completionDate) : new Date();
   const finalExpiryDate = expiryDate ? new Date(expiryDate) : null;
@@ -393,8 +399,8 @@ router.post('/certificate/upload-universal', upload.single('certificate'), async
   }
 
   if (assignment) {
-    // Delete existing certificate if exists
-    if (assignment.certificateUrl) {
+    // Delete existing certificate if new file is uploaded
+    if (req.file && assignment.certificateUrl) {
       const blobName = extractBlobName(assignment.certificateUrl);
       await deleteFile(CONTAINERS.CERTIFICATES, blobName).catch(console.error);
     }
@@ -402,12 +408,12 @@ router.post('/certificate/upload-universal', upload.single('certificate'), async
     assignment = await prisma.assignedCertification.update({
       where: { id: assignment.id },
       data: {
-        certificateUrl: url,
-        uploadDate: new Date(),
         status: finalStatus as any,
         completionDate: finalCompletionDate,
         expiryDate: finalExpiryDate,
         progress: 100,
+        certificateUrl: url,
+        uploadDate: uploadDate,
       },
     });
   } else {
@@ -427,7 +433,7 @@ router.post('/certificate/upload-universal', upload.single('certificate'), async
         completionDate: finalCompletionDate,
         expiryDate: finalExpiryDate,
         certificateUrl: url,
-        uploadDate: new Date(),
+        uploadDate: uploadDate,
       },
     });
   }
@@ -440,27 +446,32 @@ router.post('/assignments/:id/certificate', upload.single('certificate'), async 
   const { id } = req.params;
   const { credentialId, expiryDate, completionDate } = req.body;
 
-  if (!req.file) throw new AppError('Certificate file is required', 400);
-
   const existing = await prisma.assignedCertification.findUnique({
     where: { id },
     include: { member: true, certification: true },
   });
   if (!existing) throw new AppError('Assignment not found', 404);
 
-  if (existing.certificateUrl) {
-    const blobName = extractBlobName(existing.certificateUrl);
-    await deleteFile(CONTAINERS.CERTIFICATES, blobName).catch(console.error);
-  }
+  let url = existing.certificateUrl;
+  let uploadDate = existing.uploadDate;
 
-  const { url } = await uploadFile(
-    CONTAINERS.CERTIFICATES,
-    req.file.buffer,
-    req.file.originalname,
-    req.file.mimetype,
-    existing.memberId,
-    existing.member.name
-  );
+  if (req.file) {
+    if (existing.certificateUrl) {
+      const blobName = extractBlobName(existing.certificateUrl);
+      await deleteFile(CONTAINERS.CERTIFICATES, blobName).catch(console.error);
+    }
+
+    const uploadResult = await uploadFile(
+      CONTAINERS.CERTIFICATES,
+      req.file.buffer,
+      req.file.originalname,
+      req.file.mimetype,
+      existing.memberId,
+      existing.member.name
+    );
+    url = uploadResult.url;
+    uploadDate = new Date();
+  }
 
   const finalCompletionDate = completionDate ? new Date(completionDate) : (existing.completionDate || new Date());
   const finalExpiryDate = expiryDate ? new Date(expiryDate) : existing.expiryDate;
@@ -474,9 +485,9 @@ router.post('/assignments/:id/certificate', upload.single('certificate'), async 
     where: { id },
     data: {
       certificateUrl: url,
-      uploadDate: new Date(),
+      uploadDate: uploadDate,
       ...(credentialId && { credentialId }),
-      status: finalStatus,
+      status: finalStatus as any,
       completionDate: finalCompletionDate,
       expiryDate: finalExpiryDate,
       progress: 100,
