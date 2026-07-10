@@ -332,16 +332,7 @@ export default function TrackerPage() {
       }
       groups.get(a.member.id)!.assignments.push(a);
     }
-    
-    // Sort assignments inside each group (Completed/Expired on top)
-    const statusOrder: Record<string, number> = {
-      COMPLETED: 1,
-      EXPIRED: 2,
-      OVERDUE: 3,
-      IN_PROGRESS: 4,
-      NOT_STARTED: 5
-    };
-    
+
     const result = Array.from(groups.values());
     
     // Sort groups alphabetically by member name in ascending order
@@ -349,9 +340,35 @@ export default function TrackerPage() {
 
     for (const g of result) {
       g.assignments.sort((a, b) => {
-        const orderA = statusOrder[a.status] || 99;
-        const orderB = statusOrder[b.status] || 99;
-        return orderA - orderB;
+        const aDone = a.status === 'COMPLETED' || a.status === 'EXPIRED';
+        const bDone = b.status === 'COMPLETED' || b.status === 'EXPIRED';
+
+        // Tier 1: completed/expired always come before uncompleted
+        if (aDone !== bDone) return aDone ? -1 : 1;
+
+        if (aDone && bDone) {
+          // Within completed/expired: most recently completed first
+          const aDate = a.completionDate ? new Date(a.completionDate).getTime() : 0;
+          const bDate = b.completionDate ? new Date(b.completionDate).getTime() : 0;
+          return bDate - aDate;
+        }
+
+        // Tier 2: uncompleted — sort by deadline asc, then alpha by cert name
+        const aDeadline = a.deadline ? new Date(a.deadline).getTime() : null;
+        const bDeadline = b.deadline ? new Date(b.deadline).getTime() : null;
+
+        if (aDeadline !== null && bDeadline !== null) {
+          if (aDeadline !== bDeadline) return aDeadline - bDeadline;
+        } else if (aDeadline !== null) {
+          return -1; // a has deadline, b doesn't → a first
+        } else if (bDeadline !== null) {
+          return 1;  // b has deadline, a doesn't → b first
+        }
+
+        // Same deadline (or both null) → alphabetical by certification name
+        const aName = a.certification?.name ?? '';
+        const bName = b.certification?.name ?? '';
+        return aName.localeCompare(bName);
       });
     }
     return result;
