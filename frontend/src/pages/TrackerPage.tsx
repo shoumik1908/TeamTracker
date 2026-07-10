@@ -1,7 +1,7 @@
 import { useState, useRef, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { certificationsApi, membersApi } from '@/lib/api';
-import { Search, Upload, Pencil, Trash2, FileText, ChevronDown, ChevronUp, X, Loader2, Plus, MoreVertical, CheckCircle2, Clock, AlertCircle } from 'lucide-react';
+import { Search, Upload, Pencil, Trash2, FileText, ChevronDown, ChevronUp, X, Loader2, Plus, MoreVertical, AlertTriangle } from 'lucide-react';
 import { cn, formatDate, formatStatus, getStatusColor, getInitials } from '@/lib/utils';
 import type { AssignedCertification, PaginatedResponse, TeamMember, Certification } from '@/types';
 import AddCertificationModal from '@/components/AddCertificationModal';
@@ -10,13 +10,11 @@ const STATUSES = ['NOT_STARTED', 'IN_PROGRESS', 'COMPLETED', 'OVERDUE', 'EXPIRED
 const PRIORITIES = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
 
 function QuickUpdateMenu({
-  assignment, onEdit, onUpload, onDelete, onQuickStatus
+  onEdit, onDelete, onDeleteCertificate
 }: {
-  assignment: AssignedCertification;
   onEdit: () => void;
-  onUpload: () => void;
   onDelete: () => void;
-  onQuickStatus: (status: string) => void;
+  onDeleteCertificate?: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -40,36 +38,6 @@ function QuickUpdateMenu({
       </button>
       {open && (
         <div className="absolute right-0 bottom-8 z-40 w-48 bg-popover border border-border rounded-xl shadow-2xl overflow-hidden animate-fade-in">
-          {/* Quick Status Section */}
-          <div className="px-3 py-2 border-b border-border/60">
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Quick Status</p>
-            <div className="space-y-1">
-              <button
-                onClick={() => { onQuickStatus('NOT_STARTED'); setOpen(false); }}
-                className={`w-full flex items-center gap-2 px-2 py-1.5 text-xs rounded-lg transition-colors text-left ${
-                  assignment.status === 'NOT_STARTED' ? 'bg-slate-800/60 text-slate-300' : 'hover:bg-muted/40 text-muted-foreground'
-                }`}
-              >
-                <AlertCircle className="w-3 h-3" /> Not Started
-              </button>
-              <button
-                onClick={() => { onQuickStatus('IN_PROGRESS'); setOpen(false); }}
-                className={`w-full flex items-center gap-2 px-2 py-1.5 text-xs rounded-lg transition-colors text-left ${
-                  assignment.status === 'IN_PROGRESS' ? 'bg-azure-900/40 text-azure-300' : 'hover:bg-muted/40 text-muted-foreground'
-                }`}
-              >
-                <Clock className="w-3 h-3" /> In Progress
-              </button>
-              <button
-                onClick={() => { onQuickStatus('COMPLETED'); setOpen(false); }}
-                className={`w-full flex items-center gap-2 px-2 py-1.5 text-xs rounded-lg transition-colors text-left ${
-                  assignment.status === 'COMPLETED' ? 'bg-emerald-900/40 text-emerald-300' : 'hover:bg-muted/40 text-muted-foreground'
-                }`}
-              >
-                <CheckCircle2 className="w-3 h-3" /> Mark Completed
-              </button>
-            </div>
-          </div>
           {/* Actions Section */}
           <div className="py-1">
             <button
@@ -78,12 +46,16 @@ function QuickUpdateMenu({
             >
               <Pencil className="w-3 h-3 text-muted-foreground" /> Edit
             </button>
-            <button
-              onClick={() => { setOpen(false); onUpload(); }}
-              className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-azure-400 hover:bg-azure-950/40 transition-colors text-left"
-            >
-              <Upload className="w-3 h-3" /> Upload Certificate
-            </button>
+
+            {onDeleteCertificate && (
+              <button
+                onClick={() => { setOpen(false); onDeleteCertificate(); }}
+                className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-red-400 hover:bg-red-950/40 transition-colors text-left border-b border-border/30"
+              >
+                <Trash2 className="w-3 h-3 text-red-400" /> Delete Certificate
+              </button>
+            )}
+
             <button
               onClick={() => { setOpen(false); onDelete(); }}
               className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-red-400 hover:bg-red-950/40 transition-colors text-left"
@@ -255,12 +227,49 @@ export default function TrackerPage() {
   const [addFor, setAddFor] = useState<{ id: string; name: string } | null>(null);
   const [editAssignment, setEditAssignment] = useState<AssignedCertification | undefined>();
   const [uploadId, setUploadId] = useState<string | null>(null);
+  const [deleteCertId, setDeleteCertId] = useState<string | null>(null);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
-  const [credentialId, setCredentialId] = useState('');
+  const [selectedMemberId, setSelectedMemberId] = useState('');
+  const [selectedCertId, setSelectedCertId] = useState('');
   const [completionDateInput, setCompletionDateInput] = useState('');
   const [expiryDateInput, setExpiryDateInput] = useState('');
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analyzedFields, setAnalyzedFields] = useState<{
+    configured: boolean;
+    autoFilled: boolean;
+    matchedLine?: string | null;
+    certificationMatch?: { id: string; name: string; provider: string } | null;
+    confidence?: number;
+    nameMatch?: { matches: boolean; score: number; extractedName: string; memberName: string } | null;
+    recipientNameSource?: 'labeled' | 'layout' | null;
+    memberMatch?: { id: string; name: string } | null;
+    memberConfidence?: number;
+    suggestions?: Array<{ id: string; name: string; provider: string }>;
+  } | null>(null);
+  const [requestEditFor, setRequestEditFor] = useState<AssignedCertification | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const qc = useQueryClient();
+
+  const resetUploadState = () => {
+    setUploadId(null);
+    setUploadFile(null);
+    setAnalyzedFields(null);
+    setIsAnalyzing(false);
+    setSelectedMemberId('');
+    setSelectedCertId('');
+    setCompletionDateInput('');
+    setExpiryDateInput('');
+  };
+
+  const { data: allMembersRes } = useQuery<PaginatedResponse<TeamMember>>({
+    queryKey: ['members-all'],
+    queryFn: () => membersApi.list({ limit: 1000 }).then(r => r.data),
+  });
+
+  const { data: allCertsRes } = useQuery<PaginatedResponse<Certification>>({
+    queryKey: ['certs-all'],
+    queryFn: () => certificationsApi.list({ limit: 1000 }).then(r => r.data),
+  });
 
   const { data, isLoading } = useQuery<PaginatedResponse<AssignedCertification>>({
     queryKey: ['tracker', search, status, provider, deadline],
@@ -300,6 +309,10 @@ export default function TrackerPage() {
     };
     
     const result = Array.from(groups.values());
+    
+    // Sort groups alphabetically by member name in ascending order
+    result.sort((a, b) => a.member.name.localeCompare(b.member.name));
+
     for (const g of result) {
       g.assignments.sort((a, b) => {
         const orderA = statusOrder[a.status] || 99;
@@ -339,14 +352,30 @@ export default function TrackerPage() {
     },
   });
 
+  const deleteCert = useMutation({
+    mutationFn: (id: string) => certificationsApi.deleteCertificate(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['tracker'] });
+      qc.invalidateQueries({ queryKey: ['certifications'] });
+      qc.invalidateQueries({ queryKey: ['dashboard-stats'] });
+      setDeleteCertId(null);
+    },
+  });
+
   const uploadCert = useMutation({
-    mutationFn: ({ id, file, cid, completionDate, expiryDate }: { id: string; file: File; cid: string; completionDate?: string; expiryDate?: string }) => {
+    mutationFn: ({ id, file, completionDate, expiryDate, memberId, certificationId }: { id: string; file: File; completionDate?: string; expiryDate?: string; memberId?: string; certificationId?: string }) => {
       const fd = new FormData();
       fd.append('certificate', file);
-      if (cid) fd.append('credentialId', cid);
       if (completionDate) fd.append('completionDate', completionDate);
       if (expiryDate) fd.append('expiryDate', expiryDate);
-      return certificationsApi.uploadCertificate(id, fd);
+
+      if (id === '__universal__') {
+        if (memberId) fd.append('memberId', memberId);
+        if (certificationId) fd.append('certificationId', certificationId);
+        return certificationsApi.uploadCertificateUniversal(fd);
+      } else {
+        return certificationsApi.uploadCertificate(id, fd);
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['tracker'] });
@@ -354,11 +383,74 @@ export default function TrackerPage() {
       qc.invalidateQueries({ queryKey: ['dashboard-stats'] });
       setUploadId(null);
       setUploadFile(null);
-      setCredentialId('');
+      setSelectedMemberId('');
+      setSelectedCertId('');
       setCompletionDateInput('');
       setExpiryDateInput('');
+      setAnalyzedFields(null);
+      setIsAnalyzing(false);
     },
   });
+
+  const handleFileSelected = async (file: File) => {
+    setUploadFile(file);
+    setAnalyzedFields(null);
+    setIsAnalyzing(true);
+    try {
+      const fd = new FormData();
+      fd.append('certificate', file);
+
+      let res;
+      if (uploadId === '__universal__') {
+        res = await certificationsApi.analyzeCertificateUniversal(fd);
+      } else {
+        res = await certificationsApi.analyzeCertificate(uploadId!, fd);
+      }
+
+      if (res && res.data) {
+        const data = res.data;
+        if (data.completionDate) setCompletionDateInput(data.completionDate);
+        if (data.expiryDate) setExpiryDateInput(data.expiryDate);
+
+        if (uploadId === '__universal__') {
+          if (data.memberMatch?.id) setSelectedMemberId(data.memberMatch.id);
+          if (data.certificationMatch?.id) setSelectedCertId(data.certificationMatch.id);
+        } else {
+          // Pre-select the assignment's existing member and cert
+          const assign = data?.data?.find((a: any) => a.id === uploadId) || data;
+          if (assign?.memberId) setSelectedMemberId(assign.memberId);
+          if (assign?.certificationId) setSelectedCertId(assign.certificationId);
+        }
+
+        const autoFilled = !!(data.completionDate || data.expiryDate || data.recipientName);
+        setAnalyzedFields({
+          configured: data.configured,
+          autoFilled,
+          matchedLine: data.matchedLine,
+          certificationMatch: data.certificationMatch,
+          confidence: data.confidence,
+          nameMatch: data.nameMatch,
+          recipientNameSource: data.recipientNameSource,
+          memberMatch: data.memberMatch,
+          memberConfidence: data.memberConfidence,
+          suggestions: data.suggestions,
+        });
+      }
+    } catch (err) {
+      console.error('File analysis failed:', err);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  // Edit: if cert has a certificate URL, route to request-edit flow; otherwise direct edit
+  const handleEditClick = (a: AssignedCertification) => {
+    if (a.certificateUrl) {
+      setRequestEditFor(a);
+    } else {
+      setEditAssignment(a);
+    }
+  };
 
   return (
     <div className="space-y-5">
@@ -366,10 +458,16 @@ export default function TrackerPage() {
         <div>
           <h2 className="page-title">Certification Tracker</h2>
         </div>
-        <button onClick={() => setShowAssign(true)}
-          className="flex items-center gap-2 px-4 py-2.5 bg-azure-500 text-white text-sm font-medium rounded-xl hover:bg-azure-600 transition-colors shadow-lg shadow-azure-500/25">
-          <Plus className="w-4 h-4" /> Assign Certification
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={() => { resetUploadState(); setUploadId('__universal__'); }}
+            className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl border border-border hover:bg-muted/40 transition-colors">
+            <Upload className="w-4 h-4" /> Upload Certificate
+          </button>
+          <button onClick={() => setShowAssign(true)}
+            className="flex items-center gap-2 px-4 py-2.5 bg-azure-500 text-white text-sm font-medium rounded-xl hover:bg-azure-600 transition-colors shadow-lg shadow-azure-500/25">
+            <Plus className="w-4 h-4" /> Assign Certification
+          </button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -401,11 +499,11 @@ export default function TrackerPage() {
           <div className="text-center py-12 text-muted-foreground bg-card rounded-xl border border-border">No assignments found</div>
         )}
         {groupedAssignments.map(group => {
-          const completedCount = group.assignments.filter(a => a.status === 'COMPLETED').length;
+          const completedCount = group.assignments.filter(a => a.status === 'COMPLETED' || a.status === 'EXPIRED').length;
           const totalCount = group.assignments.length;
           const progress = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
           return (
-            <div key={group.member.id} className="bg-card rounded-xl border border-border shadow-sm overflow-hidden transition-all duration-300">
+            <div key={group.member.id} className="bg-card rounded-xl border border-border shadow-sm overflow-visible transition-all duration-300">
               <div onClick={() => toggleMember(group.member.id)}
                 className="w-full flex items-center justify-between p-4 hover:bg-muted/10 transition-colors cursor-pointer select-none">
                 <div className="flex items-center gap-4">
@@ -437,7 +535,7 @@ export default function TrackerPage() {
               </div>
               
               {expandedMembers.has(group.member.id) && (
-                <div className="border-t border-border overflow-x-auto bg-muted/5">
+                <div className="border-t border-border overflow-visible bg-muted/5">
                   <table className="w-full data-table">
                     <thead>
                       <tr>
@@ -510,15 +608,22 @@ export default function TrackerPage() {
                               )}
                             </td>
                             <td>
-                              <QuickUpdateMenu
-                                assignment={a}
-                                onEdit={() => setEditAssignment(a)}
-                                onUpload={() => setUploadId(a.id)}
-                                onDelete={() => deleteAssign.mutate(a.id)}
-                                onQuickStatus={(newStatus) =>
-                                  updateAssign.mutate({ id: a.id, d: { status: newStatus, progress: newStatus === 'COMPLETED' ? 100 : newStatus === 'IN_PROGRESS' ? 50 : a.progress } })
-                                }
-                              />
+                              <div className="flex items-center gap-3">
+                                {!a.certificateUrl && (
+                                  <button
+                                    onClick={() => { setUploadId(a.id); setSelectedMemberId(a.memberId); setSelectedCertId(a.certificationId); }}
+                                    className="flex items-center gap-1 text-[11px] font-medium text-azure-400 hover:text-azure-300 transition-colors"
+                                    title="Upload Certificate"
+                                  >
+                                    <Upload className="w-3 h-3" /> Upload
+                                  </button>
+                                )}
+                                <QuickUpdateMenu
+                                  onEdit={() => handleEditClick(a)}
+                                  onDelete={() => deleteAssign.mutate(a.id)}
+                                  onDeleteCertificate={a.certificateUrl ? () => setDeleteCertId(a.id) : undefined}
+                                />
+                              </div>
                             </td>
                           </tr>
                         );
@@ -545,54 +650,299 @@ export default function TrackerPage() {
         <EditProgressModal assignment={editAssignment} onClose={() => setEditAssignment(undefined)}
           onSave={d => updateAssign.mutate({ id: editAssignment.id, d })} />
       )}
-
-      {/* Upload Certificate Modal */}
-      {uploadId && (
+      {requestEditFor && (
+        <RequestEditModal
+          assignment={requestEditFor}
+          onClose={() => setRequestEditFor(null)}
+          onSave={(changes, requestedBy) => {
+            certificationsApi.requestEdit(requestEditFor.id, { proposedChanges: changes, requestedBy })
+              .then(() => setRequestEditFor(null))
+              .catch(console.error);
+          }}
+        />
+      )}
+      {/* Delete Certificate Confirmation Modal */}
+      {deleteCertId && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-fade-in">
           <div className="bg-card rounded-2xl shadow-2xl w-full max-w-sm p-6 border border-border">
-            <h3 className="font-semibold text-lg mb-4">Upload Certificate</h3>
-            <div onClick={() => fileInputRef.current?.click()}
-              className="border-2 border-dashed border-border rounded-xl p-8 text-center cursor-pointer hover:border-azure-500 hover:bg-azure-900/20 transition-colors mb-4 bg-muted/10">
-              {uploadFile
-                ? <p className="text-sm text-azure-300 font-medium truncate">{uploadFile.name}</p>
-                : <>
-                    <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-                    <p className="text-sm text-muted-foreground">Click to upload PDF, PNG, or JPG</p>
-                  </>
-              }
-              <input ref={fileInputRef} type="file" accept=".pdf,.png,.jpg,.jpeg" className="hidden"
-                onChange={e => setUploadFile(e.target.files?.[0] || null)} />
+            <div className="flex items-center gap-3 text-red-400 mb-3">
+              <AlertTriangle className="w-6 h-6" />
+              <h3 className="font-semibold text-lg text-foreground">Delete Certificate</h3>
             </div>
-            <div className="mb-3">
-              <label className="block text-xs font-medium text-muted-foreground mb-1">Credential ID (optional)</label>
-              <input value={credentialId} onChange={e => setCredentialId(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-muted/20 focus:outline-none focus:ring-2 focus:ring-azure-500/30 focus:border-azure-500"
-                placeholder="e.g. AZ-900-2024-ABC" />
-            </div>
-            <div className="grid grid-cols-2 gap-3 mb-4">
-              <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1">Completed On</label>
-                <input type="date" value={completionDateInput} onChange={e => setCompletionDateInput(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-muted/20 focus:outline-none focus:ring-2 focus:ring-azure-500/30 focus:border-azure-500" />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1">Valid Till</label>
-                <input type="date" value={expiryDateInput} onChange={e => setExpiryDateInput(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-muted/20 focus:outline-none focus:ring-2 focus:ring-azure-500/30 focus:border-azure-500" />
-              </div>
-            </div>
+            <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
+              Are you sure you want to delete this certificate? This can't be undone.
+            </p>
             <div className="flex gap-3">
-              <button onClick={() => { setUploadId(null); setUploadFile(null); }}
-                className="flex-1 px-4 py-2 text-sm border border-border rounded-lg hover:bg-muted">Cancel</button>
-              <button onClick={() => { if (uploadFile) uploadCert.mutate({ id: uploadId, file: uploadFile, cid: credentialId, completionDate: completionDateInput, expiryDate: expiryDateInput }); }}
-                disabled={!uploadFile || uploadCert.isPending}
-                className="flex-1 px-4 py-2 text-sm bg-azure-500 text-white rounded-lg hover:bg-azure-600 disabled:opacity-60 flex items-center justify-center gap-2">
-                {uploadCert.isPending && <Loader2 className="w-4 h-4 animate-spin" />} Upload
+              <button
+                disabled={deleteCert.isPending}
+                onClick={() => setDeleteCertId(null)}
+                className="flex-1 px-4 py-2 text-sm border border-border rounded-lg hover:bg-muted font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                disabled={deleteCert.isPending}
+                onClick={() => deleteCert.mutate(deleteCertId)}
+                className="flex-1 px-4 py-2 text-sm bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:opacity-60 font-medium flex items-center justify-center gap-2"
+              >
+                {deleteCert.isPending && <Loader2 className="w-4 h-4 animate-spin" />} Delete
               </button>
             </div>
           </div>
         </div>
       )}
+
+      {/* Upload Certificate Modal */}
+      {uploadId && (() => {
+        const isUniversal = uploadId === '__universal__';
+        const membersList = allMembersRes?.data || [];
+        const certsList = allCertsRes?.data || [];
+
+        return (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-card rounded-2xl shadow-2xl w-full max-w-sm p-6 border border-border">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-lg">Upload Certificate</h3>
+              <button onClick={resetUploadState}
+                className="text-muted-foreground hover:text-foreground"><X className="w-5 h-5" /></button>
+            </div>
+
+            {/* Dropzone Area (Always at top, compact) */}
+            <div className="mb-4">
+              {!uploadFile ? (
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  className="border-2 border-dashed rounded-xl p-6 text-center cursor-pointer hover:border-azure-500 hover:bg-azure-900/20 border-border transition-colors bg-muted/10"
+                >
+                  <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                  <p className="text-xs text-foreground font-medium mb-0.5">Choose certificate file</p>
+                  <p className="text-[10px] text-muted-foreground">PDF, PNG, or JPG up to 4MB</p>
+                  <input ref={fileInputRef} type="file" accept=".pdf,.png,.jpg,.jpeg" className="hidden"
+                    onChange={e => { const f = e.target.files?.[0]; if (f) handleFileSelected(f); }} />
+                </div>
+              ) : isAnalyzing ? (
+                <div className="border border-border rounded-xl p-6 text-center bg-muted/10 flex flex-col items-center gap-2">
+                  <Loader2 className="w-6 h-6 text-azure-400 animate-spin" />
+                  <p className="text-xs font-medium text-foreground">Reading certificate details…</p>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/10">
+                  <div className="min-w-0 flex-1 pr-3">
+                    <p className="text-[10px] text-muted-foreground truncate">Selected File</p>
+                    <p className="text-xs font-medium text-azure-300 truncate">{uploadFile.name}</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setUploadFile(null);
+                      setAnalyzedFields(null);
+                      setCompletionDateInput('');
+                      setExpiryDateInput('');
+                      if (isUniversal) {
+                        setSelectedMemberId('');
+                        setSelectedCertId('');
+                      }
+                    }}
+                    className="text-[10px] font-medium text-muted-foreground hover:text-foreground border border-border px-2 py-1 rounded hover:bg-muted"
+                  >
+                    Change
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Auto-extraction banners */}
+            {analyzedFields && (
+              <div className="space-y-2 mb-4">
+                {/* Member match / mismatch */}
+                {analyzedFields.nameMatch && !analyzedFields.nameMatch.matches && (
+                  <div className="text-xs px-3 py-2 rounded-lg border bg-amber-950/40 border-amber-800/40 text-amber-300">
+                    <AlertTriangle className="w-3.5 h-3.5 inline mr-1 -mt-0.5" />
+                    Recipient <strong className="text-amber-200">"{analyzedFields.nameMatch.extractedName}"</strong> does not match <strong className="text-amber-200">{analyzedFields.nameMatch.memberName}</strong>.
+                  </div>
+                )}
+                {analyzedFields.nameMatch?.matches && (
+                  <div className="text-xs px-3 py-2 rounded-lg border bg-emerald-950/40 border-emerald-800/40 text-emerald-300">
+                    ✓ Recipient matched to <strong className="text-emerald-200">{analyzedFields.nameMatch.memberName}</strong>.
+                  </div>
+                )}
+                {/* Catalog match */}
+                {analyzedFields.certificationMatch && (
+                  <div className="text-xs px-3 py-2 rounded-lg border bg-azure-950/40 border-azure-800/40 text-azure-300">
+                    📋 Catalog match: <strong className="text-azure-200">{analyzedFields.certificationMatch.name}</strong>.
+                  </div>
+                )}
+                {!analyzedFields.certificationMatch && analyzedFields.configured && (
+                  <div className="text-xs px-3 py-2 rounded-lg border bg-amber-950/40 border-amber-800/40 text-amber-400">
+                    <AlertTriangle className="w-3.5 h-3.5 inline mr-1 -mt-0.5" /> No matching certification catalog item found.
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Fields (Always Visible below dropzone) */}
+            <div className="space-y-3 mb-4">
+              {/* Team Member selection */}
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Team Member *</label>
+                <select
+                  value={selectedMemberId}
+                  disabled={!isUniversal}
+                  onChange={e => { setSelectedMemberId(e.target.value); }}
+                  className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-muted/20 focus:outline-none focus:ring-2 focus:ring-azure-500/30 disabled:opacity-75 disabled:cursor-not-allowed">
+                  <option value="">Select member…</option>
+                  {membersList.map(m => (
+                    <option key={m.id} value={m.id}>{m.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Certificate Name (Certification) selection */}
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Certificate Name *</label>
+                <select
+                  value={selectedCertId}
+                  disabled={!isUniversal}
+                  onChange={e => { setSelectedCertId(e.target.value); }}
+                  className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-muted/20 focus:outline-none focus:ring-2 focus:ring-azure-500/30 disabled:opacity-75 disabled:cursor-not-allowed">
+                  <option value="">Select certification…</option>
+                  {analyzedFields?.suggestions && analyzedFields.suggestions.length > 0 && (
+                    <optgroup label="✨ Extracted Suggestions">
+                      {analyzedFields.suggestions.map(s => (
+                        <option key={`sug-${s.id}`} value={s.id}>
+                          {s.name} — {s.provider}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
+                  {analyzedFields?.suggestions && analyzedFields.suggestions.length > 0 ? (
+                    <optgroup label="All Certifications">
+                      {certsList.map(c => (
+                        <option key={c.id} value={c.id}>{c.name} — {c.provider}</option>
+                      ))}
+                    </optgroup>
+                  ) : (
+                    certsList.map(c => (
+                      <option key={c.id} value={c.id}>{c.name} — {c.provider}</option>
+                    ))
+                  )}
+                </select>
+              </div>
+
+
+              {/* Dates */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1">Completed On</label>
+                  <input type="date" value={completionDateInput} onChange={e => setCompletionDateInput(e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-muted/20 focus:outline-none focus:ring-2 focus:ring-azure-500/30 focus:border-azure-500" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1">Valid Till</label>
+                  <input type="date" value={expiryDateInput} onChange={e => setExpiryDateInput(e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-muted/20 focus:outline-none focus:ring-2 focus:ring-azure-500/30 focus:border-azure-500" />
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex gap-3 mt-4 border-t border-border pt-4">
+              <button onClick={resetUploadState}
+                className="flex-1 px-4 py-2 text-sm border border-border rounded-lg hover:bg-muted font-medium">Cancel</button>
+              <button
+                onClick={() => {
+                  if (uploadFile && selectedMemberId && selectedCertId) {
+                    uploadCert.mutate({
+                      id: uploadId,
+                      file: uploadFile,
+                      completionDate: completionDateInput,
+                      expiryDate: expiryDateInput,
+                      memberId: selectedMemberId,
+                      certificationId: selectedCertId
+                    });
+                  }
+                }}
+                disabled={!uploadFile || isAnalyzing || uploadCert.isPending}
+                className="flex-1 px-4 py-2 text-sm bg-azure-500 text-white rounded-lg hover:bg-azure-600 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium">
+                {uploadCert.isPending && <Loader2 className="w-4 h-4 animate-spin" />} Save Certificate
+              </button>
+            </div>
+          </div>
+        </div>
+        );
+      })()}
+    </div>
+  );
+}
+
+// ---- Request Edit Modal ----
+function RequestEditModal({ assignment, onClose, onSave }: {
+  assignment: AssignedCertification;
+  onClose: () => void;
+  onSave: (changes: Record<string, unknown>, requestedBy: string) => void;
+}) {
+  const [form, setForm] = useState({
+    completionDate: assignment.completionDate ? new Date(assignment.completionDate).toISOString().split('T')[0] : '',
+    expiryDate: assignment.expiryDate ? new Date(assignment.expiryDate).toISOString().split('T')[0] : '',
+    credentialId: assignment.credentialId || '',
+    requestedBy: '',
+  });
+
+  const handleSubmit = () => {
+    if (!form.requestedBy.trim()) return;
+    const changes: Record<string, unknown> = {};
+    if (form.completionDate) changes.completionDate = form.completionDate;
+    if (form.expiryDate) changes.expiryDate = form.expiryDate;
+    if (form.credentialId) changes.credentialId = form.credentialId;
+    onSave(changes, form.requestedBy);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-fade-in">
+      <div className="bg-card rounded-2xl shadow-2xl w-full max-w-sm border border-border">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+          <div>
+            <h3 className="font-semibold text-base">Request Edit</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">{assignment.certification?.name}</p>
+          </div>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X className="w-5 h-5" /></button>
+        </div>
+        <div className="p-6 space-y-4">
+          <div className="text-xs px-3 py-2 rounded-lg border bg-amber-950/30 border-amber-800/40 text-amber-300">
+            <AlertTriangle className="w-3 h-3 inline mr-1" />This certificate has already been uploaded. Changes will be submitted for admin approval.
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-muted-foreground mb-1">Completed On</label>
+              <input type="date" value={form.completionDate} onChange={e => setForm(p => ({ ...p, completionDate: e.target.value }))}
+                className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-muted/20 focus:outline-none focus:ring-2 focus:ring-azure-500/30" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-muted-foreground mb-1">Valid Till</label>
+              <input type="date" value={form.expiryDate} onChange={e => setForm(p => ({ ...p, expiryDate: e.target.value }))}
+                className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-muted/20 focus:outline-none focus:ring-2 focus:ring-azure-500/30" />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">Credential ID</label>
+            <input value={form.credentialId} onChange={e => setForm(p => ({ ...p, credentialId: e.target.value }))}
+              className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-muted/20 focus:outline-none focus:ring-2 focus:ring-azure-500/30"
+              placeholder="e.g. AZ-900-2024-ABC" />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">Your Name *</label>
+            <input value={form.requestedBy} onChange={e => setForm(p => ({ ...p, requestedBy: e.target.value }))}
+              className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-muted/20 focus:outline-none focus:ring-2 focus:ring-azure-500/30"
+              placeholder="Who is requesting this change?" />
+          </div>
+        </div>
+        <div className="flex gap-3 px-6 py-4 border-t border-border">
+          <button onClick={onClose} className="flex-1 px-4 py-2 text-sm border border-border rounded-lg hover:bg-muted">Cancel</button>
+          <button onClick={handleSubmit} disabled={!form.requestedBy.trim()}
+            className="flex-1 px-4 py-2 text-sm bg-azure-500 text-white rounded-lg hover:bg-azure-600 disabled:opacity-60">
+            Submit for Approval
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

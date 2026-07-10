@@ -46,6 +46,11 @@
     @apply bg-zinc-900 text-foreground border-border;
   }
 
+  select option,
+  select optgroup {
+    @apply bg-zinc-900 text-foreground;
+  }
+
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;

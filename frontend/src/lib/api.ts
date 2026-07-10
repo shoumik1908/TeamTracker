@@ -39,7 +39,25 @@ export const certificationsApi = {
   updateAssignment: (id: string, data: Record<string, unknown>) => api.put(`/certifications/assignments/${id}`, data),
   uploadCertificate: (id: string, data: FormData) =>
     api.post(`/certifications/assignments/${id}/certificate`, data, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  analyzeCertificate: (id: string, data: FormData) =>
+    api.post(`/certifications/assignments/${id}/certificate/analyze`, data, { headers: { 'Content-Type': 'multipart/form-data' } }),
   deleteAssignment: (id: string) => api.delete(`/certifications/assignments/${id}`),
+  deleteCertificate: (id: string) => api.delete(`/certifications/assignments/${id}/certificate`),
+
+  // Edit requests
+  requestEdit: (id: string, data: { proposedChanges: Record<string, unknown>; requestedBy: string }) =>
+    api.post(`/certifications/assignments/${id}/request-edit`, data),
+  editRequests: (params?: Record<string, unknown>) => api.get('/certifications/edit-requests', { params }),
+  approveEditRequest: (id: string, data?: { reviewedBy?: string; reviewNotes?: string }) =>
+    api.post(`/certifications/edit-requests/${id}/approve`, data || {}),
+  rejectEditRequest: (id: string, data?: { reviewedBy?: string; reviewNotes?: string }) =>
+    api.post(`/certifications/edit-requests/${id}/reject`, data || {}),
+
+  // Universal Certificate upload
+  analyzeCertificateUniversal: (data: FormData) =>
+    api.post('/certifications/certificate/analyze-universal', data, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  uploadCertificateUniversal: (data: FormData) =>
+    api.post('/certifications/certificate/upload-universal', data, { headers: { 'Content-Type': 'multipart/form-data' } }),
 };
 
 // ---- Projects ----

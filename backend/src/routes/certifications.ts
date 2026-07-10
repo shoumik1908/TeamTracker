@@ -3,6 +3,13 @@ import { PrismaClient, CertificationStatus, Priority } from '@prisma/client';
 import { upload } from '../middleware/upload';
 import { uploadFile, deleteFile, extractBlobName, CONTAINERS } from '../services/blobStorage';
 import { AppError } from '../middleware/errorHandler';
+import { extractCertificateFields, isConfigured as isDocIntelConfigured, checkNameMatch } from '../services/documentIntelligence';
+import { matchCertificateTitle } from '../services/certMatcher';
+
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const fuzz = require('fuzzball') as {
+  ratio: (a: string, b: string) => number;
+};
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -207,20 +214,33 @@ router.put('/assignments/:id', async (req: Request, res: Response) => {
   if (!existing) throw new AppError('Assignment not found', 404);
 
   const wasCompleted = existing.status !== 'COMPLETED';
-  const isNowCompleted = status === 'COMPLETED';
+  
+  const finalCompletionDate = completionDate ? new Date(completionDate) : existing.completionDate;
+  const finalExpiryDate = expiryDate !== undefined ? (expiryDate ? new Date(expiryDate) : null) : existing.expiryDate;
+  
+  let finalStatus = status || existing.status;
+  if (finalCompletionDate) {
+    if (finalExpiryDate && finalExpiryDate < new Date()) {
+      finalStatus = 'EXPIRED';
+    } else {
+      finalStatus = 'COMPLETED';
+    }
+  }
+  
+  const isNowCompleted = finalStatus === 'COMPLETED';
 
   const updated = await prisma.assignedCertification.update({
     where: { id: req.params.id },
     data: {
       ...(progress !== undefined && { progress: parseInt(progress) }),
-      ...(status && { status }),
+      status: finalStatus,
       ...(deadline && { deadline: new Date(deadline) }),
       ...(priority && { priority }),
       ...(notes !== undefined && { notes }),
       ...(credentialId !== undefined && { credentialId }),
       ...(completionDate && { completionDate: new Date(completionDate) }),
       ...(expiryDate !== undefined && { expiryDate: expiryDate ? new Date(expiryDate) : null }),
-      ...(isNowCompleted && !completionDate && { completionDate: new Date() }),
+      ...(isNowCompleted && !completionDate && !existing.completionDate && { completionDate: new Date() }),
     },
     include: { member: true, certification: true },
   });
@@ -237,6 +257,182 @@ router.put('/assignments/:id', async (req: Request, res: Response) => {
   }
 
   res.json(updated);
+});
+
+// POST /api/certifications/assignments/:id/certificate/analyze
+router.post('/assignments/:id/certificate/analyze', upload.single('certificate'), async (req: Request, res: Response) => {
+  if (!req.file) throw new AppError('Certificate file is required', 400);
+
+  if (!isDocIntelConfigured()) {
+    return res.json({ completionDate: null, expiryDate: null, credentialId: null, recipientName: null, recipientNameSource: null, rawLines: [], rawFields: {}, certificationMatch: null, confidence: 0, nameMatch: null, configured: false });
+  }
+
+  try {
+    const fields = await extractCertificateFields(req.file.buffer, req.file.mimetype);
+
+    // Load catalog for fuzzy title matching
+    const catalog = await prisma.certification.findMany({ select: { id: true, name: true, provider: true } });
+    const matchResult = matchCertificateTitle(fields.rawLines, catalog);
+
+    // Name match: cross-check extracted name against the assigned member's name
+    let nameMatch = null;
+    if (fields.recipientName) {
+      const assignment = await prisma.assignedCertification.findUnique({
+        where: { id: req.params.id },
+        include: { member: { select: { name: true } } },
+      });
+      if (assignment?.member?.name) {
+        nameMatch = checkNameMatch(fields.recipientName, assignment.member.name);
+      }
+    }
+
+    return res.json({
+      ...fields,
+      certificationMatch: matchResult.bestMatch,
+      confidence: matchResult.confidence,
+      matchedLine: matchResult.matchedLine,
+      suggestions: matchResult.suggestions,
+      nameMatch,  // { matches, score, extractedName, memberName } or null
+      configured: true,
+    });
+  } catch (err: any) {
+    console.error('Document Intelligence error:', err?.message);
+    return res.json({ completionDate: null, expiryDate: null, credentialId: null, recipientName: null, recipientNameSource: null, rawLines: [], rawFields: {}, certificationMatch: null, confidence: 0, suggestions: [], nameMatch: null, configured: true, error: err?.message });
+  }
+});
+
+// POST /api/certifications/certificate/analyze-universal
+router.post('/certificate/analyze-universal', upload.single('certificate'), async (req: Request, res: Response) => {
+  if (!req.file) throw new AppError('Certificate file is required', 400);
+
+  if (!isDocIntelConfigured()) {
+    return res.json({ completionDate: null, expiryDate: null, credentialId: null, recipientName: null, recipientNameSource: null, rawLines: [], rawFields: {}, certificationMatch: null, confidence: 0, memberMatch: null, configured: false });
+  }
+
+  try {
+    const fields = await extractCertificateFields(req.file.buffer, req.file.mimetype);
+
+    // 1. Fuzzy-match certification catalog
+    const catalog = await prisma.certification.findMany({ select: { id: true, name: true, provider: true } });
+    const matchResult = matchCertificateTitle(fields.rawLines, catalog);
+
+    // 2. Fuzzy-match team members
+    const members = await prisma.teamMember.findMany({ select: { id: true, name: true } });
+    let memberMatch = null;
+    let memberConfidence = 0;
+    if (fields.recipientName) {
+      let bestScore = 0;
+      let bestMember = null;
+      for (const m of members) {
+        const score = fuzz.ratio(fields.recipientName.toLowerCase(), m.name.toLowerCase());
+        if (score > bestScore) {
+          bestScore = score;
+          bestMember = m;
+        }
+      }
+      if (bestScore >= 70) {
+        memberMatch = bestMember;
+        memberConfidence = bestScore;
+      }
+    }
+
+    return res.json({
+      ...fields,
+      certificationMatch: matchResult.bestMatch,
+      confidence: matchResult.confidence,
+      matchedLine: matchResult.matchedLine,
+      suggestions: matchResult.suggestions,
+      memberMatch,
+      memberConfidence,
+      configured: true,
+    });
+  } catch (err: any) {
+    console.error('Document Intelligence error:', err?.message);
+    return res.json({ completionDate: null, expiryDate: null, credentialId: null, recipientName: null, recipientNameSource: null, rawLines: [], rawFields: {}, certificationMatch: null, confidence: 0, suggestions: [], memberMatch: null, memberConfidence: 0, configured: true, error: err?.message });
+  }
+});
+
+// POST /api/certifications/certificate/upload-universal
+router.post('/certificate/upload-universal', upload.single('certificate'), async (req: Request, res: Response) => {
+  const { memberId, certificationId, expiryDate, completionDate } = req.body;
+  if (!memberId || !certificationId) throw new AppError('memberId and certificationId are required', 400);
+  if (!req.file) throw new AppError('Certificate file is required', 400);
+
+  const member = await prisma.teamMember.findUnique({
+    where: { id: memberId },
+    select: { name: true }
+  });
+  if (!member) throw new AppError('Member not found', 404);
+
+  // Check if AssignedCertification exists
+  let assignment = await prisma.assignedCertification.findUnique({
+    where: {
+      memberId_certificationId: {
+        memberId,
+        certificationId,
+      },
+    },
+  });
+
+  // Upload to blob storage / ADLS Gen2
+  const { url } = await uploadFile(
+    CONTAINERS.CERTIFICATES,
+    req.file.buffer,
+    req.file.originalname,
+    req.file.mimetype,
+    memberId,
+    member.name
+  );
+
+  const finalCompletionDate = completionDate ? new Date(completionDate) : new Date();
+  const finalExpiryDate = expiryDate ? new Date(expiryDate) : null;
+
+  let finalStatus = 'COMPLETED';
+  if (finalExpiryDate && finalExpiryDate < new Date()) {
+    finalStatus = 'EXPIRED';
+  }
+
+  if (assignment) {
+    // Delete existing certificate if exists
+    if (assignment.certificateUrl) {
+      const blobName = extractBlobName(assignment.certificateUrl);
+      await deleteFile(CONTAINERS.CERTIFICATES, blobName).catch(console.error);
+    }
+
+    assignment = await prisma.assignedCertification.update({
+      where: { id: assignment.id },
+      data: {
+        certificateUrl: url,
+        uploadDate: new Date(),
+        status: finalStatus as any,
+        completionDate: finalCompletionDate,
+        expiryDate: finalExpiryDate,
+        progress: 100,
+      },
+    });
+  } else {
+    // Create new assignment with a default deadline (3 months from now)
+    const deadline = new Date();
+    deadline.setMonth(deadline.getMonth() + 3);
+
+    assignment = await prisma.assignedCertification.create({
+      data: {
+        memberId,
+        certificationId,
+        assignedDate: new Date(),
+        deadline,
+        priority: 'MEDIUM',
+        progress: 100,
+        status: finalStatus as any,
+        completionDate: finalCompletionDate,
+        expiryDate: finalExpiryDate,
+        certificateUrl: url,
+        uploadDate: new Date(),
+      },
+    });
+  }
+
+  res.json(assignment);
 });
 
 // POST /api/certifications/assignments/:id/certificate - Upload certificate
@@ -261,8 +457,18 @@ router.post('/assignments/:id/certificate', upload.single('certificate'), async 
     CONTAINERS.CERTIFICATES,
     req.file.buffer,
     req.file.originalname,
-    req.file.mimetype
+    req.file.mimetype,
+    existing.memberId,
+    existing.member.name
   );
+
+  const finalCompletionDate = completionDate ? new Date(completionDate) : (existing.completionDate || new Date());
+  const finalExpiryDate = expiryDate ? new Date(expiryDate) : existing.expiryDate;
+  
+  let finalStatus = 'COMPLETED';
+  if (finalExpiryDate && finalExpiryDate < new Date()) {
+    finalStatus = 'EXPIRED';
+  }
 
   const updated = await prisma.assignedCertification.update({
     where: { id },
@@ -270,9 +476,9 @@ router.post('/assignments/:id/certificate', upload.single('certificate'), async 
       certificateUrl: url,
       uploadDate: new Date(),
       ...(credentialId && { credentialId }),
-      status: 'COMPLETED',
-      completionDate: completionDate ? new Date(completionDate) : (existing.completionDate || new Date()),
-      expiryDate: expiryDate ? new Date(expiryDate) : undefined,
+      status: finalStatus,
+      completionDate: finalCompletionDate,
+      expiryDate: finalExpiryDate,
       progress: 100,
     },
     include: { member: true, certification: true },
@@ -290,6 +496,46 @@ router.post('/assignments/:id/certificate', upload.single('certificate'), async 
   res.json(updated);
 });
 
+// DELETE /api/certifications/assignments/:id/certificate - Delete certificate
+router.delete('/assignments/:id/certificate', async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  const existing = await prisma.assignedCertification.findUnique({
+    where: { id },
+  });
+  if (!existing) throw new AppError('Assignment not found', 404);
+
+  // 1. Delete file from storage if it exists
+  if (existing.certificateUrl) {
+    try {
+      const blobName = extractBlobName(existing.certificateUrl);
+      await deleteFile(CONTAINERS.CERTIFICATES, blobName);
+    } catch (err: any) {
+      console.error('[Delete Certificate] Failed to delete blob:', err?.message);
+    }
+  }
+
+  // 2. Derive status: if deadline is passed, status is OVERDUE, otherwise NOT_STARTED
+  const isOverdue = new Date(existing.deadline) < new Date();
+  const newStatus = isOverdue ? 'OVERDUE' : 'NOT_STARTED';
+
+  // 3. Clear database fields
+  const updated = await prisma.assignedCertification.update({
+    where: { id },
+    data: {
+      certificateUrl: null,
+      uploadDate: null,
+      completionDate: null,
+      expiryDate: null,
+      credentialId: null,
+      progress: 0,
+      status: newStatus as any,
+    },
+  });
+
+  res.json({ message: 'Certificate deleted successfully', assignment: updated });
+});
+
 // DELETE /api/certifications/assignments/:id
 router.delete('/assignments/:id', async (req: Request, res: Response) => {
   const existing = await prisma.assignedCertification.findUnique({ where: { id: req.params.id } });
@@ -302,6 +548,119 @@ router.delete('/assignments/:id', async (req: Request, res: Response) => {
 
   await prisma.assignedCertification.delete({ where: { id: req.params.id } });
   res.json({ message: 'Assignment deleted' });
+});
+
+// ============ EDIT REQUESTS ============
+
+// POST /api/certifications/assignments/:id/request-edit
+router.post('/assignments/:id/request-edit', async (req: Request, res: Response) => {
+  const { proposedChanges, requestedBy } = req.body;
+  if (!proposedChanges || !requestedBy) throw new AppError('proposedChanges and requestedBy are required', 400);
+
+  const existing = await prisma.assignedCertification.findUnique({
+    where: { id: req.params.id },
+    include: { member: true, certification: true },
+  });
+  if (!existing) throw new AppError('Assignment not found', 404);
+
+  const editRequest = await (prisma as any).certificateEditRequest.create({
+    data: {
+      assignmentId: req.params.id,
+      proposedChanges,
+      requestedBy,
+    },
+    include: { assignment: { include: { member: true, certification: true } } },
+  });
+
+  res.status(201).json(editRequest);
+});
+
+// GET /api/certifications/edit-requests
+router.get('/edit-requests', async (req: Request, res: Response) => {
+  const { status } = req.query;
+  const where: any = {};
+  if (status) where.status = status;
+
+  const requests = await (prisma as any).certificateEditRequest.findMany({
+    where,
+    orderBy: { createdAt: 'desc' },
+    include: {
+      assignment: {
+        include: {
+          member: { select: { id: true, name: true } },
+          certification: { select: { id: true, name: true, provider: true } },
+        },
+      },
+    },
+  });
+
+  res.json(requests);
+});
+
+// POST /api/certifications/edit-requests/:id/approve
+router.post('/edit-requests/:id/approve', async (req: Request, res: Response) => {
+  const { reviewedBy, reviewNotes } = req.body;
+
+  const editReq = await (prisma as any).certificateEditRequest.findUnique({
+    where: { id: req.params.id },
+  });
+  if (!editReq) throw new AppError('Edit request not found', 404);
+  if (editReq.status !== 'PENDING') throw new AppError('Edit request is not pending', 400);
+
+  const changes = editReq.proposedChanges as Record<string, any>;
+
+  // Apply changes to live record
+  const updateData: any = {};
+  if (changes.completionDate) updateData.completionDate = new Date(changes.completionDate);
+  if (changes.expiryDate !== undefined) updateData.expiryDate = changes.expiryDate ? new Date(changes.expiryDate) : null;
+  if (changes.credentialId !== undefined) updateData.credentialId = changes.credentialId;
+
+  // Re-derive status based on new dates
+  if (updateData.completionDate || updateData.expiryDate !== undefined) {
+    const existing = await prisma.assignedCertification.findUnique({ where: { id: editReq.assignmentId } });
+    const finalExpiry = updateData.expiryDate !== undefined ? updateData.expiryDate : existing?.expiryDate;
+    if (updateData.completionDate || existing?.completionDate) {
+      updateData.status = (finalExpiry && new Date(finalExpiry) < new Date()) ? 'EXPIRED' : 'COMPLETED';
+    }
+  }
+
+  await prisma.assignedCertification.update({
+    where: { id: editReq.assignmentId },
+    data: updateData,
+  });
+
+  const updated = await (prisma as any).certificateEditRequest.update({
+    where: { id: req.params.id },
+    data: {
+      status: 'APPROVED',
+      reviewedBy: reviewedBy || 'Admin',
+      reviewNotes: reviewNotes || null,
+      reviewedAt: new Date(),
+    },
+  });
+
+  res.json(updated);
+});
+
+// POST /api/certifications/edit-requests/:id/reject
+router.post('/edit-requests/:id/reject', async (req: Request, res: Response) => {
+  const { reviewedBy, reviewNotes } = req.body;
+
+  const editReq = await (prisma as any).certificateEditRequest.findUnique({ where: { id: req.params.id } });
+  if (!editReq) throw new AppError('Edit request not found', 404);
+  if (editReq.status !== 'PENDING') throw new AppError('Edit request is not pending', 400);
+
+  const updated = await (prisma as any).certificateEditRequest.update({
+    where: { id: req.params.id },
+    data: {
+      status: 'REJECTED',
+      reviewedBy: reviewedBy || 'Admin',
+      reviewNotes: reviewNotes || null,
+      reviewedAt: new Date(),
+    },
+  });
+
+  res.json(updated);
 });
 
 export default router;

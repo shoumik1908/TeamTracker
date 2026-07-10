@@ -71,6 +71,7 @@ model AssignedCertification {
 
   member            TeamMember          @relation(fields: [memberId], references: [id], onDelete: Cascade)
   certification     Certification       @relation(fields: [certificationId], references: [id], onDelete: Cascade)
+  editRequests      CertificateEditRequest[]
 
   @@unique([memberId, certificationId])
   @@map("assigned_certifications")
@@ -199,6 +200,12 @@ enum NotificationType {
   PROJECT_ASSIGNED
 }
 
+enum EditRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 model PreSalesOpportunity {
   id                String   @id @default(cuid())
   name              String
@@ -254,3 +261,18 @@ model ProjectNote {
   @@map("project_notes")
 }
 
+model CertificateEditRequest {
+  id              String            @id @default(cuid())
+  assignmentId    String
+  proposedChanges Json              // { completionDate?, expiryDate?, credentialId? }
+  requestedBy     String            // display name of requester
+  status          EditRequestStatus @default(PENDING)
+  reviewedBy      String?
+  reviewNotes     String?
+  createdAt       DateTime          @default(now())
+  reviewedAt      DateTime?
+
+  assignment      AssignedCertification @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+
+  @@map("certificate_edit_requests")
+}

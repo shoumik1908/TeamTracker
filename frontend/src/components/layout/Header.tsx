@@ -8,7 +8,6 @@ import type { SearchResults, Notification } from '@/types';
 
 export default function Header({ 
   title,
-  isMobileMenuOpen,
   setIsMobileMenuOpen
 }: { 
   title?: string;
