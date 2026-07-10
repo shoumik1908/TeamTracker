@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Certification Tracker Dashboard - Team Tracker</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&amp;family=Public+Sans:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Outfit:wght@600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">tailwind.config = {darkMode: "class", theme: {extend: {colors: {"secondary-container": "#00a572", "on-surface-variant": "#bbc9cf", "on-primary": "#003543", tertiary: "#ffd59c", "tertiary-container": "#feb127", "on-secondary-fixed": "#002113", "on-primary-fixed-variant": "#004e60", outline: "#859399", "on-tertiary-container": "#6b4700", "outline-variant": "#3c494e", "on-error-container": "#ffdad6", "primary-fixed": "#b7eaff", "surface-tint": "#4cd6ff", background: "#0e1417", "on-tertiary-fixed": "#291800", "inverse-on-surface": "#2b3134", "on-background": "#dde3e7", "secondary-fixed": "#6ffbbe", error: "#ffb4ab", "surface-dim": "#0e1417", primary: "#0066ff", "error-container": "#93000a", "inverse-surface": "#dde3e7", "primary-fixed-dim": "#4cd6ff", "tertiary-fixed": "#ffddb1", "on-secondary-container": "#00311f", "surface-container-highest": "#2f3639", "on-primary-container": "#00566a", "on-tertiary-fixed-variant": "#624000", "surface-container-low": "#161d1f", "inverse-primary": "#00677f", secondary: "#4edea3", "surface-container-high": "#242b2e", "on-primary-fixed": "#001f28", "tertiary-fixed-dim": "#ffba49", "surface-variant": "#2f3639", "surface-container-lowest": "#090f12", "on-secondary": "#003824", "secondary-fixed-dim": "#4edea3", "primary-container": "#00d1ff", "on-tertiary": "#442b00", "on-secondary-fixed-variant": "#005236", "on-error": "#690005", "surface-container": "#1a2123", surface: "#0e1417", "surface-bright": "#333a3d", "on-surface": "#dde3e7", "background-light": "#f5f7f8", "background-dark": "#0f1723"}, borderRadius: {DEFAULT: "0.25rem", lg: "0.5rem", xl: "0.75rem", full: "9999px"}, spacing: {sm: "0.5rem", "2xl": "3rem", "margin-mobile": "16px", xl: "2rem", "margin-desktop": "40px", xs: "0.25rem", lg: "1.5rem", gutter: "24px", md: "1rem", base: "4px"}, fontFamily: {"headline-lg-mobile": ["Outfit"], "title-lg": ["Inter"], "label-md": ["Inter"], "headline-lg": ["Outfit"], "code-xs": ["Inter"], "headline-md": ["Outfit"], "display-lg": ["Outfit"], "body-md": ["Inter"], "body-lg": ["Inter"], headline: ["Inter"], display: ["Inter"], body: ["Inter"], label: ["Public Sans"]}, fontSize: {"headline-lg-mobile": ["24px", {lineHeight: "32px", fontWeight: "600"}], "title-lg": ["18px", {lineHeight: "24px", fontWeight: "600"}], "label-md": ["12px", {lineHeight: "16px", letterSpacing: "0.05em", fontWeight: "500"}], "headline-lg": ["32px", {lineHeight: "40px", letterSpacing: "-0.01em", fontWeight: "600"}], "code-xs": ["11px", {lineHeight: "14px", fontWeight: "600"}], "headline-md": ["24px", {lineHeight: "32px", fontWeight: "600"}], "display-lg": ["48px", {lineHeight: "56px", letterSpacing: "-0.02em", fontWeight: "700"}], "body-md": ["14px", {lineHeight: "20px", fontWeight: "400"}], "body-lg": ["16px", {lineHeight: "24px", fontWeight: "400"}]}}}};</script>
+<style>
+        body {
+            background-color: #0B0F19; /* Deep Charcoal Fallback */
+            color: #dde3e7;
+        }
+        .glass-card {
+            background: rgba(47, 54, 57, 0.6); /* surface-variant at 60% */
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background-image: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.01) 100%);
+        }
+        .neon-glow {
+            box-shadow: 0 0 15px rgba(164, 230, 255, 0.2); /* primary */
+        }
+        .glow-text {
+            text-shadow: 0 0 8px rgba(164, 230, 255, 0.4);
+        }
+        .status-pulse {
+            animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+        }
+        @keyframes pulse-ring {
+            0% { transform: scale(0.8); opacity: 0.5; }
+            100% { transform: scale(2.4); opacity: 0; }
+        }
+        
+        .table-row-hover:hover {
+            background-color: rgba(47, 54, 57, 0.8);
+        }
+
+        /* Custom Scrollbar for high density */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(14, 20, 23, 0.5); 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(133, 147, 153, 0.3); 
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(133, 147, 153, 0.5); 
+        }
+    </style>
+</head>
+<body class="font-body-md text-body-md min-h-screen flex overflow-hidden">
+<!-- Ambient Background -->
+<div class="fixed inset-0 z-[-1] pointer-events-none">
+</div>
+<!-- SideNavBar (Predicted JSON) -->
+<nav class="bg-background/80 dark:bg-background/80 backdrop-blur-xl h-screen w-64 fixed left-0 top-0 border-r border-white/10 shadow-2xl flex flex-col h-full py-lg px-md z-50">
+<!-- Header -->
+<div class="flex items-center gap-md mb-xl">
+<img alt="Team Tracker Logo" class="w-10 h-10 rounded-DEFAULT object-cover border border-white/10" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBIEqj-8bT49LDlNxx8yXAu4ilcSz9KLaSLD3cW4MESt69mfTvKCzK3j0C9LzVQjci_brtCDrziorFZWl1b0N286nu8gePbdg865PmnTPQyYxJULqf8fLqZaGTA2mvMtrkkqPZHuOhB4_zgmpdwj4vSSYuN9oomhNl7nfAEyIZOw4RtLrBRAMjHXOcKufnlEdoszEfhLVKs1JOaE5kKYds7pS_tudmmteuuVBWOm8XCAkaKOgkLEO9UQmfKqXdLjD3GlKZ7NzHL5fw"/>
+<div>
+<h1 class="font-headline-md text-headline-md font-bold text-primary dark:text-primary">Team Tracker</h1>
+<p class="font-label-md text-label-md text-on-surface-variant">Enterprise Hub</p>
+</div>
+</div>
+<!-- Navigation Links -->
+<ul class="flex flex-col gap-sm flex-grow">
+<li>
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-on-surface-variant font-medium hover:bg-white/5 transition-colors group" href="#">
+<span class="material-symbols-outlined text-[20px] group-hover:text-primary transition-colors">analytics</span>
+<span>Analytics</span>
+</a>
+</li>
+<li>
+<!-- ACTIVE TAB: Tracker -->
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-primary font-bold border-r-2 border-primary bg-white/5 scale-[0.98] transition-transform" href="#">
+<span class="material-symbols-outlined text-[20px] text-primary" style="font-variation-settings: 'FILL' 1;">monitoring</span>
+<span>Tracker</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-on-surface-variant font-medium hover:bg-white/5 transition-colors group" href="#">
+<span class="material-symbols-outlined text-[20px] group-hover:text-primary transition-colors">group</span>
+<span>Members</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-on-surface-variant font-medium hover:bg-white/5 transition-colors group" href="#">
+<span class="material-symbols-outlined text-[20px] group-hover:text-primary transition-colors">folder_open</span>
+<span>Projects</span>
+</a>
+</li>
+</ul>
+<!-- Bottom Actions -->
+<div class="mt-auto pt-lg border-t border-white/10">
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-on-surface-variant font-medium hover:bg-white/5 transition-colors group" href="#">
+<span class="material-symbols-outlined text-[20px] group-hover:text-primary transition-colors">settings</span>
+<span>Settings</span>
+</a>
+</div>
+</nav>
+<!-- Main Content Wrapper -->
+<div class="ml-64 flex-1 flex flex-col h-screen overflow-hidden">
+<!-- TopNavBar (Predicted JSON) -->
+<header class="bg-background/60 dark:bg-background/60 backdrop-blur-lg fixed top-0 right-0 w-[calc(100%-16rem)] z-40 border-b border-white/10 flex justify-between items-center h-16 px-margin-desktop">
+<!-- Left: Search -->
+<div class="flex items-center w-96 relative">
+<span class="material-symbols-outlined absolute left-3 text-on-surface-variant text-[20px]">search</span>
+<input class="w-full bg-transparent border border-white/10 rounded-full py-1.5 pl-10 pr-4 text-on-surface font-body-md focus:border-primary focus:bg-primary/5 transition-all outline-none placeholder:text-on-surface-variant/50" placeholder="Search certifications, members..." type="text"/>
+</div>
+<!-- Right: Actions & Profile -->
+<div class="flex items-center gap-lg">
+<button class="bg-primary/10 text-primary border border-primary/20 px-4 py-1.5 rounded-full font-label-md hover:bg-primary/20 hover:border-primary/40 transition-all neon-glow flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px]">upload</span>
+                    + Upload Certificate
+                </button>
+<div class="flex items-center gap-sm text-on-surface-variant">
+<button class="w-8 h-8 rounded-full hover:bg-white/5 flex items-center justify-center hover:text-primary transition-colors relative">
+<span class="material-symbols-outlined text-[20px]">notifications</span>
+<span class="absolute top-1.5 right-1.5 w-2 h-2 bg-error rounded-full status-pulse"></span>
+</button>
+<button class="w-8 h-8 rounded-full hover:bg-white/5 flex items-center justify-center hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[20px]">apps</span>
+</button>
+</div>
+<div class="h-8 w-px bg-white/10 mx-xs"></div>
+<img alt="User Profile" class="w-8 h-8 rounded-full border border-white/20 object-cover cursor-pointer hover:border-primary transition-colors" data-alt="A highly detailed close-up portrait of a professional woman in a modern office setting. She is wearing a dark, tailored blazer. The lighting is cinematic, highlighting her features with a soft, cool-toned rim light against a blurred, high-tech dark background. The image feels premium, sophisticated, and suited for an enterprise platform." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCU-695K_o0z5VQYGlK3G2ZfjPo001YTP-g006vn5qLm-32NAFS22-HXaINC5lNVIOgbqs5hZfSSI5-cI8MyRxGwVJYjogqIgPxDpDWg-5-KgGuU62H_3wj0fSvMGfJAkOzYjtY9jXGqlTwmjMrcjFfFqIbpW91E5JKfJWOwIYT8kmGbA0PhsFcO0zCoc9KZeE0arTGZ6NYQQr8ZXy2G9i1kKP2phGVNrOgJW91l_Nr2u5CFffJdmzvflpxDMm4wYrpDgBPxSnv7wY"/>
+</div>
+</header>
+<!-- Scrollable Canvas -->
+<main class="flex-1 overflow-y-auto pt-[88px] px-margin-desktop pb-xl">
+<!-- Dashboard Header -->
+<div class="mb-lg">
+<h2 class="font-headline-lg text-headline-lg text-on-surface mb-xs">Certification Overview</h2>
+<p class="font-body-md text-on-surface-variant">Track, manage, and verify team credentials across the organization.</p>
+</div>
+<!-- Stat Cards Row -->
+<div class="grid grid-cols-4 gap-gutter mb-xl">
+<!-- Card 1 -->
+<div class="glass-card rounded-xl p-md flex flex-col gap-sm relative overflow-hidden group">
+<div class="flex justify-between items-start">
+<span class="font-label-md text-on-surface-variant uppercase tracking-wider">Total Certs</span>
+<span class="material-symbols-outlined text-primary opacity-50 text-[20px]">workspace_premium</span>
+</div>
+<div class="flex items-end gap-sm">
+<span class="font-display-lg text-display-lg text-on-surface glow-text">1,248</span>
+<span class="font-label-md text-secondary flex items-center mb-1"><span class="material-symbols-outlined text-[14px]">arrow_upward</span> 12%</span>
+</div>
+<!-- Progress Bar -->
+<div class="w-full bg-surface-container h-1.5 rounded-full mt-auto overflow-hidden">
+<div class="bg-primary w-3/4 h-full rounded-full neon-glow"></div>
+</div>
+<!-- Decorative background glow -->
+<div class="absolute -bottom-4 -right-4 w-16 h-16 bg-primary/10 rounded-full blur-xl group-hover:bg-primary/20 transition-all"></div>
+</div>
+<!-- Card 2 -->
+<div class="glass-card rounded-xl p-md flex flex-col gap-sm relative overflow-hidden group">
+<div class="flex justify-between items-start">
+<span class="font-label-md text-on-surface-variant uppercase tracking-wider">Active / Completed</span>
+<span class="material-symbols-outlined text-secondary opacity-50 text-[20px]">check_circle</span>
+</div>
+<div class="flex items-end gap-sm">
+<span class="font-display-lg text-display-lg text-on-surface">892</span>
+<span class="font-label-md text-on-surface-variant mb-1">/ 950</span>
+</div>
+<div class="w-full bg-surface-container h-1.5 rounded-full mt-auto overflow-hidden">
+<div class="bg-secondary w-[90%] h-full rounded-full shadow-[0_0_10px_rgba(78,222,163,0.3)]"></div>
+</div>
+</div>
+<!-- Card 3 -->
+<div class="glass-card rounded-xl p-md flex flex-col gap-sm relative overflow-hidden group">
+<div class="flex justify-between items-start">
+<span class="font-label-md text-on-surface-variant uppercase tracking-wider">Overdue</span>
+<span class="material-symbols-outlined text-error opacity-50 text-[20px]">warning</span>
+</div>
+<div class="flex items-end gap-sm">
+<span class="font-display-lg text-display-lg text-error glow-text">34</span>
+<span class="font-label-md text-error flex items-center mb-1"><span class="material-symbols-outlined text-[14px]">arrow_upward</span> 5</span>
+</div>
+<div class="w-full bg-surface-container h-1.5 rounded-full mt-auto overflow-hidden">
+<div class="bg-error w-[15%] h-full rounded-full shadow-[0_0_10px_rgba(255,180,171,0.3)]"></div>
+</div>
+</div>
+<!-- Card 4 -->
+<div class="glass-card rounded-xl p-md flex flex-col gap-sm relative overflow-hidden group">
+<div class="flex justify-between items-start">
+<span class="font-label-md text-on-surface-variant uppercase tracking-wider">Expiring (30d)</span>
+<span class="material-symbols-outlined text-tertiary-container opacity-50 text-[20px]">schedule</span>
+</div>
+<div class="flex items-end gap-sm">
+<span class="font-display-lg text-display-lg text-on-surface">128</span>
+</div>
+<div class="w-full bg-surface-container h-1.5 rounded-full mt-auto overflow-hidden">
+<div class="bg-tertiary-container w-[40%] h-full rounded-full shadow-[0_0_10px_rgba(254,177,39,0.3)]"></div>
+</div>
+</div>
+</div>
+<!-- Filter Bar -->
+<div class="glass-card rounded-lg p-sm mb-md flex items-center gap-md">
+<div class="font-label-md text-on-surface-variant px-sm border-r border-white/10 flex items-center gap-xs">
+<span class="material-symbols-outlined text-[16px]">filter_list</span> Filters
+                </div>
+<div class="flex gap-sm">
+<button class="bg-surface-container border border-white/10 px-3 py-1.5 rounded text-body-md text-on-surface hover:border-primary/50 transition-colors flex items-center gap-xs">
+                        Status: <span class="text-primary">All</span> <span class="material-symbols-outlined text-[16px]">arrow_drop_down</span>
+</button>
+<button class="bg-surface-container border border-white/10 px-3 py-1.5 rounded text-body-md text-on-surface hover:border-primary/50 transition-colors flex items-center gap-xs">
+                        Provider: <span class="text-primary">All</span> <span class="material-symbols-outlined text-[16px]">arrow_drop_down</span>
+</button>
+<button class="bg-surface-container border border-white/10 px-3 py-1.5 rounded text-body-md text-on-surface hover:border-primary/50 transition-colors flex items-center gap-xs">
+                        Deadline: <span class="text-primary">Anytime</span> <span class="material-symbols-outlined text-[16px]">arrow_drop_down</span>
+</button>
+</div>
+<div class="ml-auto flex items-center gap-sm">
+<span class="font-label-md text-on-surface-variant">View:</span>
+<button class="p-1 rounded bg-white/10 text-primary"><span class="material-symbols-outlined text-[20px]">view_list</span></button>
+<button class="p-1 rounded text-on-surface-variant hover:bg-white/5"><span class="material-symbols-outlined text-[20px]">grid_view</span></button>
+</div>
+</div>
+<!-- Main Table Container -->
+<div class="glass-card rounded-xl overflow-hidden border border-white/10">
+<!-- Table Header -->
+<div class="grid grid-cols-12 gap-sm px-md py-sm border-b border-white/10 font-label-md text-on-surface-variant uppercase tracking-wider bg-black/20">
+<div class="col-span-4">Team Member / Cert Name</div>
+<div class="col-span-2">Provider</div>
+<div class="col-span-2">Status</div>
+<div class="col-span-3">Validity Period</div>
+<div class="col-span-1 text-right">Actions</div>
+</div>
+<!-- Accordion Group 1 -->
+<div class="border-b border-white/5 last:border-0">
+<!-- Group Header (Member) -->
+<button class="w-full grid grid-cols-12 gap-sm px-md py-sm items-center hover:bg-white/5 transition-colors text-left group">
+<div class="col-span-12 flex items-center gap-sm">
+<span class="material-symbols-outlined text-on-surface-variant group-hover:text-primary transition-colors text-[20px] transform transition-transform duration-200">expand_more</span>
+<img alt="Avatar" class="w-6 h-6 rounded-full object-cover border border-white/20" data-alt="A highly detailed close-up portrait of a male software engineer with short hair, wearing a dark casual shirt. Soft, tech-inspired blue and purple lighting subtly illuminates his face against a dark, out-of-focus server room background. The aesthetic is clean, modern, and professional." src="https://lh3.googleusercontent.com/aida-public/AB6AXuClPIjLLWx3JUocIaK0nRAtio8jxDD5yyGjKegRdBgoRvfAtN_nMc4n_MUWfQyZWTomoO34TuvChyp53v_xmmPyMQRL3xWkOSkFOwkNc7Qqb6bpKHA8ot3QX0eUGwbKi_sL-eTlSvj4NcKag27vwOWkkKub9b8EkTfhjatSwCrlEe-Qpz0xJiRjC87ZfTZpk1iRoAaipx9Plf9FAdtcuAQ9QBSu9CW6FrHtzflO-I3vxbvNEEX43V8ZcEdL-IQPY_1DHJkTg6mz47o"/>
+<span class="font-title-lg text-title-lg text-on-surface">Alex Mercer</span>
+<span class="bg-surface-container text-on-surface-variant font-code-xs px-2 py-0.5 rounded ml-2 border border-white/5">Backend Eng</span>
+<div class="ml-auto flex gap-2">
+<span class="bg-secondary/10 border border-secondary/20 text-secondary font-label-md px-2 py-0.5 rounded">2 Active</span>
+<span class="bg-tertiary-container/10 border border-tertiary-container/20 text-tertiary-container font-label-md px-2 py-0.5 rounded">1 Expiring</span>
+</div>
+</div>
+</button>
+<!-- Expanded Rows -->
+<div class="bg-black/10">
+<!-- Row 1 -->
+<div class="grid grid-cols-12 gap-sm px-md py-sm pl-12 items-center table-row-hover border-b border-white/5 last:border-0">
+<div class="col-span-4 font-body-md text-on-surface flex items-center gap-2">
+                                AWS Certified Solutions Architect
+                                <span class="material-symbols-outlined text-primary text-[14px]">verified</span>
+</div>
+<div class="col-span-2 font-body-md text-on-surface-variant">Amazon Web Services</div>
+<div class="col-span-2">
+<span class="inline-flex items-center gap-1.5 bg-secondary/10 border border-secondary/30 text-secondary font-code-xs px-2 py-1 rounded">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary shadow-[0_0_5px_#4edea3]"></span>
+                                    Active
+                                </span>
+</div>
+<div class="col-span-3 font-body-md text-on-surface-variant text-sm">
+                                Oct 2022 - Oct 2025
+                            </div>
+<div class="col-span-1 flex justify-end gap-1 text-on-surface-variant">
+<button class="p-1 hover:text-primary hover:bg-white/10 rounded transition-colors"><span class="material-symbols-outlined text-[18px]">visibility</span></button>
+<button class="p-1 hover:text-primary hover:bg-white/10 rounded transition-colors"><span class="material-symbols-outlined text-[18px]">edit</span></button>
+</div>
+</div>
+<!-- Row 2 -->
+<div class="grid grid-cols-12 gap-sm px-md py-sm pl-12 items-center table-row-hover border-b border-white/5 last:border-0">
+<div class="col-span-4 font-body-md text-on-surface flex items-center gap-2">
+                                Certified Kubernetes Administrator
+                            </div>
+<div class="col-span-2 font-body-md text-on-surface-variant">Cloud Native Foundation</div>
+<div class="col-span-2">
+<span class="inline-flex items-center gap-1.5 bg-tertiary-container/10 border border-tertiary-container/30 text-tertiary-container font-code-xs px-2 py-1 rounded relative">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary-container shadow-[0_0_5px_#feb127]"></span>
+                                    Expiring Soon
+                                </span>
+</div>
+<div class="col-span-3 font-body-md text-on-surface-variant text-sm flex flex-col">
+<span>Jan 2021 - Jan 2024</span>
+<span class="text-tertiary-container text-xs">Expires in 14 days</span>
+</div>
+<div class="col-span-1 flex justify-end gap-1 text-on-surface-variant">
+<button class="p-1 text-primary hover:bg-primary/10 rounded transition-colors"><span class="material-symbols-outlined text-[18px]">upload</span></button>
+<button class="p-1 hover:text-primary hover:bg-white/10 rounded transition-colors"><span class="material-symbols-outlined text-[18px]">visibility</span></button>
+</div>
+</div>
+</div>
+</div>
+<!-- Accordion Group 2 -->
+<div class="border-b border-white/5 last:border-0">
+<button class="w-full grid grid-cols-12 gap-sm px-md py-sm items-center hover:bg-white/5 transition-colors text-left group">
+<div class="col-span-12 flex items-center gap-sm">
+<span class="material-symbols-outlined text-on-surface-variant group-hover:text-primary transition-colors text-[20px] transform -rotate-90 transition-transform duration-200">expand_more</span>
+<img alt="Avatar" class="w-6 h-6 rounded-full object-cover border border-white/20" data-alt="A highly detailed close-up portrait of a female data scientist wearing glasses. The lighting is cinematic and moody, featuring subtle green and blue neon highlights reflecting in her glasses. The background is an abstract, dark environment hinting at digital data streams. High fidelity, premium aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuByrD5CGguGAMLhxq2pqGMMT4M2tgVHD20_Od64jjhlh-oC58MRQKhM18Ah_SOaSAWFdfYad0W3ynWS7-2vjnAhLGS8qcHgvOrTe0oZdRqdz5H_OcJHLTGIQQ7kHcVXt-zbe3Tw5V9FxzWOR7CjNvROFcZeaMA5d76ofjYf1uNWuG5DxPyg_ckOGs9iZE_JphppTAflFRFAAL4yRkTtBdm4NCK5LMoRyDC4CLhUfE_snxFC8QjjwSPajWSfFdPLeWAmd2p8VLwUebk"/>
+<span class="font-title-lg text-title-lg text-on-surface">Sarah Chen</span>
+<span class="bg-surface-container text-on-surface-variant font-code-xs px-2 py-0.5 rounded ml-2 border border-white/5">Data Science</span>
+<div class="ml-auto flex gap-2">
+<span class="bg-secondary/10 border border-secondary/20 text-secondary font-label-md px-2 py-0.5 rounded">1 Active</span>
+<span class="bg-error/10 border border-error/20 text-error font-label-md px-2 py-0.5 rounded flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-error status-pulse absolute"></span><span class="w-1.5 h-1.5 rounded-full bg-error"></span> 1 Overdue</span>
+</div>
+</div>
+</button>
+<!-- Collapsed state (content hidden) -->
+</div>
+</div>
+</main>
+</div>
+</body></html>

@@ -152,17 +152,66 @@ function isLikelyName(line: string): boolean {
   return true;
 }
 
+function looksLikeHumanName(line: string): boolean {
+  const cleaned = line.trim();
+
+  // Basic shape checks
+  if (cleaned.length < 3 || cleaned.length > 40) return false;
+  if (/\d/.test(cleaned)) return false;
+  if (/[@#$%^&*_+=<>{}[\]|\\/]/.test(cleaned)) return false;
+
+  const words = cleaned.split(/\s+/).filter(Boolean);
+  if (words.length < 2 || words.length > 4) return false;
+
+  // Reject obvious non-name content
+  const blocklist = /certified|certificate|databricks|azure|aws|google|microsoft|date|issue|expir|valid|requirement|training|course|module|completion|professional|associate|engineer|architect|developer|specialist|fundamentals/i;
+  if (blocklist.test(cleaned)) return false;
+
+  // Every word should start with a capital letter, rest lowercase
+  // (allows for hyphenated/apostrophe names: "Anne-Marie", "O'Brien")
+  const namePattern = /^[A-Z][a-z'-]+$/;
+  const allWordsLookLikeNameParts = words.every(w => namePattern.test(w));
+
+  return allWordsLookLikeNameParts;
+}
+
+function findNameCandidates(rawLines: string[]) {
+  return rawLines
+    .map((line, index) => ({ line: line.trim(), index }))
+    .filter(({ line }) => looksLikeHumanName(line));
+}
+
+function extractNameByShape(rawLines: string[]): string | null {
+  const candidates = findNameCandidates(rawLines);
+  if (candidates.length === 0) return null;
+
+  // Prefer candidates in the first half of the document
+  const topHalf = candidates.filter(c => c.index < rawLines.length / 2);
+  const pool = topHalf.length > 0 ? topHalf : candidates;
+
+  console.log(`[DocIntel] Shape matched: "${pool[0].line}"`);
+  return pool[0].line;
+}
+
 function extractNameFallback(rawLines: string[]): string | null {
   for (let i = 0; i < rawLines.length; i++) {
     const line = rawLines[i];
     const lower = line.toLowerCase();
 
-    // Pattern A: name is on the line BEFORE this phrase
+    // Pattern A: name is on the line BEFORE this phrase, or before it on the SAME line
     const beforeMatch = NAME_BEFORE_PHRASES.find(p => lower.includes(p));
     if (beforeMatch) {
+      // Try same line before the phrase first
+      const index = lower.indexOf(beforeMatch);
+      const sameLinePrefix = line.substring(0, index).trim();
+      if (sameLinePrefix && isLikelyName(sameLinePrefix)) {
+        console.log(`[DocIntel] Name matched (Pattern A same-line prefix, name-before-phrase: "${beforeMatch}"): "${sameLinePrefix}"`);
+        return sameLinePrefix;
+      }
+
       const candidate = rawLines[i - 1];
       if (candidate && isLikelyName(candidate)) {
-        console.log(`[DocIntel] Name matched (Pattern A, name-before-phrase: "${beforeMatch}"): "${candidate}"`);
+        console.log(`[DocIntel] Name matched (Pattern A preceding line, name-before-phrase: "${beforeMatch}"): "${candidate}"`);
         return candidate.trim();
       }
     }
@@ -301,7 +350,10 @@ export async function extractCertificateFields(fileBuffer: Buffer, mimeType: str
     if (!expiryDate) expiryDate = fallbackDates.expiryDate;
   }
 
-  // ── Pass 2: layout fallback for unlabeled / stylized name text ────────────
+  // Log raw extracted lines for template diagnostics
+  console.log("RAW LINES:", JSON.stringify(rawLines, null, 2));
+
+  // ── Pass 2: layout fallback (phrase-based) for unlabeled / stylized name text ──
   if (!recipientName) {
     const nameFromLayout = extractNameFallback(rawLines);
     if (nameFromLayout) {
@@ -310,7 +362,16 @@ export async function extractCertificateFields(fileBuffer: Buffer, mimeType: str
     }
   }
 
-  // ── Pass 3: NER fallback for missing name ────────────────────────────────
+  // ── Pass 3: generic shape-based name fallback ────────────────────────────
+  if (!recipientName) {
+    const nameFromShape = extractNameByShape(rawLines);
+    if (nameFromShape) {
+      recipientName = nameFromShape;
+      recipientNameSource = 'layout';
+    }
+  }
+
+  // ── Pass 4: NER fallback for missing name ────────────────────────────────
   if (!recipientName) {
     const nameFromNER = await extractNameWithNER(result.content || '');
     if (nameFromNER) {

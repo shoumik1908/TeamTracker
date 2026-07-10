@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Team Tracker - Unresolved Details</title>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&amp;family=Public+Sans:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Theme Configuration -->
+<script id="tailwind-config">tailwind.config = {darkMode: "class", theme: {extend: {colors: {"secondary-container": "#00a572", "on-surface-variant": "#bbc9cf", "on-primary": "#003543", tertiary: "#ffd59c", "tertiary-container": "#feb127", "on-secondary-fixed": "#002113", "on-primary-fixed-variant": "#004e60", outline: "#859399", "on-tertiary-container": "#6b4700", "outline-variant": "#3c494e", "on-error-container": "#ffdad6", "primary-fixed": "#b7eaff", "surface-tint": "#4cd6ff", background: "#0e1417", "on-tertiary-fixed": "#291800", "inverse-on-surface": "#2b3134", "on-background": "#dde3e7", "secondary-fixed": "#6ffbbe", error: "#ffb4ab", "surface-dim": "#0e1417", primary: "#0066ff", "error-container": "#93000a", "inverse-surface": "#dde3e7", "primary-fixed-dim": "#4cd6ff", "tertiary-fixed": "#ffddb1", "on-secondary-container": "#00311f", "surface-container-highest": "#2f3639", "on-primary-container": "#00566a", "on-tertiary-fixed-variant": "#624000", "surface-container-low": "#161d1f", "inverse-primary": "#00677f", secondary: "#4edea3", "surface-container-high": "#242b2e", "on-primary-fixed": "#001f28", "tertiary-fixed-dim": "#ffba49", "surface-variant": "#2f3639", "surface-container-lowest": "#090f12", "on-secondary": "#003824", "secondary-fixed-dim": "#4edea3", "primary-container": "#00d1ff", "on-tertiary": "#442b00", "on-secondary-fixed-variant": "#005236", "on-error": "#690005", "surface-container": "#1a2123", surface: "#0e1417", "surface-bright": "#333a3d", "on-surface": "#dde3e7", "background-light": "#f5f7f8", "background-dark": "#0f1723"}, borderRadius: {DEFAULT: "0.25rem", lg: "0.5rem", xl: "0.75rem", full: "9999px"}, spacing: {sm: "0.5rem", "2xl": "3rem", "margin-mobile": "16px", xl: "2rem", "margin-desktop": "40px", xs: "0.25rem", lg: "1.5rem", gutter: "24px", md: "1rem", base: "4px"}, fontFamily: {"headline-lg-mobile": ["Outfit"], "title-lg": ["Inter"], "label-md": ["Inter"], "headline-lg": ["Outfit"], "code-xs": ["Inter"], "headline-md": ["Outfit"], "display-lg": ["Outfit"], "body-md": ["Inter"], "body-lg": ["Inter"], headline: ["Inter"], display: ["Inter"], body: ["Inter"], label: ["Public Sans"]}, fontSize: {"headline-lg-mobile": ["24px", {lineHeight: "32px", fontWeight: "600"}], "title-lg": ["18px", {lineHeight: "24px", fontWeight: "600"}], "label-md": ["12px", {lineHeight: "16px", letterSpacing: "0.05em", fontWeight: "500"}], "headline-lg": ["32px", {lineHeight: "40px", letterSpacing: "-0.01em", fontWeight: "600"}], "code-xs": ["11px", {lineHeight: "14px", fontWeight: "600"}], "headline-md": ["24px", {lineHeight: "32px", fontWeight: "600"}], "display-lg": ["48px", {lineHeight: "56px", letterSpacing: "-0.02em", fontWeight: "700"}], "body-md": ["14px", {lineHeight: "20px", fontWeight: "400"}], "body-lg": ["16px", {lineHeight: "24px", fontWeight: "400"}]}}}};</script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined.filled {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        
+        /* Glassmorphism Utilities */
+        .glass-panel {
+            background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.01) 100%);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        /* Ghost Inputs */
+        .ghost-input {
+            background-color: transparent;
+            border: 1px solid theme('colors.outline-variant');
+            color: theme('colors.on-surface');
+            transition: all 0.3s ease;
+        }
+        .ghost-input:focus {
+            outline: none;
+            border-color: theme('colors.primary');
+            background-color: rgba(164, 230, 255, 0.05);
+            box-shadow: 0 0 0 1px theme('colors.primary');
+        }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: theme('colors.surface-variant');
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: theme('colors.outline-variant');
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body-md antialiased min-h-screen overflow-x-hidden">
+<!-- Ambient Background Effects -->
+<div class="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+<div class="absolute top-[-20%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-primary/5 blur-[120px]"></div>
+<div class="absolute bottom-[-20%] right-[-10%] w-[60vw] h-[60vw] rounded-full bg-tertiary/5 blur-[150px]"></div>
+</div>
+<!-- SideNavBar (from JSON) -->
+<nav class="bg-background/80 dark:bg-background/80 backdrop-blur-xl h-screen w-64 fixed left-0 top-0 border-r border-white/10 shadow-2xl flex flex-col h-full py-lg px-md z-50">
+<!-- Brand Header -->
+<div class="flex items-center gap-md mb-xl px-sm">
+<div class="w-10 h-10 rounded-lg bg-surface-variant flex items-center justify-center border border-white/10">
+<span class="material-symbols-outlined filled text-primary">hub</span>
+</div>
+<div>
+<h1 class="font-headline-md text-headline-md font-bold text-primary dark:text-primary">Team Tracker</h1>
+<p class="font-label-md text-label-md text-outline">Enterprise Hub</p>
+</div>
+</div>
+<!-- Navigation Links -->
+<ul class="flex flex-col gap-sm flex-grow">
+<li>
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-on-surface-variant font-medium hover:bg-white/5 transition-colors" href="#">
+<span class="material-symbols-outlined text-xl">analytics</span>
+<span class="font-body-md text-body-md">Analytics</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-on-surface-variant font-medium hover:bg-white/5 transition-colors" href="#">
+<span class="material-symbols-outlined text-xl">monitoring</span>
+<span class="font-body-md text-body-md">Tracker</span>
+</a>
+</li>
+<!-- Active State Logic: Resolving member upload details -> Map to Members -->
+<li>
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-primary font-bold border-r-2 border-primary bg-primary/10 transition-transform scale-[0.98]" href="#">
+<span class="material-symbols-outlined filled text-xl">group</span>
+<span class="font-body-md text-body-md">Members</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-on-surface-variant font-medium hover:bg-white/5 transition-colors" href="#">
+<span class="material-symbols-outlined text-xl">folder_open</span>
+<span class="font-body-md text-body-md">Projects</span>
+</a>
+</li>
+</ul>
+<!-- Bottom Settings -->
+<div class="mt-auto">
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-on-surface-variant font-medium hover:bg-white/5 transition-colors" href="#">
+<span class="material-symbols-outlined text-xl">settings</span>
+<span class="font-body-md text-body-md">Settings</span>
+</a>
+</div>
+</nav>
+<!-- TopNavBar (from JSON) -->
+<header class="bg-background/60 dark:bg-background/60 backdrop-blur-lg fixed top-0 right-0 w-[calc(100%-16rem)] z-40 border-b border-white/10 flex justify-between items-center h-16 px-margin-desktop ml-64">
+<!-- Search Bar (on_left) -->
+<div class="relative w-96">
+<span class="material-symbols-outlined absolute left-3 top-1/2 transform -translate-y-1/2 text-outline">search</span>
+<input class="w-full bg-surface-container/50 border border-outline-variant text-on-surface font-body-md text-body-md rounded-full py-2 pl-10 pr-4 focus:outline-none focus:border-primary focus:bg-surface-container-high transition-colors" placeholder="Search certificates, skills, or members..." type="text"/>
+</div>
+<!-- Trailing Actions -->
+<div class="flex items-center gap-lg">
+<button class="bg-surface-variant text-on-surface hover:text-primary transition-colors px-md py-2 rounded-full font-label-md text-label-md flex items-center gap-2 border border-white/10">
+<span class="material-symbols-outlined text-sm">upload_file</span>
+                + Upload Certificate
+            </button>
+<div class="flex items-center gap-sm text-on-surface-variant">
+<button class="p-2 hover:text-primary transition-colors rounded-full hover:bg-white/5">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="p-2 hover:text-primary transition-colors rounded-full hover:bg-white/5">
+<span class="material-symbols-outlined">apps</span>
+</button>
+</div>
+<div class="w-8 h-8 rounded-full bg-primary/20 border border-primary/50 overflow-hidden cursor-pointer opacity-80 hover:opacity-100 transition-opacity">
+<img alt="User Profile" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCELXFoA03LJGzf1ts8FFenIf-jfN-xa52S6ikcaoDGbsyTs2OMGw7q8qA3VT3PY3xPLnNTMCUM2Oe4tf5m3HMPjN3bUuGhqcZte8ae-kb2b3FTcRtw0SgJTsb9pemtt2rh6HeW5SIWFlC1RizLu_PT38ROqkL8WwJFA1SVmn0c7gaawIt05ZgnNSB10fXieRHDbgnJawHofEOAUirYdAf1aZ7SJAdgt6EEP9LcBj9u4uEjh09eBqxy50zEE4Sz9rblfNDx4D4-EEA"/>
+</div>
+</div>
+</header>
+<!-- Main Content Area -->
+<main class="ml-64 mt-16 p-margin-desktop relative z-10">
+<!-- Page Header -->
+<div class="mb-xl flex justify-between items-end">
+<div>
+<p class="font-label-md text-label-md text-outline mb-2 uppercase tracking-wider">Upload Pipeline</p>
+<h2 class="font-display-lg text-display-lg text-on-surface mb-2">Resolution Required</h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant">We extracted the data, but some entities aren't in your catalog yet.</p>
+</div>
+<div class="flex gap-md">
+<button class="px-md py-2 rounded-lg font-label-md text-label-md text-on-surface border border-outline-variant hover:bg-surface-container transition-colors">Cancel Upload</button>
+<button class="px-md py-2 rounded-lg font-label-md text-label-md bg-primary text-on-primary hover:bg-primary-fixed transition-colors shadow-[0_0_15px_rgba(164,230,255,0.2)]">Save &amp; Process</button>
+</div>
+</div>
+<!-- Bento Grid Layout -->
+<div class="grid grid-cols-12 gap-gutter">
+<!-- Amber Alert / Unresolved Details Summary -->
+<div class="col-span-12 xl:col-span-4">
+<div class="glass-panel rounded-xl border-l-4 border-l-tertiary h-full p-lg flex flex-col">
+<div class="flex items-center gap-md mb-lg">
+<div class="w-10 h-10 rounded-full bg-tertiary/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-tertiary">warning</span>
+</div>
+<h3 class="font-headline-md text-headline-md text-tertiary">Unresolved Details</h3>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant mb-lg">The uploaded certificate references items not found in your current directory. Please define them below to proceed.</p>
+<div class="space-y-sm flex-grow">
+<!-- Issue 1 -->
+<div class="bg-surface-container-low/50 border border-white/5 rounded-lg p-md flex items-start gap-md">
+<span class="material-symbols-outlined text-error text-lg mt-0.5">person_off</span>
+<div>
+<p class="font-label-md text-label-md text-outline uppercase">Team Member</p>
+<p class="font-body-lg text-body-lg text-on-surface font-medium">"Suhani Jain"</p>
+<p class="font-body-md text-body-md text-error mt-1">No match found in active directory.</p>
+</div>
+</div>
+<!-- Issue 2 -->
+<div class="bg-surface-container-low/50 border border-white/5 rounded-lg p-md flex items-start gap-md">
+<span class="material-symbols-outlined text-error text-lg mt-0.5">assignment_late</span>
+<div>
+<p class="font-label-md text-label-md text-outline uppercase">Certification</p>
+<p class="font-body-lg text-body-lg text-on-surface font-medium">"AWS Solutions Arch..."</p>
+<p class="font-body-md text-body-md text-error mt-1">Title not in master catalog.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Quick-Add Forms Area -->
+<div class="col-span-12 xl:col-span-8 flex flex-col gap-gutter">
+<!-- Quick-Add Team Member -->
+<div class="glass-panel rounded-xl p-xl relative overflow-hidden">
+<!-- Subtle accent glow -->
+<div class="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-[80px] pointer-events-none"></div>
+<div class="flex items-center justify-between mb-lg">
+<div>
+<h3 class="font-headline-md text-headline-md text-on-surface flex items-center gap-sm">
+<span class="material-symbols-outlined text-primary">person_add</span>
+                                Add New Member
+                            </h3>
+<p class="font-body-md text-body-md text-on-surface-variant">Create a profile to associate this certificate.</p>
+</div>
+<span class="px-sm py-xs rounded bg-surface-container text-outline font-code-xs text-code-xs border border-white/10">Quick Add</span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-lg">
+<!-- Input Group -->
+<div class="flex flex-col gap-xs">
+<label class="font-label-md text-label-md text-on-surface-variant">Full Name <span class="text-error">*</span></label>
+<input class="ghost-input rounded-lg px-md py-2 font-body-md text-body-md w-full" placeholder="Enter full name" type="text" value="Suhani Jain"/>
+</div>
+<!-- Input Group -->
+<div class="flex flex-col gap-xs">
+<label class="font-label-md text-label-md text-on-surface-variant">Designation <span class="text-error">*</span></label>
+<div class="relative">
+<select class="ghost-input rounded-lg px-md py-2 font-body-md text-body-md w-full appearance-none">
+<option disabled="" selected="" value="">Select title...</option>
+<option value="swe">Software Engineer</option>
+<option value="ds">Data Scientist</option>
+<option value="pm">Product Manager</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-1/2 transform -translate-y-1/2 text-outline pointer-events-none">expand_more</span>
+</div>
+</div>
+<!-- Input Group -->
+<div class="flex flex-col gap-xs">
+<label class="font-label-md text-label-md text-on-surface-variant">Department</label>
+<input class="ghost-input rounded-lg px-md py-2 font-body-md text-body-md w-full" placeholder="e.g. Engineering" type="text"/>
+</div>
+<!-- Input Group -->
+<div class="flex flex-col gap-xs">
+<label class="font-label-md text-label-md text-on-surface-variant">Start Date</label>
+<input class="ghost-input rounded-lg px-md py-2 font-body-md text-body-md w-full text-on-surface" type="date"/>
+</div>
+</div>
+</div>
+<!-- Quick-Add Certification -->
+<div class="glass-panel rounded-xl p-xl relative overflow-hidden">
+<div class="flex items-center justify-between mb-lg">
+<div>
+<h3 class="font-headline-md text-headline-md text-on-surface flex items-center gap-sm">
+<span class="material-symbols-outlined text-secondary">workspace_premium</span>
+                                Add to Catalog
+                            </h3>
+<p class="font-body-md text-body-md text-on-surface-variant">Define this certification for future tracking.</p>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-12 gap-lg">
+<!-- Input Group -->
+<div class="col-span-12 md:col-span-7 flex flex-col gap-xs">
+<label class="font-label-md text-label-md text-on-surface-variant">Certification Title <span class="text-error">*</span></label>
+<input class="ghost-input rounded-lg px-md py-2 font-body-md text-body-md w-full" type="text" value="AWS Certified Solutions Architect - Associate"/>
+</div>
+<!-- Input Group -->
+<div class="col-span-12 md:col-span-5 flex flex-col gap-xs">
+<label class="font-label-md text-label-md text-on-surface-variant">Issuing Authority <span class="text-error">*</span></label>
+<input class="ghost-input rounded-lg px-md py-2 font-body-md text-body-md w-full" type="text" value="Amazon Web Services"/>
+</div>
+<!-- Input Group -->
+<div class="col-span-12 flex flex-col gap-xs">
+<label class="font-label-md text-label-md text-on-surface-variant">Validity Period</label>
+<div class="flex gap-md">
+<label class="flex items-center gap-2 cursor-pointer">
+<input checked="" class="form-radio text-primary bg-transparent border-outline-variant focus:ring-primary focus:ring-offset-background" name="validity" type="radio"/>
+<span class="font-body-md text-body-md text-on-surface">Has Expiration</span>
+</label>
+<label class="flex items-center gap-2 cursor-pointer">
+<input class="form-radio text-primary bg-transparent border-outline-variant focus:ring-primary focus:ring-offset-background" name="validity" type="radio"/>
+<span class="font-body-md text-body-md text-on-surface">Lifetime</span>
+</label>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>

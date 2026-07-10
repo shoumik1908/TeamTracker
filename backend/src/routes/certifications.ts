@@ -284,6 +284,36 @@ router.post('/assignments/:id/certificate/analyze', upload.single('certificate')
       if (assignment?.member?.name) {
         nameMatch = checkNameMatch(fields.recipientName, assignment.member.name);
       }
+    } else {
+      const assignment = await prisma.assignedCertification.findUnique({
+        where: { id: req.params.id },
+        include: { member: { select: { name: true } } },
+      });
+      if (assignment?.member?.name) {
+        const mNameLower = assignment.member.name.toLowerCase().trim();
+        let bestScore = 0;
+        for (const line of fields.rawLines) {
+          const lineLower = line.toLowerCase().trim();
+          if (lineLower.includes(mNameLower) || mNameLower.includes(lineLower)) {
+            const score = fuzz.ratio(lineLower, mNameLower);
+            if (score > bestScore) bestScore = score;
+          } else {
+            const score = fuzz.ratio(lineLower, mNameLower);
+            if (score > 85 && score > bestScore) bestScore = score;
+          }
+        }
+        if (bestScore >= 70) {
+          fields.recipientName = assignment.member.name;
+          fields.recipientNameSource = 'layout';
+          nameMatch = {
+            matches: true,
+            score: bestScore,
+            extractedName: assignment.member.name,
+            memberName: assignment.member.name
+          };
+          console.log(`[DocIntel] Auto-matched assigned member from raw lines: "${assignment.member.name}"`);
+        }
+      }
     }
 
     return res.json({
@@ -320,6 +350,7 @@ router.post('/certificate/analyze-universal', upload.single('certificate'), asyn
     const members = await prisma.teamMember.findMany({ select: { id: true, name: true } });
     let memberMatch = null;
     let memberConfidence = 0;
+
     if (fields.recipientName) {
       let bestScore = 0;
       let bestMember = null;
@@ -333,6 +364,43 @@ router.post('/certificate/analyze-universal', upload.single('certificate'), asyn
       if (bestScore >= 70) {
         memberMatch = bestMember;
         memberConfidence = bestScore;
+      }
+    }
+
+    if (!memberMatch) {
+      console.log('[DocIntel] Scanning raw lines for database team member names...');
+      let bestScore = 0;
+      let bestMember = null;
+      let matchedRawName = null;
+
+      for (const m of members) {
+        const mNameLower = m.name.toLowerCase().trim();
+        for (const line of fields.rawLines) {
+          const lineLower = line.toLowerCase().trim();
+          if (lineLower.includes(mNameLower) || mNameLower.includes(lineLower)) {
+            const score = fuzz.ratio(lineLower, mNameLower);
+            if (score > bestScore) {
+              bestScore = score;
+              bestMember = m;
+              matchedRawName = m.name;
+            }
+          } else {
+            const score = fuzz.ratio(lineLower, mNameLower);
+            if (score > 85 && score > bestScore) {
+              bestScore = score;
+              bestMember = m;
+              matchedRawName = m.name;
+            }
+          }
+        }
+      }
+
+      if (bestMember && bestScore >= 70) {
+        memberMatch = bestMember;
+        memberConfidence = bestScore;
+        fields.recipientName = matchedRawName;
+        fields.recipientNameSource = 'layout';
+        console.log(`[DocIntel] Auto-matched member from raw text lines: "${matchedRawName}" (Score: ${bestScore})`);
       }
     }
 

@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Team Tracker - Certificate Upload</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&amp;family=Public+Sans:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">tailwind.config = {darkMode: "class", theme: {extend: {colors: {"secondary-container": "#00a572", "on-surface-variant": "#bbc9cf", "on-primary": "#003543", tertiary: "#ffd59c", "tertiary-container": "#feb127", "on-secondary-fixed": "#002113", "on-primary-fixed-variant": "#004e60", outline: "#859399", "on-tertiary-container": "#6b4700", "outline-variant": "#3c494e", "on-error-container": "#ffdad6", "primary-fixed": "#b7eaff", "surface-tint": "#4cd6ff", background: "#0e1417", "on-tertiary-fixed": "#291800", "inverse-on-surface": "#2b3134", "on-background": "#dde3e7", "secondary-fixed": "#6ffbbe", error: "#ffb4ab", "surface-dim": "#0e1417", primary: "#0066ff", "error-container": "#93000a", "inverse-surface": "#dde3e7", "primary-fixed-dim": "#4cd6ff", "tertiary-fixed": "#ffddb1", "on-secondary-container": "#00311f", "surface-container-highest": "#2f3639", "on-primary-container": "#00566a", "on-tertiary-fixed-variant": "#624000", "surface-container-low": "#161d1f", "inverse-primary": "#00677f", secondary: "#4edea3", "surface-container-high": "#242b2e", "on-primary-fixed": "#001f28", "tertiary-fixed-dim": "#ffba49", "surface-variant": "#2f3639", "surface-container-lowest": "#090f12", "on-secondary": "#003824", "secondary-fixed-dim": "#4edea3", "primary-container": "#00d1ff", "on-tertiary": "#442b00", "on-secondary-fixed-variant": "#005236", "on-error": "#690005", "surface-container": "#1a2123", surface: "#0e1417", "surface-bright": "#333a3d", "on-surface": "#dde3e7", "background-light": "#f5f7f8", "background-dark": "#0f1723"}, borderRadius: {DEFAULT: "0.25rem", lg: "0.5rem", xl: "0.75rem", full: "9999px"}, spacing: {sm: "0.5rem", "2xl": "3rem", "margin-mobile": "16px", xl: "2rem", "margin-desktop": "40px", xs: "0.25rem", lg: "1.5rem", gutter: "24px", md: "1rem", base: "4px"}, fontFamily: {"headline-lg-mobile": ["Outfit"], "title-lg": ["Inter"], "label-md": ["Inter"], "headline-lg": ["Outfit"], "code-xs": ["Inter"], "headline-md": ["Outfit"], "display-lg": ["Outfit"], "body-md": ["Inter"], "body-lg": ["Inter"], headline: ["Inter"], display: ["Inter"], body: ["Inter"], label: ["Public Sans"]}, fontSize: {"headline-lg-mobile": ["24px", {lineHeight: "32px", fontWeight: "600"}], "title-lg": ["18px", {lineHeight: "24px", fontWeight: "600"}], "label-md": ["12px", {lineHeight: "16px", letterSpacing: "0.05em", fontWeight: "500"}], "headline-lg": ["32px", {lineHeight: "40px", letterSpacing: "-0.01em", fontWeight: "600"}], "code-xs": ["11px", {lineHeight: "14px", fontWeight: "600"}], "headline-md": ["24px", {lineHeight: "32px", fontWeight: "600"}], "display-lg": ["48px", {lineHeight: "56px", letterSpacing: "-0.02em", fontWeight: "700"}], "body-md": ["14px", {lineHeight: "20px", fontWeight: "400"}], "body-lg": ["16px", {lineHeight: "24px", fontWeight: "400"}]}}}};</script>
+<style>
+        .glass-card {
+            background: rgba(47, 54, 57, 0.4);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .glass-modal {
+            background: rgba(47, 54, 57, 0.8);
+            backdrop-filter: blur(40px);
+            -webkit-backdrop-filter: blur(40px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+        }
+
+        .ghost-input {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.2s ease-in-out;
+        }
+
+        .ghost-input:focus {
+            border-color: #a4e6ff;
+            background: rgba(164, 230, 255, 0.1);
+            outline: none;
+            box-shadow: 0 0 0 1px #a4e6ff;
+        }
+
+        .pulse-ring {
+            animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+        }
+
+        @keyframes pulse-ring {
+            0% { transform: scale(0.8); opacity: 0.5; }
+            100% { transform: scale(2.4); opacity: 0; }
+        }
+
+        .animate-float {
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen font-body-md relative overflow-hidden">
+<!-- Background Dashboard Simulation (Blurred out) -->
+<div class="absolute inset-0 z-0 opacity-30 filter blur-sm flex flex-col">
+<!-- Header -->
+<div class="h-16 border-b border-white/10 flex items-center px-8">
+<div class="w-32 h-6 bg-surface-variant rounded"></div>
+</div>
+<!-- Body -->
+<div class="flex-1 flex p-8 gap-8">
+<div class="w-64 space-y-4">
+<div class="h-10 bg-surface-variant rounded"></div>
+<div class="h-10 bg-surface-variant rounded"></div>
+<div class="h-10 bg-surface-variant rounded"></div>
+</div>
+<div class="flex-1 grid grid-cols-3 gap-6">
+<div class="h-48 bg-surface-variant rounded-xl"></div>
+<div class="h-48 bg-surface-variant rounded-xl"></div>
+<div class="h-48 bg-surface-variant rounded-xl"></div>
+<div class="col-span-3 h-64 bg-surface-variant rounded-xl"></div>
+</div>
+</div>
+</div>
+<!-- Modal Overlay Backdrop -->
+<div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+<!-- Modal Container -->
+<div class="glass-modal w-full max-w-4xl rounded-xl flex flex-col overflow-hidden max-h-[921px]">
+<!-- Modal Header -->
+<div class="flex items-center justify-between p-6 border-b border-white/10">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary text-2xl" data-weight="fill" style="font-variation-settings: 'FILL' 1;">upload_file</span>
+<h2 class="font-headline-md text-headline-md text-on-surface">Upload Certificate</h2>
+</div>
+<button class="text-on-surface-variant hover:text-primary transition-colors p-2 rounded-full hover:bg-white/5">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<!-- Modal Content Area -->
+<div class="p-8 flex-1 overflow-y-auto">
+<div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+<!-- Left Column: Upload / Processing State -->
+<div class="space-y-6">
+<!-- Step 1/2 Container (Simulating Processing State) -->
+<div class="glass-card rounded-xl p-8 h-80 flex flex-col items-center justify-center relative overflow-hidden border-primary/30">
+<!-- Scanning Laser Effect -->
+<div class="absolute inset-0 bg-gradient-to-b from-transparent via-primary/10 to-transparent w-full h-1/2 animate-[float_2s_ease-in-out_infinite]"></div>
+<div class="relative z-10 flex flex-col items-center text-center">
+<!-- Pulsing Icon -->
+<div class="relative mb-6">
+<div class="absolute inset-0 bg-primary rounded-full pulse-ring"></div>
+<div class="w-16 h-16 bg-surface rounded-full flex items-center justify-center border border-primary relative z-10">
+<span class="material-symbols-outlined text-primary text-3xl animate-float">document_scanner</span>
+</div>
+</div>
+<h3 class="font-title-lg text-title-lg text-primary mb-2">Analyzing Document</h3>
+<p class="font-body-md text-body-md text-on-surface-variant max-w-[200px]">
+                                    Reading certificate details via Azure Document Intelligence...
+                                </p>
+<!-- Progress Bar -->
+<div class="w-full h-1 bg-surface-variant rounded-full mt-6 overflow-hidden">
+<div class="h-full bg-primary w-2/3 rounded-full relative shadow-[0_0_10px_rgba(164,230,255,0.5)]"></div>
+</div>
+</div>
+</div>
+<!-- Document Preview Thumbnail -->
+<div class="glass-card rounded-xl p-4 flex items-center gap-4">
+<div class="w-12 h-16 bg-surface-variant rounded overflow-hidden relative">
+<img class="w-full h-full object-cover opacity-50" data-alt="A small, stylized thumbnail preview of a professional certificate. The certificate has a dark mode aesthetic with subtle glowing blue borders and abstract geometric patterns. It represents an official technical certification document in a high-tech corporate environment." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAN92wrun7wLMkNHfv9vX3HlbSh50NlUyexwXtl3IN-_S0xyND2rnm_uwGN6wMMzcCV-HBei1pmVP6nckMHtHmVAqq2_tCAXKHLSZB6BKERI_p9Gjm1qzPoOt0ztnmC3oIwkUa40AwCcMAB800EGSfs6wMbHMy1rOInGR54aJyL4kl4C2Qof9Ri2BWaY-cLwKRuL4rfAllq3IqeT_AK7rjQ19ru-lnGYsQal-0om1cBwm8e0o2ZL-YlUJe2iN3uHaW9DuLo967tlQk"/>
+</div>
+<div class="flex-1">
+<div class="font-label-md text-label-md text-on-surface mb-1">AWS_Solutions_Architect.pdf</div>
+<div class="font-body-md text-body-md text-on-surface-variant text-[10px]">2.4 MB • Uploaded just now</div>
+</div>
+<span class="material-symbols-outlined text-secondary text-xl">check_circle</span>
+</div>
+</div>
+<!-- Right Column: Extracted Fields Review -->
+<div class="space-y-6">
+<div class="flex items-center justify-between mb-4">
+<h3 class="font-title-lg text-title-lg text-on-surface">Review Extraction</h3>
+<div class="flex items-center gap-2 bg-secondary/10 px-3 py-1 rounded-full border border-secondary/20">
+<span class="material-symbols-outlined text-secondary text-sm">verified</span>
+<span class="font-label-md text-label-md text-secondary">High Confidence</span>
+</div>
+</div>
+<form class="space-y-5">
+<!-- Field: Member Name -->
+<div class="space-y-2">
+<div class="flex justify-between items-center">
+<label class="font-label-md text-label-md text-on-surface-variant">Member Name</label>
+<span class="font-code-xs text-code-xs text-secondary">99% match</span>
+</div>
+<div class="relative">
+<input class="ghost-input w-full rounded-lg px-4 py-2.5 font-body-md text-body-md text-on-surface" type="text" value="Sarah Jenkins"/>
+<span class="material-symbols-outlined absolute right-3 top-2.5 text-secondary text-sm">check</span>
+</div>
+</div>
+<!-- Field: Certificate Name -->
+<div class="space-y-2">
+<div class="flex justify-between items-center">
+<label class="font-label-md text-label-md text-on-surface-variant">Certification Title</label>
+<span class="font-code-xs text-code-xs text-secondary">98% match</span>
+</div>
+<div class="relative">
+<input class="ghost-input w-full rounded-lg px-4 py-2.5 font-body-md text-body-md text-on-surface" type="text" value="AWS Certified Solutions Architect - Professional"/>
+<span class="material-symbols-outlined absolute right-3 top-2.5 text-secondary text-sm">check</span>
+</div>
+</div>
+<!-- Field: Issuing Body -->
+<div class="space-y-2">
+<div class="flex justify-between items-center">
+<label class="font-label-md text-label-md text-on-surface-variant">Issuing Authority</label>
+<span class="font-code-xs text-code-xs text-secondary">99% match</span>
+</div>
+<div class="relative">
+<input class="ghost-input w-full rounded-lg px-4 py-2.5 font-body-md text-body-md text-on-surface" type="text" value="Amazon Web Services"/>
+<span class="material-symbols-outlined absolute right-3 top-2.5 text-secondary text-sm">check</span>
+</div>
+</div>
+<!-- Dual Fields: Dates -->
+<div class="grid grid-cols-2 gap-4">
+<div class="space-y-2">
+<div class="flex justify-between items-center">
+<label class="font-label-md text-label-md text-on-surface-variant">Issue Date</label>
+<span class="font-code-xs text-code-xs text-secondary">95%</span>
+</div>
+<input class="ghost-input w-full rounded-lg px-4 py-2.5 font-body-md text-body-md text-on-surface" type="date" value="2023-10-15"/>
+</div>
+<div class="space-y-2">
+<div class="flex justify-between items-center">
+<label class="font-label-md text-label-md text-on-surface-variant">Expiry Date</label>
+<span class="font-code-xs text-code-xs text-secondary">95%</span>
+</div>
+<input class="ghost-input w-full rounded-lg px-4 py-2.5 font-body-md text-body-md text-on-surface" type="date" value="2026-10-15"/>
+</div>
+</div>
+</form>
+</div>
+</div>
+</div>
+<!-- Modal Footer -->
+<div class="p-6 border-t border-white/10 bg-surface/50 flex justify-end gap-4">
+<button class="px-6 py-2.5 rounded-lg font-label-md text-label-md text-on-surface-variant hover:text-on-surface hover:bg-white/5 transition-colors border border-transparent">
+                    Cancel
+                </button>
+<button class="px-6 py-2.5 rounded-lg font-label-md text-label-md text-background bg-primary hover:bg-surface-tint transition-colors shadow-[0_0_15px_rgba(164,230,255,0.3)] flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">save</span>
+                    Confirm &amp; Save
+                </button>
+</div>
+</div>
+</div>
+</body></html>

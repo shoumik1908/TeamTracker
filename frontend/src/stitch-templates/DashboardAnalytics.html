@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Dashboard Analytics - Team Tracker</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&amp;family=Public+Sans:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Outfit:wght@600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">tailwind.config = {darkMode: "class", theme: {extend: {colors: {"on-tertiary": "#442b00", "surface-container-highest": "#2f3639", "inverse-primary": "#00677f", "tertiary-fixed": "#ffddb1", "on-primary-fixed-variant": "#004e60", "on-error-container": "#ffdad6", "primary-fixed": "#b7eaff", "outline-variant": "#3c494e", "on-error": "#690005", "on-surface": "#dde3e7", "inverse-on-surface": "#2b3134", background: "#0e1417", "surface-variant": "#2f3639", "surface-container-high": "#242b2e", "surface-dim": "#0e1417", "tertiary-fixed-dim": "#ffba49", "on-secondary-fixed-variant": "#005236", "surface-container-lowest": "#090f12", "surface-container": "#1a2123", "surface-tint": "#4cd6ff", "on-primary": "#003543", "tertiary-container": "#feb127", "secondary-fixed": "#6ffbbe", "primary-fixed-dim": "#4cd6ff", "secondary-container": "#00a572", "inverse-surface": "#dde3e7", "secondary-fixed-dim": "#4edea3", "surface-bright": "#333a3d", "on-primary-fixed": "#001f28", "error-container": "#93000a", tertiary: "#ffd59c", "primary-container": "#00d1ff", outline: "#859399", "on-primary-container": "#00566a", "on-tertiary-fixed": "#291800", "on-secondary-fixed": "#002113", "on-background": "#dde3e7", "on-surface-variant": "#bbc9cf", error: "#ffb4ab", "on-tertiary-fixed-variant": "#624000", surface: "#0e1417", "surface-container-low": "#161d1f", "on-tertiary-container": "#6b4700", "on-secondary": "#003824", "on-secondary-container": "#00311f", secondary: "#4edea3", primary: "#0066ff", "background-light": "#f5f7f8", "background-dark": "#0f1723"}, borderRadius: {DEFAULT: "0.25rem", lg: "0.5rem", xl: "0.75rem", full: "9999px"}, spacing: {sm: "0.5rem", "margin-mobile": "16px", "margin-desktop": "40px", xl: "2rem", gutter: "24px", xs: "0.25rem", lg: "1.5rem", md: "1rem", base: "4px", "2xl": "3rem"}, fontFamily: {"label-md": ["Inter"], "headline-lg": ["Outfit"], "headline-md": ["Outfit"], "title-lg": ["Inter"], "display-lg": ["Outfit"], "code-xs": ["Inter"], "body-lg": ["Inter"], "headline-lg-mobile": ["Outfit"], "body-md": ["Inter"], headline: ["Inter"], display: ["Inter"], body: ["Inter"], label: ["Public Sans"]}, fontSize: {"label-md": ["12px", {lineHeight: "16px", letterSpacing: "0.05em", fontWeight: "500"}], "headline-lg": ["32px", {lineHeight: "40px", letterSpacing: "-0.01em", fontWeight: "600"}], "headline-md": ["24px", {lineHeight: "32px", fontWeight: "600"}], "title-lg": ["18px", {lineHeight: "24px", fontWeight: "600"}], "display-lg": ["48px", {lineHeight: "56px", letterSpacing: "-0.02em", fontWeight: "700"}], "code-xs": ["11px", {lineHeight: "14px", fontWeight: "600"}], "body-lg": ["16px", {lineHeight: "24px", fontWeight: "400"}], "headline-lg-mobile": ["24px", {lineHeight: "32px", fontWeight: "600"}], "body-md": ["14px", {lineHeight: "20px", fontWeight: "400"}]}}}};</script>
+<style>
+        body {
+            background-color: #0B0F19; /* Deep Charcoal as per guidance */
+        }
+        .glass-card {
+            background: rgba(47, 54, 57, 0.6); /* surface-variant at 60% */
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-image: linear-gradient(135deg, rgba(255,255,255,0.15), rgba(255,255,255,0.05)) 1;
+        }
+        .glass-card-hover:hover {
+            background: rgba(47, 54, 57, 0.8);
+        }
+        .neon-glow {
+            text-shadow: 0 0 10px rgba(164, 230, 255, 0.5); /* primary color glow */
+        }
+        .neon-border-focus:focus-within {
+            border-color: #00d1ff; /* primary-container */
+            box-shadow: 0 0 8px rgba(0, 209, 255, 0.3);
+            background: rgba(47, 54, 57, 0.7); /* slight azure tint simulated via surface */
+        }
+        .pulse-indicator {
+            position: relative;
+        }
+        .pulse-indicator::before {
+            content: '';
+            position: absolute;
+            top: -4px;
+            left: -4px;
+            right: -4px;
+            bottom: -4px;
+            border-radius: 50%;
+            border: 2px solid #4edea3; /* secondary / success */
+            animation: pulse 2s infinite;
+            opacity: 0.3;
+        }
+        @keyframes pulse {
+            0% { transform: scale(0.8); opacity: 0.5; }
+            100% { transform: scale(1.5); opacity: 0; }
+        }
+    </style>
+</head>
+<body class="text-on-background font-body-md antialiased min-h-screen flex overflow-hidden">
+<!-- SideNavBar -->
+<aside class="h-screen w-64 fixed left-0 top-0 bg-background/80 dark:bg-background/80 backdrop-blur-xl border-r border-white/10 shadow-2xl flex flex-col py-lg px-md z-50">
+<!-- Brand Header -->
+<div class="flex items-center gap-md mb-xl">
+<div class="w-12 h-12 rounded-lg overflow-hidden shrink-0 border border-white/10 relative">
+<img alt="Team Tracker Logo" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida/AP1WRLv508cv6NBo0JvSALHEB74zO_fgKutVywmmF8sb4P3g8wwY4ZGpSK-zgArsgq-SqWpaCOqd0qbIxmkAOkyPk2EC-Q5jBflJkAqwKzVSFYXXI3yjLWKpIcmFbn320kHellQSgmoZCxW37s4QgUNKMnupksjjjrih3i8D-fBkbVCxMOc5AkJuiO81Ow1ocBaAimv6nL78xyVbN1OTXfW6bPPYlcYHy7k2PAY_LZy7hZTKSAbZ6zAeGPsd1a0"/>
+<div class="absolute bottom-1 right-1 w-2 h-2 bg-primary rounded-full neon-glow pulse-indicator"></div>
+</div>
+<div>
+<h1 class="font-headline-md text-headline-md font-bold text-primary dark:text-primary leading-tight">Team Tracker</h1>
+<p class="font-label-md text-label-md text-on-surface-variant">Enterprise Hub</p>
+</div>
+</div>
+<!-- Navigation Links -->
+<nav class="flex-1 flex flex-col gap-sm">
+<a class="flex items-center gap-md px-sm py-xs rounded-lg text-primary font-bold border-r-2 border-primary bg-white/5 transition-transform scale-[0.98]" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">analytics</span>
+<span class="font-body-md text-body-md">Analytics</span>
+</a>
+<a class="flex items-center gap-md px-sm py-xs rounded-lg text-on-surface-variant font-medium hover:bg-white/5 transition-colors" href="#">
+<span class="material-symbols-outlined">monitoring</span>
+<span class="font-body-md text-body-md">Tracker</span>
+</a>
+<a class="flex items-center gap-md px-sm py-xs rounded-lg text-on-surface-variant font-medium hover:bg-white/5 transition-colors" href="#">
+<span class="material-symbols-outlined">group</span>
+<span class="font-body-md text-body-md">Members</span>
+</a>
+<a class="flex items-center gap-md px-sm py-xs rounded-lg text-on-surface-variant font-medium hover:bg-white/5 transition-colors" href="#">
+<span class="material-symbols-outlined">folder_open</span>
+<span class="font-body-md text-body-md">Projects</span>
+</a>
+<a class="flex items-center gap-md px-sm py-xs rounded-lg text-on-surface-variant font-medium hover:bg-white/5 transition-colors" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-body-md text-body-md">Settings</span>
+</a>
+</nav>
+</aside>
+<!-- Main Content Canvas -->
+<main class="flex-1 ml-64 flex flex-col h-screen relative">
+<!-- TopNavBar -->
+<header class="fixed top-0 right-0 w-[calc(100%-16rem)] z-40 bg-background/60 dark:bg-background/60 backdrop-blur-lg border-b border-white/10 flex justify-between items-center h-16 px-margin-desktop">
+<!-- Search -->
+<div class="flex-1 max-w-md">
+<div class="relative flex items-center glass-card rounded-full px-md py-xs neon-border-focus transition-all duration-300 group">
+<span class="material-symbols-outlined text-on-surface-variant group-focus-within:text-primary-container transition-colors">search</span>
+<input class="w-full bg-transparent border-none text-on-surface font-body-md text-body-md focus:ring-0 placeholder-on-surface-variant ml-sm" placeholder="Search analytics, members..." type="text"/>
+</div>
+</div>
+<!-- Actions -->
+<div class="flex items-center gap-lg">
+<button class="bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20 hover:border-primary/50 px-md py-sm rounded-lg font-label-md text-label-md transition-all duration-300 flex items-center gap-xs backdrop-blur-sm neon-glow">
+<span class="material-symbols-outlined text-[18px]">add</span>
+                    + Upload Certificate
+                </button>
+<div class="flex items-center gap-sm">
+<button class="text-on-surface-variant hover:text-primary transition-colors p-xs rounded-full hover:bg-white/5">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="text-on-surface-variant hover:text-primary transition-colors p-xs rounded-full hover:bg-white/5">
+<span class="material-symbols-outlined">apps</span>
+</button>
+</div>
+<!-- Profile -->
+<div class="w-8 h-8 rounded-full border border-white/20 overflow-hidden shrink-0 cursor-pointer hover:border-primary transition-colors">
+<img alt="User Profile" class="w-full h-full object-cover" data-alt="Close-up professional headshot of a person in corporate attire against a dark modern background. High quality, realistic lighting, slate gray and subtle blue tones, corporate tech environment." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBnVlM8hQObG2l_pwClOWTVSbVGaTj7aVxQyzIWj0dIgKUh5e5TtNdXTRn72DBYVEAQUUiuhRikYjcslCWhekYaADIxHHml9VA0KH_I8rkC_GbO7bQ70vrpByaOQCIWQtOTMWgOELmXWiHrvohOjOVvBmw3bcRhD8Yn-f5suJjTnNdpfZo9_0OLayFWXf7h-IwdBkcmimYLm6A1vIxNYNB01CPKD99yXge5N4G7-OZPXPq1AEX266sVib-l737VQ7YYmVQL1Z_SfQ8"/>
+</div>
+</div>
+</header>
+<!-- Scrollable Content Area -->
+<div class="flex-1 overflow-y-auto mt-16 p-margin-desktop pt-lg pb-2xl custom-scrollbar">
+<div class="mb-xl">
+<h2 class="font-headline-lg text-headline-lg text-on-surface">Dashboard Overview</h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant mt-xs">Real-time metrics and mission control data.</p>
+</div>
+<!-- Top Metrics Row (Bento Grid Style) -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-gutter mb-xl">
+<!-- Metric 1 -->
+<div class="glass-card rounded-xl p-md flex flex-col justify-between relative overflow-hidden group">
+<div class="absolute -right-4 -top-4 w-24 h-24 bg-primary-container/10 rounded-full blur-2xl group-hover:bg-primary-container/20 transition-all duration-500"></div>
+<div class="flex justify-between items-start mb-sm">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Total Members</span>
+<span class="material-symbols-outlined text-outline">group</span>
+</div>
+<div class="mt-auto">
+<span class="font-display-lg text-display-lg text-primary neon-glow">248</span>
+<div class="flex items-center gap-xs text-secondary mt-xs">
+<span class="material-symbols-outlined text-[14px]">trending_up</span>
+<span class="font-code-xs text-code-xs">+12% this week</span>
+</div>
+</div>
+</div>
+<!-- Metric 2 -->
+<div class="glass-card rounded-xl p-md flex flex-col justify-between relative overflow-hidden group">
+<div class="absolute -right-4 -top-4 w-24 h-24 bg-tertiary-container/10 rounded-full blur-2xl group-hover:bg-tertiary-container/20 transition-all duration-500"></div>
+<div class="flex justify-between items-start mb-sm">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Active Projects</span>
+<span class="material-symbols-outlined text-outline">folder_open</span>
+</div>
+<div class="mt-auto">
+<span class="font-display-lg text-display-lg text-tertiary text-shadow-sm">12</span>
+<div class="flex items-center gap-xs text-secondary mt-xs">
+<span class="material-symbols-outlined text-[14px]">trending_up</span>
+<span class="font-code-xs text-code-xs">+3 new</span>
+</div>
+</div>
+</div>
+<!-- Metric 3 -->
+<div class="glass-card rounded-xl p-md flex flex-col justify-between relative overflow-hidden group">
+<div class="absolute -right-4 -top-4 w-24 h-24 bg-secondary-container/10 rounded-full blur-2xl group-hover:bg-secondary-container/20 transition-all duration-500"></div>
+<div class="flex justify-between items-start mb-sm">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Completed</span>
+<span class="material-symbols-outlined text-outline">task_alt</span>
+</div>
+<div class="mt-auto">
+<span class="font-display-lg text-display-lg text-secondary">84</span>
+<div class="flex items-center gap-xs text-on-surface-variant mt-xs">
+<span class="material-symbols-outlined text-[14px]">horizontal_rule</span>
+<span class="font-code-xs text-code-xs">Stable</span>
+</div>
+</div>
+</div>
+<!-- Metric 4 -->
+<div class="glass-card rounded-xl p-md flex flex-col justify-between relative overflow-hidden group">
+<div class="absolute -right-4 -top-4 w-24 h-24 bg-primary-fixed/10 rounded-full blur-2xl group-hover:bg-primary-fixed/20 transition-all duration-500"></div>
+<div class="flex justify-between items-start mb-sm">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Cert Progress</span>
+<span class="material-symbols-outlined text-outline">workspace_premium</span>
+</div>
+<div class="mt-auto">
+<div class="flex items-end justify-between">
+<span class="font-display-lg text-display-lg text-primary-fixed neon-glow">92<span class="text-headline-md">%</span></span>
+</div>
+<!-- Progress Visualizer -->
+<div class="w-full h-2 bg-surface-container-highest rounded-full mt-sm overflow-hidden border border-white/5">
+<div class="h-full bg-primary-container rounded-full shadow-[0_0_10px_rgba(0,209,255,0.8)]" style="width: 92%"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Main Section Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-gutter">
+<!-- Chart Area -->
+<div class="lg:col-span-2 glass-card rounded-xl p-md flex flex-col min-h-[400px]">
+<div class="flex justify-between items-center mb-md border-b border-white/10 pb-sm">
+<h3 class="font-title-lg text-title-lg text-on-surface">Weekly Activity Trend</h3>
+<div class="flex gap-sm">
+<button class="font-label-md text-label-md text-on-surface bg-surface-container hover:bg-surface-bright px-sm py-xs rounded border border-outline-variant transition-colors">7D</button>
+<button class="font-label-md text-label-md text-on-surface-variant hover:text-on-surface px-sm py-xs transition-colors">30D</button>
+</div>
+</div>
+<!-- Faux Chart Representation using CSS Grid/Flex for layout since we can't use JS libs -->
+<div class="flex-1 relative flex items-end justify-between pt-lg pb-md px-sm">
+<!-- Grid Lines -->
+<div class="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-20">
+<div class="border-t border-white/30 w-full h-0"></div>
+<div class="border-t border-white/30 w-full h-0"></div>
+<div class="border-t border-white/30 w-full h-0"></div>
+<div class="border-t border-white/30 w-full h-0"></div>
+<div class="border-t border-white/30 w-full h-0 border-dashed"></div>
+</div>
+<!-- Bars/Points representation -->
+<div class="w-8 h-[40%] bg-surface-container-high rounded-t-sm relative group hover:bg-primary/20 transition-colors border border-transparent hover:border-primary/50">
+<div class="absolute -top-6 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 font-code-xs text-primary transition-opacity bg-surface-container px-xs rounded">40</div>
+</div>
+<div class="w-8 h-[60%] bg-surface-container-high rounded-t-sm relative group hover:bg-primary/20 transition-colors border border-transparent hover:border-primary/50">
+<div class="absolute -top-6 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 font-code-xs text-primary transition-opacity bg-surface-container px-xs rounded">60</div>
+</div>
+<div class="w-8 h-[30%] bg-surface-container-high rounded-t-sm relative group hover:bg-primary/20 transition-colors border border-transparent hover:border-primary/50">
+<div class="absolute -top-6 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 font-code-xs text-primary transition-opacity bg-surface-container px-xs rounded">30</div>
+</div>
+<div class="w-8 h-[80%] bg-primary/40 rounded-t-sm relative group hover:bg-primary/60 transition-colors border border-primary/50 shadow-[0_0_15px_rgba(164,230,255,0.2)]">
+<div class="absolute -top-6 left-1/2 -translate-x-1/2 opacity-100 font-code-xs text-primary bg-surface-container px-xs rounded border border-primary/30">80</div>
+</div>
+<div class="w-8 h-[50%] bg-surface-container-high rounded-t-sm relative group hover:bg-primary/20 transition-colors border border-transparent hover:border-primary/50">
+<div class="absolute -top-6 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 font-code-xs text-primary transition-opacity bg-surface-container px-xs rounded">50</div>
+</div>
+<div class="w-8 h-[70%] bg-surface-container-high rounded-t-sm relative group hover:bg-primary/20 transition-colors border border-transparent hover:border-primary/50">
+<div class="absolute -top-6 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 font-code-xs text-primary transition-opacity bg-surface-container px-xs rounded">70</div>
+</div>
+<div class="w-8 h-[90%] bg-surface-container-high rounded-t-sm relative group hover:bg-primary/20 transition-colors border border-transparent hover:border-primary/50">
+<div class="absolute -top-6 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 font-code-xs text-primary transition-opacity bg-surface-container px-xs rounded">90</div>
+</div>
+</div>
+<!-- X Axis Labels -->
+<div class="flex justify-between px-sm text-outline font-label-md text-label-md mt-sm border-t border-white/10 pt-sm">
+<span>Mon</span>
+<span>Tue</span>
+<span>Wed</span>
+<span>Thu</span>
+<span>Fri</span>
+<span>Sat</span>
+<span>Sun</span>
+</div>
+</div>
+<!-- Recent Activity Feed -->
+<div class="glass-card rounded-xl p-md flex flex-col min-h-[400px]">
+<div class="flex justify-between items-center mb-md border-b border-white/10 pb-sm">
+<h3 class="font-title-lg text-title-lg text-on-surface">Recent Activity</h3>
+<button class="text-primary hover:text-primary-container text-label-md font-label-md transition-colors">View All</button>
+</div>
+<div class="flex flex-col gap-sm flex-1 overflow-y-auto pr-xs custom-scrollbar">
+<!-- Activity Item 1 -->
+<div class="glass-card glass-card-hover rounded-lg p-sm flex items-start gap-sm cursor-pointer transition-all border border-transparent hover:border-white/10">
+<div class="w-10 h-10 rounded bg-primary/10 flex items-center justify-center shrink-0 text-primary border border-primary/20">
+<span class="material-symbols-outlined text-[20px]">workspace_premium</span>
+</div>
+<div>
+<p class="font-body-md text-body-md text-on-surface"><span class="font-semibold text-primary-fixed">Suhani Jain</span> uploaded certificate</p>
+<div class="flex items-center gap-xs mt-1">
+<span class="font-code-xs text-code-xs text-on-surface-variant">AWS Cloud Practitioner</span>
+<span class="w-1 h-1 rounded-full bg-outline-variant"></span>
+<span class="font-code-xs text-code-xs text-outline">2 mins ago</span>
+</div>
+</div>
+</div>
+<!-- Activity Item 2 -->
+<div class="glass-card glass-card-hover rounded-lg p-sm flex items-start gap-sm cursor-pointer transition-all border border-transparent hover:border-white/10">
+<div class="w-10 h-10 rounded bg-secondary/10 flex items-center justify-center shrink-0 text-secondary border border-secondary/20 relative">
+<span class="material-symbols-outlined text-[20px]">check_circle</span>
+<div class="absolute top-0 right-0 w-2 h-2 bg-secondary rounded-full transform translate-x-1/2 -translate-y-1/2 shadow-[0_0_5px_rgba(78,222,163,0.8)]"></div>
+</div>
+<div>
+<p class="font-body-md text-body-md text-on-surface"><span class="font-semibold text-primary-fixed">Alex Mercer</span> completed</p>
+<div class="flex items-center gap-xs mt-1">
+<span class="font-code-xs text-code-xs text-on-surface-variant">AWS Solution Architect</span>
+<span class="w-1 h-1 rounded-full bg-outline-variant"></span>
+<span class="font-code-xs text-code-xs text-outline">1 hr ago</span>
+</div>
+</div>
+</div>
+<!-- Activity Item 3 -->
+<div class="glass-card glass-card-hover rounded-lg p-sm flex items-start gap-sm cursor-pointer transition-all border border-transparent hover:border-white/10">
+<div class="w-10 h-10 rounded bg-surface-container-high flex items-center justify-center shrink-0 text-on-surface border border-white/10">
+<span class="material-symbols-outlined text-[20px]">folder_open</span>
+</div>
+<div>
+<p class="font-body-md text-body-md text-on-surface"><span class="font-semibold text-primary-fixed">Project Alpha</span> status updated</p>
+<div class="flex items-center gap-xs mt-1">
+<span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-tertiary/10 text-tertiary border border-tertiary/20">In Progress</span>
+<span class="w-1 h-1 rounded-full bg-outline-variant"></span>
+<span class="font-code-xs text-code-xs text-outline">3 hrs ago</span>
+</div>
+</div>
+</div>
+<!-- Activity Item 4 -->
+<div class="glass-card glass-card-hover rounded-lg p-sm flex items-start gap-sm cursor-pointer transition-all border border-transparent hover:border-white/10">
+<div class="w-10 h-10 rounded bg-primary/10 flex items-center justify-center shrink-0 text-primary border border-primary/20">
+<span class="material-symbols-outlined text-[20px]">group_add</span>
+</div>
+<div>
+<p class="font-body-md text-body-md text-on-surface"><span class="font-semibold text-primary-fixed">New Member</span> joined the hub</p>
+<div class="flex items-center gap-xs mt-1">
+<span class="font-code-xs text-code-xs text-on-surface-variant">Elena Rossi (DevOps)</span>
+<span class="w-1 h-1 rounded-full bg-outline-variant"></span>
+<span class="font-code-xs text-code-xs text-outline">5 hrs ago</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<style>
+        /* Custom Scrollbar for inner areas */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.1); 
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.1); 
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: rgba(255,255,255,0.2); 
+        }
+    </style>
+</body></html>

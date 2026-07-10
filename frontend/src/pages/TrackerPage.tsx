@@ -247,6 +247,11 @@ export default function TrackerPage() {
     suggestions?: Array<{ id: string; name: string; provider: string }>;
   } | null>(null);
   const [requestEditFor, setRequestEditFor] = useState<AssignedCertification | null>(null);
+  const [missingFields, setMissingFields] = useState<Array<{ field: string; label: string; message: string }>>([]);
+  const [showMissingModal, setShowMissingModal] = useState(false);
+  const [activeAddForm, setActiveAddForm] = useState<'teamMember' | 'certificateTitle' | null>(null);
+  const [extractedName, setExtractedName] = useState('');
+  const [extractedCertTitle, setExtractedCertTitle] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const qc = useQueryClient();
 
@@ -259,7 +264,31 @@ export default function TrackerPage() {
     setSelectedCertId('');
     setCompletionDateInput('');
     setExpiryDateInput('');
+    setMissingFields([]);
+    setShowMissingModal(false);
+    setActiveAddForm(null);
+    setExtractedName('');
+    setExtractedCertTitle('');
   };
+
+  const handleAddNew = (field: string) => {
+    setActiveAddForm(field as any);
+  };
+
+  const handleNewMemberCreated = (newMember: TeamMember) => {
+    qc.invalidateQueries({ queryKey: ['members-all'] });
+    setSelectedMemberId(newMember.id);
+    setActiveAddForm(null);
+    setMissingFields(prev => prev.filter(m => m.field !== 'teamMember'));
+  };
+
+  const handleNewCertCreated = (newCert: Certification) => {
+    qc.invalidateQueries({ queryKey: ['certs-all'] });
+    setSelectedCertId(newCert.id);
+    setActiveAddForm(null);
+    setMissingFields(prev => prev.filter(m => m.field !== 'certificateTitle'));
+  };
+
 
   const { data: allMembersRes } = useQuery<PaginatedResponse<TeamMember>>({
     queryKey: ['members-all'],
@@ -411,6 +440,8 @@ export default function TrackerPage() {
         const data = res.data;
         if (data.completionDate) setCompletionDateInput(data.completionDate);
         if (data.expiryDate) setExpiryDateInput(data.expiryDate);
+        if (data.recipientName) setExtractedName(data.recipientName);
+        if (data.matchedLine) setExtractedCertTitle(data.matchedLine);
 
         if (uploadId === '__universal__') {
           if (data.memberMatch?.id) setSelectedMemberId(data.memberMatch.id);
@@ -661,6 +692,31 @@ export default function TrackerPage() {
           }}
         />
       )}
+
+      {showMissingModal && !activeAddForm && (
+        <MissingFieldsModal
+          missing={missingFields}
+          onAddNew={handleAddNew}
+          onCancel={() => setShowMissingModal(false)}
+        />
+      )}
+
+      {activeAddForm === 'teamMember' && (
+        <AddNewTeamMemberInline
+          prefillName={extractedName}
+          onCreated={handleNewMemberCreated}
+          onCancel={() => setActiveAddForm(null)}
+        />
+      )}
+
+      {activeAddForm === 'certificateTitle' && (
+        <AddNewCertificationInline
+          prefillTitle={extractedCertTitle}
+          onCreated={handleNewCertCreated}
+          onCancel={() => setActiveAddForm(null)}
+        />
+      )}
+
       {/* Delete Certificate Confirmation Modal */}
       {deleteCertId && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-fade-in">
@@ -850,9 +906,42 @@ export default function TrackerPage() {
                 className="flex-1 px-4 py-2 text-sm border border-border rounded-lg hover:bg-muted font-medium">Cancel</button>
               <button
                 onClick={() => {
-                  if (selectedMemberId && selectedCertId) {
+                  const missing = [];
+                  if (!selectedMemberId) {
+                    missing.push({
+                      field: "teamMember",
+                      label: "Team Member",
+                      message: "No matching team member found or selected."
+                    });
+                  }
+                  if (!selectedCertId) {
+                    missing.push({
+                      field: "certificateTitle",
+                      label: "Certification",
+                      message: "This certification isn't in the catalog yet."
+                    });
+                  }
+                  if (!completionDateInput) {
+                    missing.push({
+                      field: "completionDate",
+                      label: "Completed On",
+                      message: "Completion date could not be extracted."
+                    });
+                  }
+                  if (!expiryDateInput) {
+                    missing.push({
+                      field: "expiryDate",
+                      label: "Valid Till",
+                      message: "Expiry date could not be extracted (may not apply to all certifications)."
+                    });
+                  }
+
+                  if (missing.length > 0) {
+                    setMissingFields(missing);
+                    setShowMissingModal(true);
+                  } else {
                     uploadCert.mutate({
-                      id: uploadId,
+                      id: uploadId!,
                       file: uploadFile || undefined,
                       completionDate: completionDateInput || undefined,
                       expiryDate: expiryDateInput || undefined,
@@ -861,7 +950,7 @@ export default function TrackerPage() {
                     });
                   }
                 }}
-                disabled={isAnalyzing || uploadCert.isPending || !selectedMemberId || !selectedCertId}
+                disabled={isAnalyzing || uploadCert.isPending}
                 className="flex-1 px-4 py-2 text-sm bg-azure-500 text-white rounded-lg hover:bg-azure-600 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium">
                 {uploadCert.isPending && <Loader2 className="w-4 h-4 animate-spin" />} Save Certificate
               </button>
@@ -940,6 +1029,247 @@ function RequestEditModal({ assignment, onClose, onSave }: {
           <button onClick={handleSubmit} disabled={!form.requestedBy.trim()}
             className="flex-1 px-4 py-2 text-sm bg-azure-500 text-white rounded-lg hover:bg-azure-600 disabled:opacity-60">
             Submit for Approval
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---- Missing Fields Modal ----
+function MissingFieldsModal({
+  missing,
+  onAddNew,
+  onCancel,
+}: {
+  missing: Array<{ field: string; label: string; message: string }>;
+  onAddNew: (field: string) => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-fade-in">
+      <div className="bg-card rounded-2xl shadow-2xl w-full max-w-sm border border-border overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-400">
+              <AlertTriangle className="w-5 h-5" />
+            </div>
+            <h2 className="font-semibold text-lg text-foreground">Unresolved Details</h2>
+          </div>
+          <button onClick={onCancel} className="text-muted-foreground hover:text-foreground">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="p-6 space-y-4">
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Please resolve the following details before saving:
+          </p>
+
+          <ul className="space-y-3">
+            {missing.map((item) => (
+              <li
+                key={item.field}
+                className="flex items-center justify-between p-3.5 rounded-xl border border-border bg-muted/10 gap-3"
+              >
+                <div className="min-w-0 flex-1">
+                  <span className="text-xs font-semibold text-foreground uppercase tracking-wider block mb-0.5">
+                    {item.label}
+                  </span>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    {item.message}
+                  </p>
+                </div>
+
+                {(item.field === 'teamMember' || item.field === 'certificateTitle') && (
+                  <button
+                    onClick={() => onAddNew(item.field)}
+                    className="shrink-0 px-2.5 py-1.5 text-[11px] font-medium bg-azure-500 text-white rounded-lg hover:bg-azure-600 transition-colors flex items-center gap-1 shadow-sm"
+                  >
+                    <Plus className="w-3 h-3" /> Add New
+                  </button>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="flex gap-3 px-6 py-4 bg-muted/10 border-t border-border">
+          <button
+            onClick={onCancel}
+            className="flex-1 px-4 py-2 text-sm font-medium border border-border rounded-xl hover:bg-muted text-foreground transition-all duration-150"
+          >
+            Go Back & Resolve
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---- Add New Team Member Inline ----
+function AddNewTeamMemberInline({
+  prefillName,
+  onCreated,
+  onCancel,
+}: {
+  prefillName?: string;
+  onCreated: (newMember: TeamMember) => void;
+  onCancel: () => void;
+}) {
+  const [name, setName] = useState(prefillName || '');
+  const [designation, setDesignation] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleCreate = async () => {
+    if (!name.trim()) return;
+    setSaving(true);
+    setError('');
+    try {
+      const fd = new FormData();
+      fd.append('name', name.trim());
+      fd.append('designation', designation.trim() || 'Consultant');
+      fd.append('joiningDate', new Date().toISOString().split('T')[0]);
+
+      const res = await membersApi.create(fd);
+      onCreated(res.data);
+    } catch (err: any) {
+      console.error(err);
+      setError(err?.message || 'Failed to create team member');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-fade-in">
+      <div className="bg-card rounded-2xl shadow-2xl w-full max-w-sm border border-border overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+          <h2 className="font-semibold text-base">Add New Team Member</h2>
+          <button onClick={onCancel} className="text-muted-foreground hover:text-foreground">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="p-6 space-y-4">
+          {error && <div className="text-xs text-red-400 bg-red-950/20 p-2.5 rounded-lg border border-red-900/40">{error}</div>}
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">Full Name *</label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-muted/20 focus:outline-none focus:ring-2 focus:ring-azure-500/30"
+              placeholder="e.g. Suhani Jain"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">Designation</label>
+            <input
+              type="text"
+              value={designation}
+              onChange={(e) => setDesignation(e.target.value)}
+              className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-muted/20 focus:outline-none focus:ring-2 focus:ring-azure-500/30"
+              placeholder="e.g. Fabric Data Engineer"
+            />
+          </div>
+        </div>
+
+        <div className="flex gap-3 px-6 py-4 bg-muted/10 border-t border-border">
+          <button onClick={onCancel} className="flex-1 px-4 py-2 text-sm border border-border rounded-lg hover:bg-muted">
+            Cancel
+          </button>
+          <button
+            onClick={handleCreate}
+            disabled={saving || !name.trim()}
+            className="flex-1 px-4 py-2 text-sm bg-azure-500 text-white rounded-lg hover:bg-azure-600 disabled:opacity-60 font-medium flex items-center justify-center gap-2"
+          >
+            {saving && <Loader2 className="w-4 h-4 animate-spin" />} Add & Use
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---- Add New Certification Inline ----
+function AddNewCertificationInline({
+  prefillTitle,
+  onCreated,
+  onCancel,
+}: {
+  prefillTitle?: string;
+  onCreated: (newCert: Certification) => void;
+  onCancel: () => void;
+}) {
+  const [name, setName] = useState(prefillTitle || '');
+  const [provider, setProvider] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleCreate = async () => {
+    if (!name.trim() || !provider.trim()) return;
+    setSaving(true);
+    setError('');
+    try {
+      const res = await certificationsApi.create({
+        name: name.trim(),
+        provider: provider.trim(),
+      });
+      onCreated(res.data);
+    } catch (err: any) {
+      console.error(err);
+      setError(err?.message || 'Failed to create certification');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-fade-in">
+      <div className="bg-card rounded-2xl shadow-2xl w-full max-w-sm border border-border overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+          <h2 className="font-semibold text-base">Add New Certification</h2>
+          <button onClick={onCancel} className="text-muted-foreground hover:text-foreground">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="p-6 space-y-4">
+          {error && <div className="text-xs text-red-400 bg-red-950/20 p-2.5 rounded-lg border border-red-900/40">{error}</div>}
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">Certification Title *</label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-muted/20 focus:outline-none focus:ring-2 focus:ring-azure-500/30"
+              placeholder="e.g. Fabric Data Engineer Associate"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">Provider / Issuer *</label>
+            <input
+              type="text"
+              value={provider}
+              onChange={(e) => setProvider(e.target.value)}
+              className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-muted/20 focus:outline-none focus:ring-2 focus:ring-azure-500/30"
+              placeholder="e.g. Microsoft"
+            />
+          </div>
+        </div>
+
+        <div className="flex gap-3 px-6 py-4 bg-muted/10 border-t border-border">
+          <button onClick={onCancel} className="flex-1 px-4 py-2 text-sm border border-border rounded-lg hover:bg-muted">
+            Cancel
+          </button>
+          <button
+            onClick={handleCreate}
+            disabled={saving || !name.trim() || !provider.trim()}
+            className="flex-1 px-4 py-2 text-sm bg-azure-500 text-white rounded-lg hover:bg-azure-600 disabled:opacity-60 font-medium flex items-center justify-center gap-2"
+          >
+            {saving && <Loader2 className="w-4 h-4 animate-spin" />} Add & Use
           </button>
         </div>
       </div>
