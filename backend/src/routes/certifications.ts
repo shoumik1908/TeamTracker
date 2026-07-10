@@ -431,15 +431,27 @@ router.post('/certificate/upload-universal', upload.single('certificate'), async
   });
   if (!member) throw new AppError('Member not found', 404);
 
-  // Check if AssignedCertification exists
-  let assignment = await prisma.assignedCertification.findUnique({
+  // Check if AssignedCertification exists (with cert + certification name for error message)
+  let assignment: any = await prisma.assignedCertification.findUnique({
     where: {
       memberId_certificationId: {
         memberId,
         certificationId,
       },
     },
+    include: {
+      certification: { select: { name: true } },
+    },
   });
+
+  // 🚫 Duplicate guard: block if a real certificate has already been uploaded for this pair
+  if (assignment && assignment.certificateUrl) {
+    return res.status(409).json({
+      error: 'DUPLICATE_CERTIFICATE',
+      message: `${member.name} already has a certificate uploaded for ${(assignment as any).certification.name}.`,
+      existingAssignmentId: assignment.id,
+    });
+  }
 
   // Upload to blob storage / ADLS Gen2 if file provided
   let url = assignment ? assignment.certificateUrl : null;

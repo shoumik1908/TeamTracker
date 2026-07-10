@@ -5,9 +5,30 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
+// Typed error for duplicate-certificate 409 responses
+export class DuplicateCertificateError extends Error {
+  existingAssignmentId: string;
+  constructor(message: string, existingAssignmentId: string) {
+    super(message);
+    this.name = 'DuplicateCertificateError';
+    this.existingAssignmentId = existingAssignmentId;
+  }
+}
+
 api.interceptors.response.use(
   res => res,
   err => {
+    if (
+      err.response?.status === 409 &&
+      err.response?.data?.error === 'DUPLICATE_CERTIFICATE'
+    ) {
+      return Promise.reject(
+        new DuplicateCertificateError(
+          err.response.data.message,
+          err.response.data.existingAssignmentId
+        )
+      );
+    }
     const message = err.response?.data?.error || err.message || 'Something went wrong';
     return Promise.reject(new Error(message));
   }

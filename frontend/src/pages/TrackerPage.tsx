@@ -1,6 +1,6 @@
 import { useState, useRef, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { certificationsApi, membersApi } from '@/lib/api';
+import { certificationsApi, membersApi, DuplicateCertificateError } from '@/lib/api';
 import { Search, Upload, Pencil, Trash2, FileText, ChevronDown, ChevronUp, X, Loader2, Plus, MoreVertical, AlertTriangle } from 'lucide-react';
 import { cn, formatDate, formatStatus, getStatusColor, getInitials } from '@/lib/utils';
 import type { AssignedCertification, PaginatedResponse, TeamMember, Certification } from '@/types';
@@ -250,6 +250,10 @@ export default function TrackerPage() {
   const [missingFields, setMissingFields] = useState<Array<{ field: string; label: string; message: string }>>([]);
   const [showMissingModal, setShowMissingModal] = useState(false);
   const [activeAddForm, setActiveAddForm] = useState<'teamMember' | 'certificateTitle' | null>(null);
+  const [duplicateInfo, setDuplicateInfo] = useState<{
+    message: string;
+    existingAssignmentId: string;
+  } | null>(null);
   const [extractedName, setExtractedName] = useState('');
   const [extractedCertTitle, setExtractedCertTitle] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -267,6 +271,7 @@ export default function TrackerPage() {
     setMissingFields([]);
     setShowMissingModal(false);
     setActiveAddForm(null);
+    setDuplicateInfo(null);
     setExtractedName('');
     setExtractedCertTitle('');
   };
@@ -419,6 +424,14 @@ export default function TrackerPage() {
       setAnalyzedFields(null);
       setIsAnalyzing(false);
     },
+    onError: (err: unknown) => {
+      if (err instanceof DuplicateCertificateError) {
+        setDuplicateInfo({
+          message: err.message,
+          existingAssignmentId: err.existingAssignmentId,
+        });
+      }
+    },
   });
 
   const handleFileSelected = async (file: File) => {
@@ -534,7 +547,7 @@ export default function TrackerPage() {
           const totalCount = group.assignments.length;
           const progress = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
           return (
-            <div key={group.member.id} className="bg-card rounded-xl border border-border shadow-sm overflow-visible transition-all duration-300">
+            <div key={group.member.id} id={`member-row-${group.member.id}`} className="bg-card rounded-xl border border-border shadow-sm overflow-visible transition-all duration-300">
               <div onClick={() => toggleMember(group.member.id)}
                 className="w-full flex items-center justify-between p-4 hover:bg-muted/10 transition-colors cursor-pointer select-none">
                 <div className="flex items-center gap-4">
@@ -907,18 +920,18 @@ export default function TrackerPage() {
               <button
                 onClick={() => {
                   const missing = [];
-                  if (!selectedMemberId) {
+                  if (isUniversal && !selectedMemberId) {
                     missing.push({
                       field: "teamMember",
                       label: "Team Member",
-                      message: "No matching team member found or selected."
+                      message: "No matching team member found. Please select or add a member."
                     });
                   }
                   if (!selectedCertId) {
                     missing.push({
                       field: "certificateTitle",
                       label: "Certification",
-                      message: "This certification isn't in the catalog yet."
+                      message: "This certification isn't in the catalog yet. Please select or add it."
                     });
                   }
                   if (!completionDateInput) {
@@ -940,6 +953,22 @@ export default function TrackerPage() {
                     setMissingFields(missing);
                     setShowMissingModal(true);
                   } else {
+                    // ⚡ Client-side duplicate pre-check (fast, uses already-loaded state)
+                    if (isUniversal && selectedMemberId && selectedCertId) {
+                      const existingInState = data?.data?.find(
+                        (a: AssignedCertification) =>
+                          a.memberId === selectedMemberId &&
+                          a.certificationId === selectedCertId &&
+                          a.certificateUrl
+                      );
+                      if (existingInState) {
+                        setDuplicateInfo({
+                          message: `${existingInState.member?.name ?? 'This member'} already has a certificate uploaded for ${existingInState.certification?.name ?? 'this certification'}.`,
+                          existingAssignmentId: existingInState.id,
+                        });
+                        return;
+                      }
+                    }
                     uploadCert.mutate({
                       id: uploadId!,
                       file: uploadFile || undefined,
@@ -959,6 +988,87 @@ export default function TrackerPage() {
         </div>
         );
       })()}
+
+      {/* Duplicate Certificate Modal */}
+      {duplicateInfo && (
+        <DuplicateCertificateModal
+          message={duplicateInfo.message}
+          existingAssignmentId={duplicateInfo.existingAssignmentId}
+          onViewExisting={() => {
+            // Find the member who owns the existing assignment
+            const existing = data?.data?.find(
+              (a: AssignedCertification) => a.id === duplicateInfo.existingAssignmentId
+            );
+            resetUploadState();
+            if (existing?.memberId) {
+              setExpandedMembers(prev => {
+                const next = new Set(prev);
+                next.add(existing.memberId);
+                return next;
+              });
+              // Scroll to the member row after a short delay
+              setTimeout(() => {
+                document.getElementById(`member-row-${existing.memberId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              }, 150);
+            }
+          }}
+          onCancel={() => setDuplicateInfo(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+// ---- Duplicate Certificate Modal ----
+function DuplicateCertificateModal({
+  message,
+  onViewExisting,
+  onCancel,
+}: {
+  message: string;
+  existingAssignmentId: string;
+  onViewExisting: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4 animate-fade-in">
+      <div className="bg-card rounded-2xl shadow-2xl w-full max-w-sm border border-border overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center gap-3 px-6 py-4 border-b border-border">
+          <div className="w-9 h-9 rounded-xl bg-orange-500/10 flex items-center justify-center shrink-0">
+            <AlertTriangle className="w-5 h-5 text-orange-400" />
+          </div>
+          <div>
+            <h2 className="font-semibold text-base text-foreground">Certificate Already Exists</h2>
+            <p className="text-[11px] text-muted-foreground mt-0.5">Duplicate record detected</p>
+          </div>
+        </div>
+
+        {/* Body */}
+        <div className="px-6 py-5">
+          <p className="text-sm text-foreground leading-relaxed">{message}</p>
+          <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
+            To update this certificate (e.g. renew with a new expiry date), use the
+            <strong className="text-foreground"> Edit</strong> option from the three-dot menu on the existing row.
+          </p>
+        </div>
+
+        {/* Actions */}
+        <div className="flex gap-3 px-6 py-4 bg-muted/10 border-t border-border">
+          <button
+            onClick={onCancel}
+            className="flex-1 px-4 py-2 text-sm font-medium border border-border rounded-xl hover:bg-muted text-foreground transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onViewExisting}
+            className="flex-1 px-4 py-2 text-sm font-medium bg-azure-500 text-white rounded-xl hover:bg-azure-600 transition-colors shadow-sm"
+          >
+            View Existing Record
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -1086,7 +1196,8 @@ function MissingFieldsModal({
                     onClick={() => onAddNew(item.field)}
                     className="shrink-0 px-2.5 py-1.5 text-[11px] font-medium bg-azure-500 text-white rounded-lg hover:bg-azure-600 transition-colors flex items-center gap-1 shadow-sm"
                   >
-                    <Plus className="w-3 h-3" /> Add New
+                    <Plus className="w-3 h-3" />
+                    {item.field === 'teamMember' ? 'Add Member' : 'Add Certification'}
                   </button>
                 )}
               </li>
