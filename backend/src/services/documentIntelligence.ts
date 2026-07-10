@@ -44,6 +44,49 @@ function normalizeDate(raw: string): string | null {
   return null;
 }
 
+const COMPLETION_DATE_SYNONYMS = [
+  "completed on", "completion date", "date of completion",
+  "earned on", "date earned", "issued on", "issue date",
+  "date of issue", "awarded on", "date awarded",
+  "certified on", "certification date", "date certified",
+  "achieved on", "granted on"
+];
+
+const EXPIRY_DATE_SYNONYMS = [
+  "expiry date", "expiration date", "valid until", "valid till",
+  "date of expiry", "date of expiration", "expires on",
+  "renewal due", "renew by", "valid through"
+];
+
+function matchesAnySynonym(text: string, synonymList: string[]): boolean {
+  return synonymList.some(phrase => text.includes(phrase));
+}
+
+function extractDatesFromRawText(rawLines: string[]): { completionDate: string | null; expiryDate: string | null } {
+  const result: { completionDate: string | null; expiryDate: string | null } = { completionDate: null, expiryDate: null };
+  const datePattern = /([A-Za-z]+\s+\d{1,2},?\s+\d{4}|\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/;
+
+  for (const line of rawLines) {
+    const lower = line.toLowerCase();
+
+    if (!result.completionDate && matchesAnySynonym(lower, COMPLETION_DATE_SYNONYMS)) {
+      const match = line.match(datePattern);
+      if (match) {
+        result.completionDate = normalizeDate(match[1]);
+      }
+    }
+
+    if (!result.expiryDate && matchesAnySynonym(lower, EXPIRY_DATE_SYNONYMS)) {
+      const match = line.match(datePattern);
+      if (match) {
+        result.expiryDate = normalizeDate(match[1]);
+      }
+    }
+  }
+
+  return result;
+}
+
 // Pass 2 — trigger phrases for name AFTER trigger
 const TRIGGER_PHRASES = [
   'certifies that',
@@ -207,23 +250,12 @@ export async function extractCertificateFields(fileBuffer: Buffer, mimeType: str
     }
 
     // Completion / issue date
-    if (!completionDate && (
-      key.includes('completion') || key.includes('completed') ||
-      key.includes('issued')     || key.includes('issue date') ||
-      key.includes('date of')    || key.includes('award') ||
-      key.includes('achieved')   || key.includes('passed') ||
-      key.includes('granted')
-    )) {
+    if (!completionDate && matchesAnySynonym(key, COMPLETION_DATE_SYNONYMS)) {
       completionDate = normalizeDate(value);
     }
 
     // Expiry date
-    if (!expiryDate && (
-      key.includes('expir')        || key.includes('valid until') ||
-      key.includes('valid thru')   || key.includes('valid through') ||
-      key.includes('expires')      || key.includes('renewal') ||
-      key.includes('renew by')     || key.includes('valid to')
-    )) {
+    if (!expiryDate && matchesAnySynonym(key, EXPIRY_DATE_SYNONYMS)) {
       expiryDate = normalizeDate(value);
     }
 
@@ -243,6 +275,13 @@ export async function extractCertificateFields(fileBuffer: Buffer, mimeType: str
     .split('\n')
     .map((l: string) => l.trim())
     .filter((l: string) => l.length > 3 && l.length < 200);
+
+  // Fall back to raw text scanning for missing dates
+  if (!completionDate || !expiryDate) {
+    const fallbackDates = extractDatesFromRawText(rawLines);
+    if (!completionDate) completionDate = fallbackDates.completionDate;
+    if (!expiryDate) expiryDate = fallbackDates.expiryDate;
+  }
 
   // ── Pass 2: layout fallback for unlabeled / stylized name text ────────────
   if (!recipientName) {
