@@ -76,7 +76,7 @@ function QuickUpdateMenu({
               onClick={() => { setOpen(false); onEdit(); }}
               className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-foreground hover:bg-muted/40 transition-colors text-left"
             >
-              <Pencil className="w-3 h-3 text-muted-foreground" /> Edit Details
+              <Pencil className="w-3 h-3 text-muted-foreground" /> Edit
             </button>
             <button
               onClick={() => { setOpen(false); onUpload(); }}
