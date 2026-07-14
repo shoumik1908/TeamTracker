@@ -123,7 +123,6 @@ export default function GenerateProposalModal({
   const isGenerating = generateMutation.isPending;
 
   const isAddMode = mode === 'add';
-  const accentColor = isAddMode ? 'blue' : 'violet';
 
   const headingText = isAddMode ? 'Add More Files' : 'Generate Proposal Summary';
   const buttonText = isAddMode ? 'Add to Summary' : 'Generate';

@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { presalesDocumentationApi, membersApi, projectUpdatesApi, presalesMeetingRecordsApi } from '@/lib/api';
+import { presalesDocumentationApi, membersApi, presalesMeetingRecordsApi } from '@/lib/api';
 import { presalesApi } from '@/lib/presalesApi';
 import axios from 'axios';
 import GenerateProposalModal from '@/components/GenerateProposalModal';
@@ -12,7 +12,7 @@ import {
   Pencil, Calendar, TrendingUp, AlertCircle, Loader2,
   FileDown, ChevronRight, Check, X,
   Users, Search,
-  Trophy, AlertTriangle, MessageCircle, Video, PlayCircle, Sparkles, FileText as FileTextIcon, MoreVertical, Edit3,
+  AlertTriangle, Video, PlayCircle, Sparkles, FileText as FileTextIcon, MoreVertical, Edit3,
   BrainCircuit, RefreshCw, FilePlus2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -44,16 +44,9 @@ function formatDate(dateStr: string) {
   });
 }
 
-const UPDATE_TYPES = [
-  { value: 'Progress',  label: 'Progress',  icon: TrendingUp,    color: 'text-blue-400',   bg: 'bg-blue-950/40 border-blue-800/50',   badge: 'bg-blue-900/60 text-blue-300 border-blue-800/40' },
-  { value: 'Blocker',   label: 'Blocker',   icon: AlertTriangle, color: 'text-red-400',    bg: 'bg-red-950/40 border-red-800/50',     badge: 'bg-red-900/60 text-red-300 border-red-800/40' },
-  { value: 'Milestone', label: 'Milestone', icon: Trophy,        color: 'text-green-400',  bg: 'bg-green-950/40 border-green-800/50', badge: 'bg-green-900/60 text-green-300 border-green-800/40' },
-  { value: 'General',   label: 'General',   icon: MessageCircle, color: 'text-slate-400',  bg: 'bg-slate-900/40 border-slate-700/50', badge: 'bg-slate-800/60 text-slate-300 border-slate-700/40' },
-];
 
-function getTypeMeta(type: string) {
-  return UPDATE_TYPES.find(t => t.value === type) ?? UPDATE_TYPES[3];
-}
+
+
 
 type SectionType = 'files' | 'links' | 'notes' | 'records';
 
@@ -89,9 +82,7 @@ export default function PreSalesDetailPage() {
   const [editingTranscriptId, setEditingTranscriptId] = useState<string | null>(null);
   const [editingTranscriptText, setEditingTranscriptText] = useState('');
 
-  const [isEditingDescription, setIsEditingDescription] = useState(false);
-  const [descriptionInput, setDescriptionInput] = useState('');
-  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
+
   
   // Modals / Form states
   const [showLinkForm, setShowLinkForm] = useState(false);
@@ -121,7 +112,7 @@ export default function PreSalesDetailPage() {
   const links = oppData?.links || [];
   const notes = oppData?.notes || [];
 
-  const projectManager = null; // PreSales doesn't have a single manager like Projects
+
   const projectMembersList = opportunity?.assignments || [];
   const assignedMembers: { member: { id: string; name: string; profilePictureUrl?: string | null; designation?: string | null }; role: string }[] = [];
 
@@ -132,17 +123,12 @@ export default function PreSalesDetailPage() {
   });
 
   // Fetch members
-  const { data: membersRes, isLoading: isLoadingMembers } = useQuery({
+  const { data: membersRes } = useQuery({
     queryKey: ['members'],
     queryFn: () => membersApi.list({ limit: 1000 }).then(r => r.data),
   });
 
-  // Fetch opportunity updates
-  const { data: updatesRes, isLoading: isLoadingUpdates } = useQuery({
-    queryKey: ['project-updates', opportunityId],
-    queryFn: () => projectUpdatesApi.list({ opportunityId }).then(r => r.data),
-    enabled: !!opportunityId,
-  });
+
 
   // Fetch meeting records
   const { data: recordsRes, isLoading: isLoadingRecords } = useQuery({
@@ -152,7 +138,6 @@ export default function PreSalesDetailPage() {
   });
 
   const allMembers = membersRes?.data || [];
-  const projectUpdates = updatesRes?.data || [];
   const meetingRecords = recordsRes?.data || [];
 
   // Default the acting member to the first assigned member once loaded
@@ -350,16 +335,7 @@ export default function PreSalesDetailPage() {
     }
   });
 
-  const updateOpportunityMutation = useMutation({
-    mutationFn: (payload: { description: string }) => presalesApi.updateSection(opportunityId || '', { description: payload.description }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['presales-opportunity', opportunityId] });
-      setIsEditingDescription(false);
-    },
-    onError: (err: any) => {
-      alert(err.response?.data?.error || 'Failed to update opportunity.');
-    }
-  });
+
 
   const updateSectionMutation = useMutation({
     mutationFn: (payload: { key: string, value: string }) => presalesApi.updateSection(opportunityId || '', { [payload.key]: payload.value }),
@@ -372,9 +348,7 @@ export default function PreSalesDetailPage() {
     }
   });
 
-  const handleSaveDescription = () => {
-    updateOpportunityMutation.mutate({ description: descriptionInput });
-  };
+
 
   const bulkAssignMutation = useMutation({
     mutationFn: async (memberIds: string[]) => {
@@ -461,16 +435,7 @@ export default function PreSalesDetailPage() {
     }
   });
 
-  const handleBulkAssign = () => {
-    bulkAssignMutation.mutate(Array.from(selectedMembersToAssign));
-  };
 
-  const toggleMemberSelection = (id: string) => {
-    const next = new Set(selectedMembersToAssign);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
-    setSelectedMembersToAssign(next);
-  };
 
   const sortedMembers = useMemo(() => {
     let filtered = allMembers;
@@ -781,7 +746,7 @@ export default function PreSalesDetailPage() {
                 </div>
               </div>
               <div className="flex-1 overflow-y-auto p-2 space-y-1">
-                {sortedMembers.map(m => {
+                {sortedMembers.map((m: any) => {
                   const isAssigned = assignedMembers.some(am => am.member.id === m.id);
                   const isSelected = selectedMembersToAssign.has(m.id);
                   const isAllocated = m.allocationStatus === 'ALLOCATED';

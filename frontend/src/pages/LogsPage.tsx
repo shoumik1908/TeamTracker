@@ -1,8 +1,7 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   History, 
   Search, 
-  Filter, 
   Trash2, 
   UploadCloud, 
   Activity, 
@@ -22,7 +21,8 @@ export default function LogsPage() {
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('All');
   
-  const [page, setPage] = useState(1);
+  const [, setPage] = useState(1);
+  
   const [hasMore, setHasMore] = useState(true);
   
   const observer = useRef<IntersectionObserver | null>(null);

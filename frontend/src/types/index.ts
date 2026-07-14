@@ -39,12 +39,24 @@ export interface TeamMember {
   cvSummary?: string | null;
   atsScore?: number | null;
   atsScoreBreakdown?: {
-    sectionCompleteness: number;
-    formattingHealth: number;
-    keywordStrength: number;
-    contentQuality: number;
+    contact_information: number;
+    ats_formatting: number;
+    skills_match: number;
+    work_experience: number;
+    education: number;
+    projects: number;
+    certifications: number;
+    keywords: number;
+    sectionCompleteness?: number;
+    formattingHealth?: number;
+    keywordStrength?: number;
+    contentQuality?: number;
   } | null;
-  atsSuggestions?: string[] | null;
+  atsSuggestions?: {
+    strengths?: string[];
+    weaknesses?: string[];
+    recommendations?: string[];
+  } | null;
   cvBlobUrl?: string | null;
   cvOriginalFilename?: string | null;
   cvUploadedAt?: string | null;
