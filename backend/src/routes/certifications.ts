@@ -5,6 +5,7 @@ import { uploadFile, deleteFile, extractBlobName, CONTAINERS } from '../services
 import { AppError } from '../middleware/errorHandler';
 import { extractCertificateFields, isConfigured as isDocIntelConfigured, checkNameMatch } from '../services/documentIntelligence';
 import { matchCertificateTitle } from '../services/certMatcher';
+import { matchTeamMember } from '../utils/fuzzyMatch';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const fuzz = require('fuzzball') as {
@@ -352,18 +353,10 @@ router.post('/certificate/analyze-universal', upload.single('certificate'), asyn
     let memberConfidence = 0;
 
     if (fields.recipientName) {
-      let bestScore = 0;
-      let bestMember = null;
-      for (const m of members) {
-        const score = fuzz.ratio(fields.recipientName.toLowerCase(), m.name.toLowerCase());
-        if (score > bestScore) {
-          bestScore = score;
-          bestMember = m;
-        }
-      }
-      if (bestScore >= 70) {
-        memberMatch = bestMember;
-        memberConfidence = bestScore;
+      const result = matchTeamMember(fields.recipientName, members);
+      if (result.matches) {
+        memberMatch = { id: result.memberId!, name: result.memberName! };
+        memberConfidence = result.score;
       }
     }
 
@@ -373,25 +366,12 @@ router.post('/certificate/analyze-universal', upload.single('certificate'), asyn
       let bestMember = null;
       let matchedRawName = null;
 
-      for (const m of members) {
-        const mNameLower = m.name.toLowerCase().trim();
-        for (const line of fields.rawLines) {
-          const lineLower = line.toLowerCase().trim();
-          if (lineLower.includes(mNameLower) || mNameLower.includes(lineLower)) {
-            const score = fuzz.ratio(lineLower, mNameLower);
-            if (score > bestScore) {
-              bestScore = score;
-              bestMember = m;
-              matchedRawName = m.name;
-            }
-          } else {
-            const score = fuzz.ratio(lineLower, mNameLower);
-            if (score > 85 && score > bestScore) {
-              bestScore = score;
-              bestMember = m;
-              matchedRawName = m.name;
-            }
-          }
+      for (const line of fields.rawLines) {
+        const result = matchTeamMember(line, members);
+        if (result.matches && result.score > bestScore) {
+          bestScore = result.score;
+          bestMember = { id: result.memberId!, name: result.memberName! };
+          matchedRawName = result.memberName;
         }
       }
 
@@ -456,6 +436,7 @@ router.post('/certificate/upload-universal', upload.single('certificate'), async
   // Upload to blob storage / ADLS Gen2 if file provided
   let url = assignment ? assignment.certificateUrl : null;
   let uploadDate = assignment ? assignment.uploadDate : null;
+  let originalFilename = assignment ? (assignment as any).originalFilename : null;
 
   if (req.file) {
     const uploadResult = await uploadFile(
@@ -468,6 +449,7 @@ router.post('/certificate/upload-universal', upload.single('certificate'), async
     );
     url = uploadResult.url;
     uploadDate = new Date();
+    originalFilename = req.file.originalname;
   }
 
   const finalCompletionDate = completionDate ? new Date(completionDate) : new Date();
@@ -493,6 +475,7 @@ router.post('/certificate/upload-universal', upload.single('certificate'), async
         expiryDate: finalExpiryDate,
         progress: 100,
         certificateUrl: url,
+        originalFilename: originalFilename,
         uploadDate: uploadDate,
       },
     });
@@ -513,6 +496,7 @@ router.post('/certificate/upload-universal', upload.single('certificate'), async
         completionDate: finalCompletionDate,
         expiryDate: finalExpiryDate,
         certificateUrl: url,
+        originalFilename: originalFilename,
         uploadDate: uploadDate,
       },
     });
@@ -534,6 +518,14 @@ router.post('/certificate/upload-universal', upload.single('certificate'), async
     },
   });
 
+  await prisma.activityLog.create({
+    data: {
+      category: 'Certifications',
+      action: 'UPLOAD',
+      details: `Uploaded certificate "${originalFilename || 'Unknown'}" for ${member.name} (${certName?.name ?? 'Unknown Certification'})`,
+    }
+  });
+
   res.json(assignment);
 });
 
@@ -550,6 +542,7 @@ router.post('/assignments/:id/certificate', upload.single('certificate'), async 
 
   let url = existing.certificateUrl;
   let uploadDate = existing.uploadDate;
+  let originalFilename = existing.originalFilename;
 
   if (req.file) {
     if (existing.certificateUrl) {
@@ -567,6 +560,7 @@ router.post('/assignments/:id/certificate', upload.single('certificate'), async 
     );
     url = uploadResult.url;
     uploadDate = new Date();
+    originalFilename = req.file.originalname;
   }
 
   const finalCompletionDate = completionDate ? new Date(completionDate) : (existing.completionDate || new Date());
@@ -581,6 +575,7 @@ router.post('/assignments/:id/certificate', upload.single('certificate'), async 
     where: { id },
     data: {
       certificateUrl: url,
+      originalFilename: originalFilename,
       uploadDate: uploadDate,
       ...(credentialId && { credentialId }),
       status: finalStatus as any,
@@ -598,6 +593,14 @@ router.post('/assignments/:id/certificate', upload.single('certificate'), async 
       title: 'Certificate Uploaded',
       message: `Certificate for ${existing.certification.name} uploaded by ${existing.member.name}`,
     },
+  });
+
+  await prisma.activityLog.create({
+    data: {
+      category: 'Certifications',
+      action: 'UPLOAD',
+      details: `Uploaded certificate "${originalFilename || 'Unknown'}" for ${existing.member.name} (${existing.certification.name})`,
+    }
   });
 
   res.json(updated);
@@ -640,6 +643,14 @@ router.delete('/assignments/:id/certificate', async (req: Request, res: Response
     },
   });
 
+  await prisma.activityLog.create({
+    data: {
+      category: 'Certifications',
+      action: 'DELETE',
+      details: `Deleted certificate file for ${existing.memberId} (Assignment ID: ${existing.id})`,
+    }
+  });
+
   res.json({ message: 'Certificate deleted successfully', assignment: updated });
 });
 
@@ -654,6 +665,15 @@ router.delete('/assignments/:id', async (req: Request, res: Response) => {
   }
 
   await prisma.assignedCertification.delete({ where: { id: req.params.id } });
+
+  await prisma.activityLog.create({
+    data: {
+      category: 'Certifications',
+      action: 'DELETE',
+      details: `Deleted certification assignment ID: ${existing.id}`,
+    }
+  });
+
   res.json({ message: 'Assignment deleted' });
 });
 

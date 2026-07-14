@@ -638,8 +638,11 @@ export default function TrackerPage() {
                                 <span className="text-xs font-medium block">{a.certification?.name}</span>
                                 {a.certificateUrl && (
                                   <a href={a.certificateUrl} target="_blank" rel="noreferrer"
-                                    className="inline-flex items-center gap-1 text-[10px] text-azure-400 hover:text-azure-300">
-                                    <FileText className="w-3 h-3" /> View Certificate
+                                    className="inline-flex items-center gap-1 text-[10px] text-azure-400 hover:text-azure-300 truncate max-w-[150px]"
+                                    title={a.originalFilename || 'View Certificate'}
+                                  >
+                                    <FileText className="w-3 h-3 flex-shrink-0" />
+                                    <span className="truncate">{a.originalFilename || 'View Certificate'}</span>
                                   </a>
                                 )}
                               </div>

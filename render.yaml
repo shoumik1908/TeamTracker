@@ -27,3 +27,15 @@ services:
       # Your Vercel frontend URL, e.g. https://team-tracker.vercel.app
       - key: FRONTEND_URL
         sync: false
+      - key: AZURE_DOC_INTEL_ENDPOINT
+        sync: false
+      - key: AZURE_DOC_INTEL_KEY
+        sync: false
+      - key: AZURE_OPENAI_API_KEY
+        sync: false
+      - key: AZURE_OPENAI_ENDPOINT
+        sync: false
+      - key: AZURE_OPENAI_DEPLOYMENT
+        sync: false
+      - key: AZURE_OPENAI_API_VERSION
+        sync: false

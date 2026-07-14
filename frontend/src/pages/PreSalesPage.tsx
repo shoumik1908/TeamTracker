@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { presalesApi } from '@/lib/presalesApi';
 import StageTimeline from '@/components/StageTimeline';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import AddOpportunityModal from '@/components/AddOpportunityModal';
 import EditOpportunityModal from '@/components/EditOpportunityModal';
+import PresalesDocAnalyzerModal from '@/components/PresalesDocAnalyzerModal';
+import PresalesDocsModal from '@/components/PresalesDocsModal';
 import {
   Target,
   Trophy,
@@ -18,7 +21,11 @@ import {
   X,
   Loader2,
   MoreVertical,
-  Pencil
+  Pencil,
+  FileUp,
+  FileText,
+  RefreshCcw,
+  ChevronRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { PreSalesOpportunity } from '@/types';
@@ -43,15 +50,19 @@ interface DeletionTarget {
 }
 
 export default function PreSalesPage() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState<'ALL' | 'PNB' | 'TNM'>('ALL');
   const [pendingChange, setPendingChange] = useState<PendingChange | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [oppToDelete, setOppToDelete] = useState<DeletionTarget | null>(null);
+  const [oppToReset, setOppToReset] = useState<PreSalesOpportunity | null>(null);
   const [oppToEdit, setOppToEdit] = useState<GroupedOpportunity | null>(null);
   const [openMenuKey, setOpenMenuKey] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'info' | 'success' } | null>(null);
+  const [analyzerTarget, setAnalyzerTarget] = useState<GroupedOpportunity | null>(null);
+  const [docsTarget, setDocsTarget] = useState<GroupedOpportunity | null>(null);
 
   // Close dropdown menu when clicking anywhere else
   useEffect(() => {
@@ -96,6 +107,20 @@ export default function PreSalesPage() {
     onError: (err: any) => {
       showToast(err.message || 'Failed to delete opportunity.', 'info');
       setOppToDelete(null);
+    }
+  });
+
+  // Mutation to reset progress
+  const resetMutation = useMutation({
+    mutationFn: (id: string) => presalesApi.reset(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['presales-opportunities'] });
+      showToast('Progress reset successfully.', 'success');
+      setOppToReset(null);
+    },
+    onError: (err: any) => {
+      showToast(err.message || 'Failed to reset progress.', 'info');
+      setOppToReset(null);
     }
   });
 
@@ -388,92 +413,132 @@ export default function PreSalesPage() {
           </div>
         ) : (
           filteredGrouped.map((grouped) => {
+            const oppId = grouped.pnbOpp?.id || grouped.tnmOpp?.id;
             return (
-              <div
+              <details
                 key={`${grouped.clientName}-${grouped.name}`}
-                className="bg-card border border-border rounded-xl overflow-hidden hover-card flex flex-col transition-all duration-300"
+                className="group/opp-card bg-card border border-border rounded-xl overflow-hidden hover-card flex flex-col transition-all duration-300 open:pb-2"
               >
                 {/* Card Header: Opportunity Name & Client details */}
-                <div className="px-5 py-2 border-b border-border bg-muted/5 flex items-center justify-between relative">
-                  <div className="flex flex-col gap-0.5">
-                    <h3 className="font-extrabold text-sm text-foreground leading-snug">
-                      {grouped.name}
-                    </h3>
-                    <p className="text-[10px] text-muted-foreground font-semibold">
-                      Client Name: <span className="text-foreground/90">{grouped.clientName}</span>
-                    </p>
+                <summary className="px-5 py-3 border-b border-border bg-muted/5 flex items-center justify-between relative list-none cursor-pointer hover:bg-muted/10 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <ChevronRight className="w-4 h-4 text-muted-foreground transition-transform group-open/opp-card:rotate-90" />
+                    <div className="flex flex-col gap-0.5">
+                      <h3 
+                        className="font-extrabold text-sm text-foreground leading-snug hover:text-azure-400 transition-colors"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          if (oppId) navigate(`/presales/${oppId}`);
+                        }}
+                        title="Click to view full details"
+                      >
+                        {grouped.name}
+                      </h3>
+                      <p className="text-[10px] text-muted-foreground font-semibold">
+                        Client Name: <span className="text-foreground/90">{grouped.clientName}</span>
+                      </p>
+                    </div>
                   </div>
-                  <div className="relative">
+                  <div className="flex items-center gap-1.5">
+                    {/* View Docs button */}
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        const key = `${grouped.clientName}::${grouped.name}`;
-                        setOpenMenuKey(openMenuKey === key ? null : key);
+                        setOpenMenuKey(null);
+                        setDocsTarget(grouped);
                       }}
-                      className="text-muted-foreground hover:text-foreground p-1.5 rounded-lg hover:bg-zinc-800/80 transition-colors"
-                      title="Actions"
-                      aria-label="Actions"
+                      className="flex items-center gap-1 px-2 py-1 text-[10px] font-semibold text-zinc-400 hover:text-zinc-300 bg-zinc-800/50 hover:bg-zinc-800 border border-border rounded-lg transition-colors"
+                      title="View uploaded documents"
                     >
-                      <MoreVertical className="w-4 h-4" />
+                      <FileText className="w-3 h-3" />
+                      Docs
                     </button>
-
-                    {/* Dropdown Menu */}
-                    {openMenuKey === `${grouped.clientName}::${grouped.name}` && (
-                      <div
-                        className="absolute right-0 mt-1 w-44 bg-zinc-900 border border-border rounded-xl shadow-2xl z-40 py-1.5 overflow-hidden animate-fade-in"
-                        onClick={(e) => e.stopPropagation()}
+                    {/* Upload & Analyze button */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setOpenMenuKey(null);
+                        setAnalyzerTarget(grouped);
+                      }}
+                      className="flex items-center gap-1 px-2 py-1 text-[10px] font-semibold text-azure-400 hover:text-azure-300 bg-azure-500/10 hover:bg-azure-500/20 border border-azure-500/20 rounded-lg transition-colors"
+                      title="Upload a document for AI track + stage analysis"
+                    >
+                      <FileUp className="w-3 h-3" />
+                      Analyze
+                    </button>
+                    <div className="relative">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const key = `${grouped.clientName}::${grouped.name}`;
+                          setOpenMenuKey(openMenuKey === key ? null : key);
+                        }}
+                        className="text-muted-foreground hover:text-foreground p-1.5 rounded-lg hover:bg-zinc-800/80 transition-colors"
+                        title="Actions"
+                        aria-label="Actions"
                       >
-                        <button
-                          onClick={() => {
-                            setOppToEdit(grouped);
-                            setOpenMenuKey(null);
-                          }}
-                          className="w-full text-left px-3.5 py-2 text-xs hover:bg-zinc-800 text-foreground transition-colors flex items-center gap-1.5"
-                        >
-                          <Pencil className="w-3.5 h-3.5" />
-                          Edit details
-                        </button>
+                        <MoreVertical className="w-4 h-4" />
+                      </button>
 
-                        <button
-                          onClick={() => {
-                            setOppToDelete({ name: grouped.name, clientName: grouped.clientName });
-                            setOpenMenuKey(null);
-                          }}
-                          className="w-full text-left px-3.5 py-2 text-xs font-semibold hover:bg-zinc-800 text-red-400 hover:text-red-300 transition-colors flex items-center gap-1.5 border-t border-border/30"
+                      {/* Dropdown Menu */}
+                      {openMenuKey === `${grouped.clientName}::${grouped.name}` && (
+                        <div
+                          className="absolute right-0 mt-1 w-44 bg-zinc-900 border border-border rounded-xl shadow-2xl z-40 py-1.5 overflow-hidden animate-fade-in"
+                          onClick={(e) => e.stopPropagation()}
                         >
-                          <X className="w-3.5 h-3.5" />
-                          Remove {grouped.name}
-                        </button>
-                        
-                        {grouped.pnbOpp && (
                           <button
                             onClick={() => {
-                              setOppToDelete({ name: grouped.name, clientName: grouped.clientName, account: 'PNB' });
-                              setOpenMenuKey(null);
-                            }}
-                            className="w-full text-left px-3.5 py-2 text-xs hover:bg-zinc-800 text-foreground transition-colors border-t border-border/30 flex items-center gap-1.5"
-                          >
-                            <X className="w-3.5 h-3.5" />
-                            Remove PNB
-                          </button>
-                        )}
-
-                        {grouped.tnmOpp && (
-                          <button
-                            onClick={() => {
-                              setOppToDelete({ name: grouped.name, clientName: grouped.clientName, account: 'TNM' });
+                              setOppToEdit(grouped);
                               setOpenMenuKey(null);
                             }}
                             className="w-full text-left px-3.5 py-2 text-xs hover:bg-zinc-800 text-foreground transition-colors flex items-center gap-1.5"
                           >
-                            <X className="w-3.5 h-3.5" />
-                            Remove TNM
+                            <Pencil className="w-3.5 h-3.5" />
+                            Edit details
                           </button>
-                        )}
-                      </div>
-                    )}
+
+                          {grouped.pnbOpp && (
+                            <button
+                              onClick={() => {
+                                setOppToReset(grouped.pnbOpp!);
+                                setOpenMenuKey(null);
+                              }}
+                              className="w-full text-left px-3.5 py-2 text-xs hover:bg-zinc-800 text-foreground transition-colors border-t border-border/30 flex items-center gap-1.5"
+                            >
+                              <RefreshCcw className="w-3.5 h-3.5" />
+                              Reset PNB
+                            </button>
+                          )}
+
+                          {grouped.tnmOpp && (
+                            <button
+                              onClick={() => {
+                                setOppToReset(grouped.tnmOpp!);
+                                setOpenMenuKey(null);
+                              }}
+                              className="w-full text-left px-3.5 py-2 text-xs hover:bg-zinc-800 text-foreground transition-colors flex items-center gap-1.5"
+                            >
+                              <RefreshCcw className="w-3.5 h-3.5" />
+                              Reset TNM
+                            </button>
+                          )}
+
+                          <button
+                            onClick={() => {
+                              setOppToDelete({ name: grouped.name, clientName: grouped.clientName });
+                              setOpenMenuKey(null);
+                            }}
+                            className="w-full text-left px-3.5 py-2 text-xs font-semibold hover:bg-zinc-800 text-red-400 hover:text-red-300 transition-colors flex items-center gap-1.5 border-t border-border/30"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                            Remove {grouped.name}
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
+                </summary>
 
                 {/* Combined Sliders List */}
                 <div className="divide-y divide-border">
@@ -485,6 +550,10 @@ export default function PreSalesPage() {
                           <span className="px-1.5 py-0.5 rounded text-[8px] font-extrabold tracking-wide uppercase bg-blue-950/60 text-blue-400 border border-blue-900/30">
                             PNB (Proposal & Bid)
                           </span>
+                          <span className="text-[9px] text-muted-foreground font-semibold">
+                            Stage {grouped.pnbOpp.currentStageIndex + 1} &middot;
+                            <span className="text-azure-400 ml-0.5">{grouped.pnbOpp.progressPercent}%</span>
+                          </span>
                         </div>
                         {renderStageBadge(grouped.pnbOpp)}
                       </div>
@@ -493,6 +562,7 @@ export default function PreSalesPage() {
                         opportunityName={grouped.pnbOpp.name}
                         stages={grouped.pnbOpp.stages}
                         currentStageIndex={grouped.pnbOpp.currentStageIndex}
+                        progressPercent={grouped.pnbOpp.progressPercent}
                         onStageClick={(stageName, idx) => handleStageClick(grouped.pnbOpp!, stageName, idx)}
                       />
 
@@ -508,6 +578,10 @@ export default function PreSalesPage() {
                           <span className="px-1.5 py-0.5 rounded text-[8px] font-extrabold tracking-wide uppercase bg-indigo-950/60 text-indigo-400 border border-indigo-900/30">
                             TNM (Time & Material)
                           </span>
+                          <span className="text-[9px] text-muted-foreground font-semibold">
+                            Stage {grouped.tnmOpp.currentStageIndex + 1} &middot;
+                            <span className="text-azure-400 ml-0.5">{grouped.tnmOpp.progressPercent}%</span>
+                          </span>
                         </div>
                         {renderStageBadge(grouped.tnmOpp)}
                       </div>
@@ -516,6 +590,7 @@ export default function PreSalesPage() {
                         opportunityName={grouped.tnmOpp.name}
                         stages={grouped.tnmOpp.stages}
                         currentStageIndex={grouped.tnmOpp.currentStageIndex}
+                        progressPercent={grouped.tnmOpp.progressPercent}
                         onStageClick={(stageName, idx) => handleStageClick(grouped.tnmOpp!, stageName, idx)}
                       />
 
@@ -523,7 +598,7 @@ export default function PreSalesPage() {
                     </div>
                   )}
                 </div>
-              </div>
+              </details>
             );
           })
         )}
@@ -611,6 +686,41 @@ export default function PreSalesPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Confirm Reset Modal */}
+      <ConfirmationModal
+        isOpen={oppToReset !== null}
+        opportunityName={`${oppToReset?.account} track`}
+        stageName="Stage 1 (0%)"
+        title="Confirm Progress Reset"
+        message={
+          <>
+            Are you sure you want to reset <strong className="text-foreground font-semibold">{oppToReset?.account}</strong> progress for <strong className="text-foreground">"{oppToReset?.name}"</strong> to:
+          </>
+        }
+        subMessage="This will reset the progress back to 0%. This action will be logged in history."
+        isPending={resetMutation.isPending}
+        onClose={() => setOppToReset(null)}
+        onConfirm={() => oppToReset && resetMutation.mutate(oppToReset.id)}
+      />
+
+      {/* AI Document Analyzer Modal */}
+      {analyzerTarget && (
+        <PresalesDocAnalyzerModal
+          grouped={analyzerTarget}
+          onClose={() => setAnalyzerTarget(null)}
+          onToast={(text, type) => showToast(text, type)}
+        />
+      )}
+
+      {/* View Docs Modal */}
+      {docsTarget && (
+        <PresalesDocsModal
+          grouped={docsTarget}
+          onClose={() => setDocsTarget(null)}
+          onToast={(text, type) => showToast(text, type)}
+        />
       )}
 
       {/* Custom Toast Alert */}

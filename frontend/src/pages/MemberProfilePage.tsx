@@ -3,8 +3,37 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { membersApi, certificationsApi, projectsApi } from '@/lib/api';
 import type { TeamMemberProfile, AssignedCertification, ProjectMemberWithProject } from '@/types';
-import { ArrowLeft, Phone, Award, FolderKanban, TrendingUp, Pencil, Upload, X, Loader2, FileText, Plus, MoreVertical, Trash2 } from 'lucide-react';
+import { ArrowLeft, Phone, Award, FolderKanban, TrendingUp, Pencil, Upload, X, Loader2, FileText, Plus, MoreVertical, Trash2, BrainCircuit, CheckCircle2, RefreshCw, ChevronDown, ChevronUp, ThumbsUp, AlertTriangle, Lightbulb } from 'lucide-react';
 import { cn, formatDate, getInitials, formatStatus, getStatusColor, getProgressColor } from '@/lib/utils';
+
+// Helper for Circular Gauge
+function CircularGauge({ score, size = 64 }: { score: number, size?: number }) {
+  const radius = size / 2 - 6;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (score / 100) * circumference;
+  
+  let color = "text-red-500";
+  let stroke = "stroke-red-500";
+  let label = "Needs Improvement";
+  
+  if (score >= 90) { color = "text-emerald-500"; stroke = "stroke-emerald-500"; label = "Excellent"; }
+  else if (score >= 80) { color = "text-teal-500"; stroke = "stroke-teal-500"; label = "Strong"; }
+  else if (score >= 70) { color = "text-azure-500"; stroke = "stroke-azure-500"; label = "Good"; }
+  else if (score >= 60) { color = "text-amber-500"; stroke = "stroke-amber-500"; label = "Average"; }
+
+  return (
+    <div className="flex flex-col items-center gap-2">
+      <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
+        <svg className="transform -rotate-90 w-full h-full">
+          <circle cx={size/2} cy={size/2} r={radius} stroke="currentColor" strokeWidth="8" fill="transparent" className="text-zinc-800" />
+          <circle cx={size/2} cy={size/2} r={radius} stroke="currentColor" strokeWidth="8" fill="transparent" strokeDasharray={circumference} strokeDashoffset={offset} className={`${stroke} transition-all duration-1000 ease-out`} />
+        </svg>
+        <span className={`absolute font-bold ${color}`} style={{ fontSize: size/3.5 }}>{score}</span>
+      </div>
+      <span className={`text-[10px] font-bold uppercase tracking-wider ${color}`}>{label}</span>
+    </div>
+  );
+}
 import AddCertificationModal from '@/components/AddCertificationModal';
 import AddProjectModal from '@/components/AddProjectModal';
 
@@ -120,8 +149,13 @@ function UpdateCertificationModal({ assignment, onClose, onSaved }: {
             </div>
             {assignment.certificateUrl && !file && (
               <a href={assignment.certificateUrl} target="_blank" rel="noreferrer"
-                className="inline-flex items-center gap-1 text-xs text-azure-400 hover:text-azure-300 mt-1.5">
-                <FileText className="w-3 h-3" /> View current certificate
+                className="inline-flex items-center gap-1 text-xs text-azure-400 hover:text-azure-300 mt-1.5"
+                title={assignment.originalFilename || 'View current certificate'}
+              >
+                <FileText className="w-3 h-3" />
+                <span className="truncate max-w-[250px]">
+                  {assignment.originalFilename || 'View current certificate'}
+                </span>
               </a>
             )}
           </div>
@@ -188,6 +222,75 @@ export default function MemberProfilePage() {
   const [showAddProject, setShowAddProject] = useState(false);
   const [editRolePm, setEditRolePm] = useState<ProjectMemberWithProject | undefined>();
   const [roleInput, setRoleInput] = useState('');
+  const [cvError, setCvError] = useState<string | null>(null);
+  const [cvSuccess, setCvSuccess] = useState(false);
+  const cvFileRef = useRef<HTMLInputElement>(null);
+
+  const uploadCvMutation = useMutation({
+    mutationFn: (file: File) => {
+      const fd = new FormData();
+      fd.append('cv', file);
+      return membersApi.uploadCv(id!, fd);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['member'] });
+      setCvSuccess(true);
+      setCvError(null);
+      setTimeout(() => setCvSuccess(false), 4000);
+    },
+    onError: (e: Error) => setCvError(e.message),
+  });
+
+  const deleteCvMutation = useMutation({
+    mutationFn: () => membersApi.deleteCv(id!),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['member'] });
+      setCvSuccess(false);
+      setCvError(null);
+    },
+    onError: (e: Error) => setCvError(e.message),
+  });
+
+  const handleCvFile = (file: File) => {
+    setCvError(null);
+    setCvSuccess(false);
+    const ext = file.name.split('.').pop()?.toLowerCase();
+    if (!['pdf', 'docx'].includes(ext ?? '')) {
+      setCvError('Only PDF and DOCX files are accepted.');
+      return;
+    }
+    uploadCvMutation.mutate(file);
+  };
+
+
+  const [isEditingSkills, setIsEditingSkills] = useState(false);
+  const [skillsInput, setSkillsInput] = useState('');
+  const [skillsError, setSkillsError] = useState<string | null>(null);
+  const [isCertsOpen, setIsCertsOpen] = useState(false);
+  const [isAtsExpanded, setIsAtsExpanded] = useState(false);
+
+  const updateSkillsMutation = useMutation({
+    mutationFn: async (skillsList: string[]) => {
+      const fd = new FormData();
+      skillsList.forEach(s => fd.append('skills', s));
+      return membersApi.update(id!, fd);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['member', id] });
+      setIsEditingSkills(false);
+    },
+    onError: (err: Error) => {
+      setSkillsError(err.message);
+    }
+  });
+
+  const handleSaveSkills = () => {
+    const list = skillsInput
+      .split(',')
+      .map(s => s.trim())
+      .filter(Boolean);
+    updateSkillsMutation.mutate(list);
+  };
 
   const { data: member, isLoading } = useQuery<TeamMemberProfile>({
     queryKey: ['member', id],
@@ -226,8 +329,6 @@ export default function MemberProfilePage() {
   if (!member) return <div className="text-center py-20 text-muted-foreground">Member not found</div>;
 
   const { stats } = member;
-  const completionRate = stats.totalCertifications > 0
-    ? Math.round((stats.completedCertifications / stats.totalCertifications) * 100) : 0;
 
   return (
     <div className="space-y-6">
@@ -269,16 +370,82 @@ export default function MemberProfilePage() {
             )}
           </div>
 
-          {member.skills.length > 0 && (
-            <div className="flex flex-wrap gap-2 mt-4">
-              {member.skills.map(skill => (
-                <span key={skill} className="text-xs px-2.5 py-1 bg-azure-950/40 text-azure-300 border border-azure-800/40 rounded-full font-medium">{skill}</span>
-              ))}
-            </div>
-          )}
 
 
         </div>
+      </div>
+
+      {/* Resource Allocation Section */}
+      <div className="bg-card rounded-xl border border-border p-5 space-y-4">
+        <h3 className="font-semibold text-sm">Resource Allocation</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          {/* Status Badge */}
+          <div className="space-y-1.5">
+            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Allocation Status</span>
+            <div>
+              <span className={cn(
+                'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border',
+                member.allocationStatus === 'ALLOCATED'
+                  ? 'bg-emerald-950/30 text-emerald-400 border-emerald-800/30'
+                  : 'bg-amber-950/30 text-amber-400 border-amber-800/30'
+              )}>
+                <span className={cn('w-1.5 h-1.5 rounded-full', member.allocationStatus === 'ALLOCATED' ? 'bg-emerald-500' : 'bg-amber-500')} />
+                {member.allocationStatus === 'ALLOCATED' ? 'Allocated' : 'Benched'}
+              </span>
+            </div>
+          </div>
+
+          {/* Allocation Percentage */}
+          <div className="space-y-1">
+            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Total Allocation</span>
+            <span className="text-xl font-bold text-azure-400">
+              {member.allocationStatus === 'ALLOCATED' ? '100%' : '0%'}
+            </span>
+          </div>
+
+          {/* Reporting Manager */}
+          <div className="space-y-1">
+            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Reporting Manager</span>
+            <span className="text-sm font-semibold text-foreground">
+              {member.manager ? member.manager.name : 'No Manager Assigned'}
+            </span>
+          </div>
+        </div>
+
+        {/* Active Projects List */}
+        {member.allocationStatus === 'ALLOCATED' && (
+          <div className="mt-4 border-t border-border pt-4">
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-3">Active Project(s) Details</span>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {member.projectMembers
+                .filter(pm => pm.project && pm.project.status !== 'COMPLETED')
+                .map(pm => {
+                  const activeCount = member.projectMembers.filter(p => p.project && p.project.status !== 'COMPLETED').length;
+                  const allocPercent = Math.round(100 / activeCount);
+                  return (
+                    <div key={pm.id} className="p-3.5 rounded-xl bg-muted/20 border border-border/40 space-y-2">
+                      <div className="flex justify-between items-start">
+                        <span className="text-sm font-bold text-foreground">{pm.project.name}</span>
+                        <span className="text-[10px] font-semibold bg-azure-950/40 text-azure-400 border border-azure-800/30 px-2 py-0.5 rounded-lg">
+                          {allocPercent}% Allocation
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground pt-1.5 border-t border-border/20">
+                        <div>
+                          <span>Start Date: </span>
+                          <strong className="text-foreground">{formatDate(pm.project.startDate)}</strong>
+                        </div>
+                        <div>
+                          <span>Expected Release: </span>
+                          <strong className="text-foreground">{pm.project.endDate ? formatDate(pm.project.endDate) : 'No End Date'}</strong>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Stats Cards */}
@@ -301,20 +468,302 @@ export default function MemberProfilePage() {
         ))}
       </div>
 
-      {/* Overall Progress */}
-      <div className="bg-card rounded-xl border border-border p-5">
-        <div className="flex items-center justify-between mb-2">
-          <p className="text-sm font-semibold">Overall Certification Progress</p>
-          <span className="text-sm font-bold text-azure-400">{completionRate}%</span>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* CV Card */}
+        <div className="bg-card rounded-xl border border-border p-5 space-y-4 flex flex-col justify-between">
+          <div className="space-y-4 w-full">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <FileText className="w-4 h-4 text-indigo-400" />
+                <h3 className="font-semibold text-sm">CV</h3>
+              </div>
+              <div className="flex items-center gap-2">
+                {member.cvUploadedAt && (
+                  <span className="text-[10px] text-muted-foreground">
+                    Last updated {new Date(member.cvUploadedAt).toLocaleDateString()}
+                  </span>
+                )}
+                <button
+                  onClick={() => cvFileRef.current?.click()}
+                  disabled={uploadCvMutation.isPending}
+                  className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-60 shadow-sm shadow-indigo-500/20"
+                >
+                  {uploadCvMutation.isPending
+                    ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    : member.cvUploadedAt
+                      ? <RefreshCw className="w-3.5 h-3.5" />
+                      : <Upload className="w-3.5 h-3.5" />
+                  }
+                  {uploadCvMutation.isPending ? 'Uploading...' : member.cvUploadedAt ? 'Re-upload CV' : 'Upload CV'}
+                </button>
+                {member.cvBlobUrl && (
+                  <button
+                    onClick={() => {
+                      if (confirm('Are you sure you want to remove the CV?')) {
+                        deleteCvMutation.mutate();
+                      }
+                    }}
+                    disabled={deleteCvMutation.isPending}
+                    className="flex items-center justify-center p-1.5 text-red-400 hover:text-red-300 hover:bg-red-400/10 rounded-lg transition-colors disabled:opacity-50"
+                    title="Remove CV"
+                  >
+                    {deleteCvMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                  </button>
+                )}
+                <input
+                  ref={cvFileRef}
+                  type="file"
+                  accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                  className="hidden"
+                  onChange={e => { const f = e.target.files?.[0]; if (f) handleCvFile(f); e.target.value = ''; }}
+                />
+              </div>
+            </div>
+
+            {/* Status messages */}
+            {cvError && (
+              <div className="flex items-center gap-2 p-3 bg-red-950/30 border border-red-800/40 rounded-lg text-xs text-red-400">
+                <X className="w-3.5 h-3.5 flex-shrink-0" /> {cvError}
+              </div>
+            )}
+            {cvSuccess && (
+              <div className="flex items-center gap-2 p-3 bg-emerald-950/30 border border-emerald-800/40 rounded-lg text-xs text-emerald-400">
+                <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" /> CV uploaded successfully!
+              </div>
+            )}
+            {uploadCvMutation.isPending && (
+              <div className="flex items-center gap-2 p-3 bg-indigo-950/30 border border-indigo-800/30 rounded-lg text-xs text-indigo-300">
+                <Loader2 className="w-3.5 h-3.5 animate-spin flex-shrink-0" />
+                Uploading and extracting text...
+              </div>
+            )}
+
+            {member.cvBlobUrl ? (
+              <div className="space-y-3 pt-2">
+                <div className="flex items-center gap-2 p-3 bg-emerald-950/20 border border-emerald-800/30 rounded-xl">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                  <span className="text-xs text-emerald-400 font-medium">CV Document Active</span>
+                </div>
+                <div className="pt-1">
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-2">Azure ADLS Gen2 Location</span>
+                  <a
+                    href={member.cvBlobUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 text-sm text-indigo-400 hover:text-indigo-300 font-semibold transition-colors bg-indigo-950/30 border border-indigo-800/30 px-3.5 py-2 rounded-xl shadow-sm"
+                  >
+                    <FileText className="w-4 h-4" />
+                    <span className="truncate max-w-[200px]" title={member.cvOriginalFilename || 'View CV Document'}>
+                      {member.cvOriginalFilename || 'View CV Document'}
+                    </span>
+                  </a>
+                </div>
+                
+                {/* ATS Breakdown Details */}
+                {member.atsScoreBreakdown && (
+                  <div className="pt-4 mt-6 border-t border-border/50">
+                    <div className="flex items-start gap-6 mb-6">
+                      {/* Left: Gauge */}
+                      <div className="flex-shrink-0">
+                        <CircularGauge score={member.atsScore || 0} size={80} />
+                      </div>
+                      
+                      {/* Right: Intro */}
+                      <div className="flex flex-col justify-center">
+                        <h4 className="text-sm font-bold text-foreground flex items-center gap-2">
+                          <BrainCircuit className="w-4 h-4 text-indigo-400" />
+                          ATS Resume Analysis
+                        </h4>
+                        <p className="text-xs text-muted-foreground mt-1 max-w-sm leading-relaxed">
+                          This resume has been scored on a 100-point rubric across 8 key dimensions. Expand the sections below to see the exact breakdown and AI feedback.
+                        </p>
+                      </div>
+                    </div>
+
+                    <button 
+                      onClick={() => setIsAtsExpanded(!isAtsExpanded)}
+                      className="w-full text-xs font-semibold text-foreground flex items-center justify-between hover:bg-muted/50 p-2.5 -ml-2 rounded-lg transition-colors group"
+                    >
+                      <span className="flex items-center gap-2 text-indigo-400">
+                        View Detailed Breakdown
+                      </span>
+                      {isAtsExpanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+                    </button>
+                    
+                    {isAtsExpanded && (
+                      <div className="mt-4 space-y-6 animate-in fade-in slide-in-from-top-2 duration-200 pb-2">
+                        {/* 8 Categories Progress Bars */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+                          {[
+                            { label: 'Contact Information', score: member.atsScoreBreakdown.contact_information, max: 10 },
+                            { label: 'ATS Formatting', score: member.atsScoreBreakdown.ats_formatting, max: 15 },
+                            { label: 'Skills Match', score: member.atsScoreBreakdown.skills_match, max: 25 },
+                            { label: 'Work Experience', score: member.atsScoreBreakdown.work_experience, max: 20 },
+                            { label: 'Education', score: member.atsScoreBreakdown.education, max: 10 },
+                            { label: 'Projects', score: member.atsScoreBreakdown.projects, max: 10 },
+                            { label: 'Certifications', score: member.atsScoreBreakdown.certifications, max: 5 },
+                            { label: 'Keywords', score: member.atsScoreBreakdown.keywords, max: 5 },
+                          ].map(dim => {
+                            if (dim.score === undefined) return null;
+                            const percent = Math.max(0, Math.min(100, (dim.score / dim.max) * 100));
+                            let barColor = 'bg-red-500';
+                            if (percent >= 90) barColor = 'bg-emerald-500';
+                            else if (percent >= 80) barColor = 'bg-teal-500';
+                            else if (percent >= 70) barColor = 'bg-azure-500';
+                            else if (percent >= 60) barColor = 'bg-amber-500';
+
+                            return (
+                              <div key={dim.label} className="space-y-1.5">
+                                <div className="flex justify-between text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                                  <span>{dim.label}</span>
+                                  <span className={barColor.replace('bg-', 'text-')}>{dim.score} / {dim.max}</span>
+                                </div>
+                                <div className="w-full bg-zinc-900 rounded-full h-2 overflow-hidden border border-border/50">
+                                  <div 
+                                    className={`${barColor} h-2 rounded-full transition-all duration-1000`} 
+                                    style={{ width: `${percent}%` }}
+                                  />
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* AI Feedback Cards */}
+                        {member.atsSuggestions && typeof member.atsSuggestions === 'object' && (
+                          <div className="grid grid-cols-1 gap-3 pt-2">
+                            {member.atsSuggestions.strengths && Array.isArray(member.atsSuggestions.strengths) && member.atsSuggestions.strengths.length > 0 && (
+                              <div className="p-4 bg-emerald-950/20 border border-emerald-900/30 rounded-xl space-y-2">
+                                <h5 className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+                                  <ThumbsUp className="w-3.5 h-3.5" /> Strengths
+                                </h5>
+                                <ul className="list-disc pl-5 space-y-1">
+                                  {member.atsSuggestions.strengths.map((s: string, i: number) => (
+                                    <li key={i} className="text-xs text-emerald-100/70 leading-relaxed">{s}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+
+                            {member.atsSuggestions.weaknesses && Array.isArray(member.atsSuggestions.weaknesses) && member.atsSuggestions.weaknesses.length > 0 && (
+                              <div className="p-4 bg-red-950/20 border border-red-900/30 rounded-xl space-y-2">
+                                <h5 className="text-[10px] font-bold text-red-400 uppercase tracking-wider flex items-center gap-1.5">
+                                  <AlertTriangle className="w-3.5 h-3.5" /> Weaknesses
+                                </h5>
+                                <ul className="list-disc pl-5 space-y-1">
+                                  {member.atsSuggestions.weaknesses.map((w: string, i: number) => (
+                                    <li key={i} className="text-xs text-red-100/70 leading-relaxed">{w}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+
+                            {member.atsSuggestions.recommendations && Array.isArray(member.atsSuggestions.recommendations) && member.atsSuggestions.recommendations.length > 0 && (
+                              <div className="p-4 bg-amber-950/20 border border-amber-900/30 rounded-xl space-y-2">
+                                <h5 className="text-[10px] font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                                  <Lightbulb className="w-3.5 h-3.5" /> Recommendations
+                                </h5>
+                                <ul className="list-disc pl-5 space-y-1">
+                                  {member.atsSuggestions.recommendations.map((r: string, i: number) => (
+                                    <li key={i} className="text-xs text-amber-100/70 leading-relaxed">{r}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            ) : (
+              !uploadCvMutation.isPending && (
+                <div className="flex items-center gap-2.5 p-3.5 bg-muted/20 border border-border/50 rounded-xl">
+                  <BrainCircuit className="w-4 h-4 text-indigo-400 flex-shrink-0" />
+                  <p className="text-xs text-muted-foreground">
+                    No CV uploaded yet. Upload a PDF/DOCX using the button above.
+                  </p>
+                </div>
+              )
+            )}
+          </div>
         </div>
-        <div className="w-full bg-muted rounded-full h-2.5">
-          <div className={cn('h-2.5 rounded-full transition-all duration-700', getProgressColor(completionRate))}
-            style={{ width: `${completionRate}%` }} />
+
+        {/* Skills & Expertise Card */}
+        <div className="bg-card rounded-xl border border-border p-5 space-y-4 flex flex-col justify-between">
+          <div className="space-y-4 w-full">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Award className="w-4 h-4 text-azure-400" />
+                <h3 className="font-semibold text-sm">Skills & Expertise</h3>
+              </div>
+              {!isEditingSkills ? (
+                <button
+                  onClick={() => {
+                    setSkillsInput(member.skills.join(', '));
+                    setIsEditingSkills(true);
+                    setSkillsError(null);
+                  }}
+                  className="text-xs font-medium text-azure-400 hover:text-azure-300 flex items-center gap-1 transition-colors"
+                >
+                  <Pencil className="w-3.5 h-3.5" /> Edit Skills
+                </button>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleSaveSkills}
+                    disabled={updateSkillsMutation.isPending}
+                    className="text-xs font-semibold text-emerald-400 hover:text-emerald-300 transition-colors disabled:opacity-50"
+                  >
+                    {updateSkillsMutation.isPending ? 'Saving...' : 'Save'}
+                  </button>
+                  <span className="text-muted-foreground text-[10px]">|</span>
+                  <button
+                    onClick={() => setIsEditingSkills(false)}
+                    className="text-xs font-semibold text-red-400 hover:text-red-300 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {skillsError && (
+              <div className="text-xs text-red-400 p-2.5 bg-red-950/20 border border-red-800/30 rounded-lg">
+                {skillsError}
+              </div>
+            )}
+
+            {isEditingSkills ? (
+              <div className="space-y-2">
+                <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                  Enter skills (comma separated)
+                </label>
+                <textarea
+                  value={skillsInput}
+                  onChange={e => setSkillsInput(e.target.value)}
+                  rows={4}
+                  className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-muted/20 focus:outline-none focus:ring-2 focus:ring-azure-500/30 text-foreground resize-none"
+                  placeholder="React, Node.js, TypeScript, Docker..."
+                />
+              </div>
+            ) : member.skills.length > 0 ? (
+              <div className="flex flex-wrap gap-1.5">
+                {member.skills.map((skill, i) => (
+                  <span key={i} className="px-2.5 py-0.5 bg-azure-950/40 text-azure-300 border border-azure-800/40 rounded-full text-xs font-medium">
+                    {skill}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                No skills added yet. Upload a CV to auto-extract, or click Edit to add skills manually.
+              </p>
+            )}
+          </div>
         </div>
-        <p className="text-xs text-muted-foreground mt-1.5">
-          {stats.completedCertifications} of {stats.totalCertifications} certifications completed
-          {stats.overdueCertifications > 0 && ` · ${stats.overdueCertifications} overdue`}
-        </p>
       </div>
 
       <div className="grid grid-cols-2 gap-6">
@@ -363,47 +812,64 @@ export default function MemberProfilePage() {
         </div>
 
         {/* Certifications */}
-        <div className="bg-card rounded-xl border border-border p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-sm">Certifications</h3>
-            <button onClick={() => setShowAdd(true)}
-              className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 bg-azure-500 text-white rounded-lg hover:bg-azure-600 transition-colors shadow-sm shadow-azure-500/25">
-              <Plus className="w-3.5 h-3.5" /> Add Certification
-            </button>
+        <div className="bg-card rounded-xl border border-border p-5 h-fit transition-all duration-200">
+          <div
+            onClick={() => setIsCertsOpen(prev => !prev)}
+            className="flex items-center justify-between cursor-pointer select-none"
+          >
+            <div className="flex items-center gap-2">
+              <h3 className="font-semibold text-sm">Certifications</h3>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-semibold">
+                {member.assignedCertifications.length}
+              </span>
+            </div>
+            <div className="flex items-center gap-2.5" onClick={e => e.stopPropagation()}>
+              <button onClick={() => setShowAdd(true)}
+                className="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 bg-azure-500 text-white rounded-lg hover:bg-azure-600 transition-colors shadow-sm shadow-azure-500/25">
+                <Plus className="w-3 h-3" /> Add
+              </button>
+              <ChevronDown className={cn("w-4 h-4 text-muted-foreground transition-transform duration-200", isCertsOpen && "rotate-180")} />
+            </div>
           </div>
-          {member.assignedCertifications.length === 0
-            ? <p className="text-sm text-muted-foreground">No certifications yet — click <strong className="text-foreground">Add Certification</strong> to log one.</p>
-            : <div className="space-y-3">
-                {member.assignedCertifications.map(ac => (
-                  <div key={ac.id} className="p-3 rounded-lg bg-muted/30 border border-border/50">
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <p className="text-sm font-medium">{ac.certification?.name}</p>
-                        <p className="text-xs text-muted-foreground">{ac.certification?.provider}</p>
+
+          {isCertsOpen && (
+            <div className="mt-4 pt-4 border-t border-border/40 space-y-3 animate-fade-in">
+              {member.assignedCertifications.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No certifications yet — click <strong className="text-foreground">Add</strong> to log one.</p>
+              ) : (
+                <div className="space-y-3">
+                  {member.assignedCertifications.map(ac => (
+                    <div key={ac.id} className="p-3 rounded-lg bg-muted/30 border border-border/50">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className="text-sm font-medium">{ac.certification?.name}</p>
+                          <p className="text-xs text-muted-foreground">{ac.certification?.provider}</p>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <span className={cn('text-[10px] px-2 py-0.5 rounded-full border font-medium', getStatusColor(ac.status))}>
+                            {formatStatus(ac.status)}
+                          </span>
+                          <button onClick={() => setUpdateCert(ac)} title="Update certification"
+                            className="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md border border-azure-800/40 text-azure-300 hover:bg-azure-900/30 hover:text-azure-200 transition-colors">
+                            <Pencil className="w-3 h-3" /> Update
+                          </button>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <span className={cn('text-[10px] px-2 py-0.5 rounded-full border font-medium', getStatusColor(ac.status))}>
-                          {formatStatus(ac.status)}
-                        </span>
-                        <button onClick={() => setUpdateCert(ac)} title="Update certification"
-                          className="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md border border-azure-800/40 text-azure-300 hover:bg-azure-900/30 hover:text-azure-200 transition-colors">
-                          <Pencil className="w-3 h-3" /> Update
-                        </button>
+                      <div className="mt-2">
+                        <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                          <span>Deadline: {formatDate(ac.deadline)}</span><span>{ac.progress}%</span>
+                        </div>
+                        <div className="w-full bg-muted rounded-full h-1.5">
+                          <div className={cn('h-1.5 rounded-full', getProgressColor(ac.progress))}
+                            style={{ width: `${ac.progress}%` }} />
+                        </div>
                       </div>
                     </div>
-                    <div className="mt-2">
-                      <div className="flex justify-between text-xs text-muted-foreground mb-1">
-                        <span>Deadline: {formatDate(ac.deadline)}</span><span>{ac.progress}%</span>
-                      </div>
-                      <div className="w-full bg-muted rounded-full h-1.5">
-                        <div className={cn('h-1.5 rounded-full', getProgressColor(ac.progress))}
-                          style={{ width: `${ac.progress}%` }} />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-          }
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

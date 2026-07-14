@@ -5,13 +5,28 @@ interface StageTimelineProps {
   opportunityName: string;
   stages: string[];
   currentStageIndex: number;
+  progressPercent?: number;       // 0-100; optional — if omitted, falls back to stage-boundary display
   onStageClick: (stageName: string, stageIndex: number) => void;
+}
+
+/** Width % of the connector fill for segment between dot idx and idx+1 */
+function segmentFillPercent(
+  segmentIdx: number,    // left dot index (connector goes from segmentIdx → segmentIdx+1)
+  totalStages: number,
+  progressPercent: number
+): number {
+  const segStart = (segmentIdx / totalStages) * 100;       // lower bound of this segment
+  const segEnd = ((segmentIdx + 1) / totalStages) * 100;   // upper bound
+  if (progressPercent <= segStart) return 0;
+  if (progressPercent >= segEnd) return 100;
+  return Math.round(((progressPercent - segStart) / (segEnd - segStart)) * 100);
 }
 
 export default function StageTimeline({
   opportunityName,
   stages,
   currentStageIndex,
+  progressPercent,
   onStageClick,
 }: StageTimelineProps) {
   const currentStage = stages[currentStageIndex];
@@ -37,14 +52,43 @@ export default function StageTimeline({
     ? 'bg-red-500'
     : 'bg-azure-500';
 
+  // Effective percent: fallback to stage-boundary if progressPercent not provided
+  const effectivePct = progressPercent !== undefined
+    ? progressPercent
+    : Math.round((currentStageIndex / stages.length) * 100);
+
   // Split stages into Row 1 (left-to-right) and Row 2 (right-to-left)
   const half = Math.ceil(stages.length / 2);
   const row1 = stages.slice(0, half);
   const row2 = stages.slice(half);
 
   const isVerticalConnectorActive = currentStageIndex >= half;
-
   const isSingleRow = stages.length <= 6;
+
+  /** Renders a connector between two stage nodes with a partial-fill progress bar */
+  const renderConnector = (segIdx: number, reverse = false) => {
+    const fill = segmentFillPercent(segIdx, stages.length, effectivePct);
+    const fullyFilled = fill === 100;
+
+    return (
+      <div
+        className={cn(
+          'absolute top-3 h-[2px] w-full z-0 bg-border overflow-hidden',
+          reverse ? 'right-1/2' : 'left-1/2'
+        )}
+      >
+        {/* Colored fill — animates smoothly */}
+        <div
+          className={cn(
+            'h-full transition-all duration-700 ease-in-out',
+            fullyFilled ? connectorActiveColorClass : connectorActiveColorClass,
+            fill === 0 && 'opacity-0'
+          )}
+          style={{ width: `${fill}%`, ...(reverse ? { marginLeft: 'auto' } : {}) }}
+        />
+      </div>
+    );
+  };
 
   if (isSingleRow) {
     return (
@@ -58,22 +102,11 @@ export default function StageTimeline({
               const isUpcoming = idx > currentStageIndex;
               const isLast = idx === stages.length - 1;
 
-              // Horizontal connector (extends to the right)
-              const isConnectorActive = idx < currentStageIndex;
-              const connectorColor = isConnectorActive ? connectorActiveColorClass : 'bg-border';
-
               return (
                 <div key={idx} className="relative flex-1 flex flex-col items-center">
-                  
-                  {/* Horizontal Line Connector (extends to right) */}
-                  {!isLast && (
-                    <div
-                      className={cn(
-                        'absolute top-3 left-1/2 w-full h-[2px] z-0 transition-all duration-500 ease-in-out',
-                        connectorColor
-                      )}
-                    />
-                  )}
+
+                  {/* Connector with proportional fill */}
+                  {!isLast && renderConnector(idx)}
 
                   {/* Node */}
                   <button
@@ -125,7 +158,7 @@ export default function StageTimeline({
       {/* Scrollable container for responsiveness */}
       <div className="overflow-x-auto pb-10 pt-2 scrollbar-thin">
         <div className="relative min-w-[760px] md:min-w-0 md:w-full px-8 flex flex-col gap-8">
-          
+
           {/* ROW 1: Left to Right */}
           <div className="flex items-center w-full relative z-10">
             {row1.map((stage, idx) => {
@@ -134,24 +167,13 @@ export default function StageTimeline({
               const isUpcoming = idx > currentStageIndex;
               const isLastInRow = idx === row1.length - 1;
 
-              // Horizontal connector (extends to the right)
-              const isConnectorActive = idx < currentStageIndex;
-              const connectorColor = isConnectorActive ? connectorActiveColorClass : 'bg-border';
-
               return (
                 <div key={idx} className="relative w-1/6 flex flex-col items-center">
-                  
-                  {/* Horizontal Line Connector (extends to right) */}
-                  {!isLastInRow && (
-                    <div
-                      className={cn(
-                        'absolute top-3 left-1/2 w-full h-[2px] z-0 transition-all duration-500 ease-in-out',
-                        connectorColor
-                      )}
-                    />
-                  )}
 
-                  {/* Vertical Bend Connector (Row 1, Stage 6 to Row 2, Stage 7) */}
+                  {/* Connector with proportional fill */}
+                  {!isLastInRow && renderConnector(idx)}
+
+                  {/* Vertical Bend Connector */}
                   {isLastInRow && row2.length > 0 && (
                     <div
                       className={cn(
@@ -211,22 +233,11 @@ export default function StageTimeline({
               const isUpcoming = actualIdx > currentStageIndex;
               const isLastInRow = idx === row2.length - 1;
 
-              // Horizontal connector (extends to the left)
-              const isConnectorActive = actualIdx < currentStageIndex;
-              const connectorColor = isConnectorActive ? connectorActiveColorClass : 'bg-border';
-
               return (
                 <div key={actualIdx} className="relative w-1/6 flex flex-col items-center">
-                  
-                  {/* Horizontal Line Connector (extends to left) */}
-                  {!isLastInRow && (
-                    <div
-                      className={cn(
-                        'absolute top-3 right-1/2 w-full h-[2px] z-0 transition-all duration-500 ease-in-out',
-                        connectorColor
-                      )}
-                    />
-                  )}
+
+                  {/* Connector (reversed direction) */}
+                  {!isLastInRow && renderConnector(actualIdx, true)}
 
                   {/* Node */}
                   <button
@@ -274,3 +285,5 @@ export default function StageTimeline({
     </div>
   );
 }
+
+

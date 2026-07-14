@@ -1,7 +1,8 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { certificationsApi } from '@/lib/api';
-import { Plus, Search, Pencil, Trash2, ExternalLink, X, Loader2 } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, ExternalLink, X, Loader2, ClipboardList } from 'lucide-react';
 import type { Certification, PaginatedResponse } from '@/types';
 
 type CertFormData = {
@@ -106,10 +107,16 @@ export default function CertificationsPage() {
           <h2 className="page-title">Certification Catalog</h2>
           <p className="page-subtitle">{data?.pagination.total || 0} certifications available</p>
         </div>
-        <button onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 px-4 py-2.5 bg-azure-500 text-white text-sm font-medium rounded-xl hover:bg-azure-600 transition-colors shadow-lg shadow-azure-500/25">
-          <Plus className="w-4 h-4" /> Add Certification
-        </button>
+        <div className="flex items-center gap-2">
+          <Link to="/tracker"
+            className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl border border-border hover:bg-muted/40 transition-colors">
+            <ClipboardList className="w-4 h-4" /> Cert Tracker
+          </Link>
+          <button onClick={() => setShowForm(true)}
+            className="flex items-center gap-2 px-4 py-2.5 bg-azure-500 text-white text-sm font-medium rounded-xl hover:bg-azure-600 transition-colors shadow-lg shadow-azure-500/25">
+            <Plus className="w-4 h-4" /> Add Certification
+          </button>
+        </div>
       </div>
 
       <div className="bg-card rounded-xl border border-border p-4">

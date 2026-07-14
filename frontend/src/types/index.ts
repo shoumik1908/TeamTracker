@@ -23,12 +23,31 @@ export interface TeamMember {
   managerId?: string;
   manager?: Pick<TeamMember, 'id' | 'name' | 'profilePictureUrl' | 'designation'>;
   projectMembers?: { project: { name: string } }[];
+  allocationStatus?: 'ALLOCATED' | 'BENCHED';
+  currentProjectName?: string | null;
+  activeProjectsCount?: number;
+  activeProjectNames?: string[];
   createdAt: string;
   updatedAt: string;
   _count?: {
     assignedCertifications: number;
     projectMembers: number;
   };
+  // CV fields — populated after CV upload
+  skillsExtracted?: string[] | null;
+  yearsOfExperience?: number | null;
+  cvSummary?: string | null;
+  atsScore?: number | null;
+  atsScoreBreakdown?: {
+    sectionCompleteness: number;
+    formattingHealth: number;
+    keywordStrength: number;
+    contentQuality: number;
+  } | null;
+  atsSuggestions?: string[] | null;
+  cvBlobUrl?: string | null;
+  cvOriginalFilename?: string | null;
+  cvUploadedAt?: string | null;
 }
 
 export interface TeamMemberProfile extends TeamMember {
@@ -70,10 +89,11 @@ export interface AssignedCertification {
   progress: number;
   status: CertificationStatus;
   completionDate?: string;
-  expiryDate?: string;
-  certificateUrl?: string;
-  credentialId?: string;
-  uploadDate?: string;
+  expiryDate?: string | null;
+  certificateUrl?: string | null;
+  credentialId?: string | null;
+  originalFilename?: string | null;
+  uploadDate?: string | null;
   member?: Pick<TeamMember, 'id' | 'name' | 'profilePictureUrl' | 'designation'>;
   certification?: Certification;
 }
@@ -212,5 +232,77 @@ export interface PreSalesOpportunity {
   account: 'PNB' | 'TNM';
   stages: string[];
   currentStageIndex: number;
+  progressPercent: number;
+}
+
+export type GtmCategory = 'NEW_MARKET_ENTRY' | 'EXISTING_CLIENT_EXPANSION';
+
+export interface GtmPlan {
+  id: string;
+  name: string;
+  clientName: string;
+  category: GtmCategory;
+  stages: string[];
+  currentStageIndex: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface GtmPartner {
+  id: string;
+  name: string;
+  tier: string;
+  renewalDate: string;
+  createdAt: string;
+  updatedAt: string;
+  requirements?: GtmPartnerRequirement[];
+}
+
+export interface GtmPartnerRequirement {
+  id: string;
+  partnerId: string;
+  certificationName: string;
+  minimumCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface GtmCampaign {
+  id: string;
+  name: string;
+  launchId?: string | null;
+  partnerId?: string | null;
+  status: 'Planned' | 'Active' | 'Completed';
+  startDate?: string | null;
+  endDate?: string | null;
+  description?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  launch?: GtmPlan | null;
+  partner?: GtmPartner | null;
+}
+
+export interface GtmCollateral {
+  id: string;
+  name: string;
+  url: string;
+  type: string;
+  size: number;
+  uploadedBy: string;
+  uploadedAt: string;
+  launchId?: string | null;
+  partnerId?: string | null;
+  launch?: GtmPlan | null;
+  partner?: GtmPartner | null;
+}
+
+export interface GtmAuditResult {
+  id: string;
+  partnerId: string;
+  partnerName: string;
+  certificationName: string;
+  minimumCount: number;
+  currentCount: number;
+  status: 'Met' | 'At Risk' | 'Not Met';
 }
 

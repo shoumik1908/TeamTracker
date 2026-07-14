@@ -3,6 +3,11 @@ import 'express-async-errors';
 import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
+import { validateAiConfig } from './services/aiProvider';
+
+// Validate AI environment configuration
+validateAiConfig();
+
 
 import membersRouter from './routes/members';
 import certificationsRouter from './routes/certifications';
@@ -15,10 +20,21 @@ import chatRouter from './routes/chat';
 import projectUpdatesRouter from './routes/projectUpdates';
 import teamsRouter from './routes/teams';
 import presalesRouter from './routes/presales';
+import gtmRouter from './routes/gtm';
 import documentationRouter from './routes/documentation';
+import filesRouter from './routes/files';
+import logsRouter from './routes/logs';
+import meetingRecordsRouter from './routes/meetingRecords';
 import { errorHandler } from './middleware/errorHandler';
+import { initLogCleanupJob } from './jobs/logCleanup';
+import { initMeetingMinutesRetryJob } from './jobs/meetingMinutesRetry';
 
 const app = express();
+
+// Initialize scheduled jobs
+initLogCleanupJob();
+initMeetingMinutesRetryJob();
+
 const PORT = process.env.PORT || 3001;
 
 // Middleware
@@ -47,7 +63,13 @@ app.use('/api/chat', chatRouter);
 app.use('/api/project-updates', projectUpdatesRouter);
 app.use('/api/reports', reportsRouter);
 app.use('/api/presales', presalesRouter);
+app.use('/api/gtm', gtmRouter);
+app.use('/api/files', filesRouter);
+app.use('/api/logs', logsRouter);
 app.use('/api/projects/:projectId/documentation', documentationRouter);
+app.use('/api/projects/:projectId/meeting-records', meetingRecordsRouter);
+app.use('/api/presales/:opportunityId/documentation', documentationRouter);
+app.use('/api/presales/:opportunityId/meeting-records', meetingRecordsRouter);
 app.use('/api', teamsRouter);
 
 // 404 handler

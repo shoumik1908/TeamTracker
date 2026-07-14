@@ -1,9 +1,9 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { membersApi, projectsApi } from '@/lib/api';
-import { Plus, Search, Pencil, Trash2, X, Upload, Loader2, MoreVertical, Filter } from 'lucide-react';
-import { getInitials } from '@/lib/utils';
+import { Plus, Search, Pencil, Trash2, X, Upload, Loader2, MoreVertical, Filter, FileUp, FileText, Award } from 'lucide-react';
+import { getInitials, cn } from '@/lib/utils';
 import type { TeamMember, PaginatedResponse } from '@/types';
 
 interface MemberFormData {
@@ -18,9 +18,10 @@ const INITIAL_FORM: MemberFormData = {
   designation: '', managerId: '',
 };
 
-function MemberMenu({ onEdit, onDelete }: {
+function MemberMenu({ onEdit, onDelete, onUploadCv }: {
   onEdit: () => void;
   onDelete: () => void;
+  onUploadCv: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -44,13 +45,20 @@ function MemberMenu({ onEdit, onDelete }: {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-8 z-30 w-36 bg-popover border border-border rounded-xl shadow-xl overflow-hidden animate-fade-in">
+        <div className="absolute right-0 top-8 z-30 w-44 bg-popover border border-border rounded-xl shadow-xl overflow-hidden animate-fade-in">
           <button
             onClick={() => { setOpen(false); onEdit(); }}
             className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-foreground hover:bg-muted/40 transition-colors text-left"
           >
             <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
             Edit
+          </button>
+          <button
+            onClick={() => { setOpen(false); onUploadCv(); }}
+            className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-indigo-400 hover:bg-indigo-950/40 transition-colors text-left"
+          >
+            <FileUp className="w-3.5 h-3.5" />
+            Upload CV
           </button>
           <button
             onClick={() => { setOpen(false); onDelete(); }}
@@ -70,7 +78,7 @@ function MemberFormModal({
 }: {
   member?: TeamMember;
   onClose: () => void;
-  onSave: (form: FormData) => void;
+  onSave: (form: FormData, cvFile: File | null) => void;
 }) {
   const [form, setForm] = useState<MemberFormData>(
     member ? {
@@ -85,6 +93,7 @@ function MemberFormModal({
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(member?.profilePictureUrl || null);
+  const [cvFile, setCvFile] = useState<File | null>(null);
 
   const handleImage = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -97,9 +106,16 @@ function MemberFormModal({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const fd = new FormData();
-    Object.entries(form).forEach(([k, v]) => fd.append(k, v));
+    Object.entries(form).forEach(([k, v]) => {
+      if (v !== undefined && v !== null) {
+        fd.append(k, v);
+      }
+    });
     if (imageFile) fd.append('profilePicture', imageFile);
-    onSave(fd);
+    if (!member) {
+      fd.append('joiningDate', new Date().toISOString());
+    }
+    onSave(fd, cvFile);
   };
 
   return (
@@ -122,6 +138,18 @@ function MemberFormModal({
               <Upload className="w-4 h-4" /> Upload Photo
               <input type="file" accept="image/*" className="hidden" onChange={handleImage} />
             </label>
+          </div>
+
+          <div className="flex items-center gap-4 border border-border p-3 rounded-lg bg-muted/20">
+            <label className="flex items-center gap-2 text-sm text-azure-300 cursor-pointer hover:text-azure-400 border border-azure-800/40 rounded-lg px-3 py-2 hover:bg-azure-900/20 transition-colors">
+              <FileText className="w-4 h-4" /> {cvFile ? 'Change CV' : 'Upload CV'}
+              <input type="file" accept=".pdf,.docx" className="hidden" onChange={e => {
+                const f = e.target.files?.[0];
+                if (f) setCvFile(f);
+                e.target.value = '';
+              }} />
+            </label>
+            {cvFile && <span className="text-xs text-muted-foreground truncate flex-1" title={cvFile.name}>{cvFile.name}</span>}
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -176,6 +204,12 @@ export default function MembersPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
 
+  // Status Filter: ALL, ALLOCATED, BENCHED
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'ALLOCATED' | 'BENCHED'>('ALL');
+  // Sort state
+  const [sortBy, setSortBy] = useState<'name' | 'status' | 'project' | 'count'>('name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+
   const { data: projectsData } = useQuery({
     queryKey: ['projects-filter'],
     queryFn: () => projectsApi.list({ limit: 100 }).then(r => r.data),
@@ -187,19 +221,109 @@ export default function MembersPage() {
   });
 
   const createMember = useMutation({
-    mutationFn: (fd: FormData) => membersApi.create(fd),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['members'] }); qc.invalidateQueries({ queryKey: ['dashboard-stats'] }); setShowForm(false); },
+    mutationFn: async ({ fd, cvFile }: { fd: FormData; cvFile: File | null }) => {
+      const res = await membersApi.create(fd);
+      const newMemberId = res.data?.id;
+      if (cvFile && newMemberId) {
+        setCvUploadingId(newMemberId);
+        const cvFd = new FormData();
+        cvFd.append('cv', cvFile);
+        await membersApi.uploadCv(newMemberId, cvFd);
+      }
+      return res;
+    },
+    onSuccess: () => { 
+      qc.invalidateQueries({ queryKey: ['members'] }); 
+      qc.invalidateQueries({ queryKey: ['dashboard-stats'] }); 
+      setShowForm(false); 
+      setCvUploadingId(null);
+    },
+    onError: () => setCvUploadingId(null)
   });
 
   const updateMember = useMutation({
-    mutationFn: ({ id, fd }: { id: string; fd: FormData }) => membersApi.update(id, fd),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['members'] }); setEditMember(undefined); },
+    mutationFn: async ({ id, fd, cvFile }: { id: string; fd: FormData; cvFile: File | null }) => {
+      const res = await membersApi.update(id, fd);
+      if (cvFile) {
+        setCvUploadingId(id);
+        const cvFd = new FormData();
+        cvFd.append('cv', cvFile);
+        await membersApi.uploadCv(id, cvFd);
+      }
+      return res;
+    },
+    onSuccess: () => { 
+      qc.invalidateQueries({ queryKey: ['members'] }); 
+      setEditMember(undefined); 
+      setCvUploadingId(null);
+    },
+    onError: () => setCvUploadingId(null)
   });
 
   const deleteMember = useMutation({
     mutationFn: (id: string) => membersApi.delete(id),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['members'] }); qc.invalidateQueries({ queryKey: ['dashboard-stats'] }); setDeleteId(null); },
   });
+
+  const [cvUploadingId, setCvUploadingId] = useState<string | null>(null);
+  const cvFileRef = useRef<HTMLInputElement>(null);
+
+  const uploadCvMutation = useMutation({
+    mutationFn: ({ id, file }: { id: string; file: File }) => {
+      const fd = new FormData();
+      fd.append('cv', file);
+      return membersApi.uploadCv(id, fd);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['members'] });
+      setCvUploadingId(null);
+    },
+    onError: () => setCvUploadingId(null),
+  });
+
+  // Client-side filtering and sorting
+  const processedMembers = useMemo(() => {
+    if (!data?.data) return [];
+    let list = [...data.data];
+
+    // Filter by status
+    if (statusFilter !== 'ALL') {
+      list = list.filter(m => m.allocationStatus === statusFilter);
+    }
+
+    // Sort list
+    list.sort((a, b) => {
+      let comparison = 0;
+      if (sortBy === 'name') {
+        comparison = a.name.localeCompare(b.name);
+      } else if (sortBy === 'status') {
+        const aStatus = a.allocationStatus || 'BENCHED';
+        const bStatus = b.allocationStatus || 'BENCHED';
+        comparison = aStatus.localeCompare(bStatus);
+      } else if (sortBy === 'project') {
+        const aProj = a.currentProjectName || '';
+        const bProj = b.currentProjectName || '';
+        comparison = aProj.localeCompare(bProj);
+      } else if (sortBy === 'count') {
+        const aCount = a.activeProjectsCount || 0;
+        const bCount = b.activeProjectsCount || 0;
+        comparison = aCount - bCount;
+      }
+
+      return sortOrder === 'asc' ? comparison : -comparison;
+    });
+
+    return list;
+  }, [data?.data, statusFilter, sortBy, sortOrder]);
+
+  const handleSort = (field: 'name' | 'status' | 'project' | 'count') => {
+    if (sortBy === field) {
+      setSortOrder(prev => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortBy(field);
+      setSortOrder('asc');
+    }
+  };
 
   return (
     <div className="space-y-5">
@@ -218,32 +342,56 @@ export default function MembersPage() {
       </div>
 
       {/* Search and Filters */}
-      <div className="bg-card rounded-xl border border-border p-4 flex flex-col sm:flex-row sm:justify-between gap-4">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="Search by name, email…"
-            value={search}
-            onChange={e => { setSearch(e.target.value); }}
-            className="w-full pl-9 pr-4 py-2 text-sm border border-border rounded-lg bg-muted/20 focus:outline-none focus:ring-2 focus:ring-azure-500/30 focus:border-azure-500"
-          />
+      <div className="bg-card rounded-xl border border-border p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div className="flex flex-col sm:flex-row flex-1 gap-3">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Search by name, email…"
+              value={search}
+              onChange={e => { setSearch(e.target.value); }}
+              className="w-full pl-9 pr-4 py-2 text-sm border border-border rounded-lg bg-muted/20 focus:outline-none focus:ring-2 focus:ring-azure-500/30 focus:border-azure-500"
+            />
+          </div>
+
+          <div className="relative w-full sm:max-w-xs">
+            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+            <select
+              value={projectId}
+              onChange={(e) => setProjectId(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 text-sm border border-border rounded-lg bg-muted/20 appearance-none focus:outline-none focus:ring-2 focus:ring-azure-500/30 focus:border-azure-500 text-foreground"
+            >
+              <option value="" className="bg-zinc-900 text-foreground">All Projects</option>
+              {projectsData?.data?.map((project: any) => (
+                <option key={project.id} value={project.id} className="bg-zinc-900 text-foreground">
+                  {project.name}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
-        
-        <div className="relative w-full sm:max-w-xs">
-          <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-          <select
-            value={projectId}
-            onChange={(e) => setProjectId(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 text-sm border border-border rounded-lg bg-muted/20 appearance-none focus:outline-none focus:ring-2 focus:ring-azure-500/30 focus:border-azure-500 text-foreground"
-          >
-            <option value="" className="bg-zinc-900 text-foreground">All Projects</option>
-            {projectsData?.data?.map((project: any) => (
-              <option key={project.id} value={project.id} className="bg-zinc-900 text-foreground">
-                {project.name}
-              </option>
-            ))}
-          </select>
+
+        {/* Quick Filters */}
+        <div className="flex items-center gap-1 bg-muted/10 p-1 border border-border rounded-xl self-start md:self-auto">
+          {[
+            { label: 'All', value: 'ALL' },
+            { label: 'Allocated', value: 'ALLOCATED' },
+            { label: 'Benched', value: 'BENCHED' },
+          ].map(tab => (
+            <button
+              key={tab.value}
+              onClick={() => setStatusFilter(tab.value as any)}
+              className={cn(
+                'px-3 py-1.5 text-xs font-semibold rounded-lg transition-all',
+                statusFilter === tab.value
+                  ? 'bg-azure-500 text-white shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-white/5'
+              )}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -252,21 +400,29 @@ export default function MembersPage() {
         <table className="w-full data-table">
           <thead>
             <tr>
-              <th className="text-left">Member</th>
+              <th className="text-left cursor-pointer hover:text-azure-400 select-none" onClick={() => handleSort('name')}>
+                Member {sortBy === 'name' && (sortOrder === 'asc' ? '▲' : '▼')}
+              </th>
               <th className="text-left">Designation</th>
-              <th className="text-left">Projects</th>
+              <th className="text-left cursor-pointer hover:text-azure-400 select-none" onClick={() => handleSort('status')}>
+                Allocation Status {sortBy === 'status' && (sortOrder === 'asc' ? '▲' : '▼')}
+              </th>
+              <th className="text-left cursor-pointer hover:text-azure-400 select-none" onClick={() => handleSort('project')}>
+                Current Project {sortBy === 'project' && (sortOrder === 'asc' ? '▲' : '▼')}
+              </th>
+              <th className="text-left">CV</th>
               <th className="text-left"></th>
             </tr>
           </thead>
           <tbody>
             {isLoading && Array.from({ length: 5 }).map((_, i) => (
               <tr key={i}>
-                {Array.from({ length: 4 }).map((__, j) => (
+                {Array.from({ length: 6 }).map((__, j) => (
                   <td key={j}><div className="h-4 bg-muted rounded animate-pulse w-20" /></td>
                 ))}
               </tr>
             ))}
-            {data?.data.map(member => (
+            {processedMembers.map(member => (
               <tr key={member.id} className="hover:bg-muted/10 transition-colors">
                 <td>
                   <div
@@ -286,48 +442,124 @@ export default function MembersPage() {
                 </td>
                 <td><span className="text-sm text-muted-foreground">{member.designation}</span></td>
                 <td>
-                  <div className="relative group/tooltip inline-flex items-center justify-center">
-                    <span className="text-sm font-medium">
-                      {member.projectMembers?.length || 0}
-                    </span>
-                    {member.projectMembers && member.projectMembers.length > 0 && (
-                      <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 hidden group-hover/tooltip:block z-50 animate-fade-in pointer-events-none">
-                        <div className="bg-popover border border-border text-foreground text-xs rounded-lg py-2 px-3 shadow-xl whitespace-nowrap">
-                          {member.projectMembers.map((pm, i) => (
-                            <div key={i} className="mb-1 last:mb-0">• {pm.project.name}</div>
-                          ))}
+                  <span className={cn(
+                    'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border',
+                    member.allocationStatus === 'ALLOCATED'
+                      ? 'bg-emerald-950/30 text-emerald-400 border-emerald-800/30'
+                      : 'bg-amber-950/30 text-amber-400 border-amber-800/30'
+                  )}>
+                    <span className={cn('w-1.5 h-1.5 rounded-full', member.allocationStatus === 'ALLOCATED' ? 'bg-emerald-500' : 'bg-amber-500')} />
+                    {member.allocationStatus === 'ALLOCATED' ? 'Allocated' : 'Benched'}
+                  </span>
+                </td>
+                <td>
+                  {member.currentProjectName ? (
+                    <div className="relative group/tooltip inline-block">
+                      <span className="text-sm text-foreground font-medium">
+                        {member.currentProjectName}
+                        {member.activeProjectsCount && member.activeProjectsCount > 1 && ` (+${member.activeProjectsCount - 1} more)`}
+                      </span>
+                      {member.activeProjectNames && member.activeProjectNames.length > 1 && (
+                        <div className="absolute bottom-full mb-2 left-0 hidden group-hover/tooltip:block z-50 animate-fade-in pointer-events-none">
+                          <div className="bg-popover border border-border text-foreground text-xs rounded-lg py-2 px-3 shadow-xl whitespace-nowrap">
+                            {member.activeProjectNames.map((proj, i) => (
+                              <div key={i} className="mb-1 last:mb-0">• {proj}</div>
+                            ))}
+                          </div>
+                          <div className="absolute top-full left-4 -translate-x-1/2 -mt-px border-4 border-transparent border-t-border" />
+                          <div className="absolute top-full left-4 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-popover" />
                         </div>
-                        {/* Triangle */}
-                        <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-px border-4 border-transparent border-t-border" />
-                        <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-popover" />
-                      </div>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="text-sm text-muted-foreground">—</span>
+                  )}
+                </td>
+                <td>
+                  <div className="flex items-center gap-2">
+                    {member.cvBlobUrl ? (
+                      <a
+                        href={member.cvBlobUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={cn(
+                          "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border transition-colors",
+                          (member.atsScore || 0) >= 90 ? "bg-emerald-950/30 text-emerald-400 border-emerald-800/30 hover:bg-emerald-900/30" :
+                          (member.atsScore || 0) >= 80 ? "bg-teal-950/30 text-teal-400 border-teal-800/30 hover:bg-teal-900/30" :
+                          (member.atsScore || 0) >= 70 ? "bg-azure-950/30 text-azure-400 border-azure-800/30 hover:bg-azure-900/30" :
+                          (member.atsScore || 0) >= 60 ? "bg-amber-950/30 text-amber-400 border-amber-800/30 hover:bg-amber-900/30" :
+                          "bg-red-950/30 text-red-400 border-red-800/30 hover:bg-red-900/30"
+                        )}
+                        title="Click to view CV"
+                      >
+                        <div className="flex items-center gap-1">
+                          <Award className="w-3.5 h-3.5" />
+                          <span>ATS Score: {member.atsScore}</span>
+                        </div>
+                      </a>
+                    ) : (
+                      <button
+                        onClick={() => { setCvUploadingId(member.id); cvFileRef.current?.click(); }}
+                        disabled={cvUploadingId === member.id}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-muted hover:bg-muted-foreground/10 text-muted-foreground transition-colors border border-border"
+                      >
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>Upload</span>
+                      </button>
                     )}
                   </div>
                 </td>
                 <td>
-                  <MemberMenu
-                    onEdit={() => setEditMember(member)}
-                    onDelete={() => setDeleteId(member.id)}
-                  />
+                  <div className="flex items-center justify-end gap-1">
+                    {cvUploadingId === member.id && (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-400" />
+                    )}
+                    <MemberMenu
+                      onEdit={() => setEditMember(member)}
+                      onDelete={() => setDeleteId(member.id)}
+                      onUploadCv={() => { setCvUploadingId(member.id); cvFileRef.current?.click(); }}
+                    />
+                  </div>
                 </td>
               </tr>
             ))}
-            {!isLoading && data?.data.length === 0 && (
-              <tr><td colSpan={4} className="text-center py-12 text-muted-foreground">No members found</td></tr>
+            {!isLoading && processedMembers.length === 0 && (
+              <tr><td colSpan={6} className="text-center py-12 text-muted-foreground">No members found</td></tr>
             )}
           </tbody>
         </table>
 
       </div>
 
+      {/* CV file input (shared, triggered by row menu) */}
+      <input
+        ref={cvFileRef}
+        type="file"
+        accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        className="hidden"
+        onChange={e => {
+          const file = e.target.files?.[0];
+          if (file && cvUploadingId) {
+            uploadCvMutation.mutate({ id: cvUploadingId, file });
+          } else {
+            setCvUploadingId(null);
+          }
+          e.target.value = '';
+        }}
+      />
+
       {/* Add/Edit Modal */}
-      {(showForm || editMember) && (
+
+      {(showForm || !!editMember) && (
         <MemberFormModal
           member={editMember}
           onClose={() => { setShowForm(false); setEditMember(undefined); }}
-          onSave={(fd) => {
-            if (editMember) updateMember.mutate({ id: editMember.id, fd });
-            else createMember.mutate(fd);
+          onSave={(fd, cvFile) => {
+            if (editMember) {
+              updateMember.mutate({ id: editMember.id, fd, cvFile });
+            } else {
+              createMember.mutate({ fd, cvFile });
+            }
           }}
         />
       )}

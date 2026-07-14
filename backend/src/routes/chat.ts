@@ -1,5 +1,6 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
+import { aiProvider, ChatMessage } from '../services/aiProvider';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -83,7 +84,7 @@ Projects: ${projects.length} (${activeProjects.length} active, ${completedProjec
 ${members.map(m => {
     const acs = m.assignedCertifications;
     const done = acs.filter(a => a.status === 'COMPLETED').length;
-    return `• ${m.name} (${m.designation || '—'}) | Certs: ${acs.length} total, ${done} completed | Projects: ${m.projectMembers.map(pm => pm.project.name).join(', ') || 'None'}`;
+    return `• ${m.name} (${m.designation || '—'}) | Certs: ${acs.length} total, ${done} completed | Projects: ${m.projectMembers.map(pm => pm.project?.name).filter(Boolean).join(', ') || 'None'}`;
   }).join('\n')}
 
 --- CERTIFICATION CATALOG (${certifications.length}) ---
@@ -143,50 +144,22 @@ GUIDELINES:
 
 ${context}`;
 
-    // Helper: call Groq with one automatic retry on 429 / rate limits
-    const callGroq = async (retryCount = 0): Promise<string> => {
-      try {
-        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            model: 'llama-3.1-8b-instant',
-            messages: [
-              { role: 'system', content: systemPrompt },
-              ...history.map((msg: { role: string; content: string }) => ({
-                role: msg.role === 'user' ? 'user' : 'assistant',
-                content: msg.content
-              })),
-              { role: 'user', content: message }
-            ],
-            temperature: 0.2,
-            max_tokens: 1024
-          })
-        });
+    const messages: ChatMessage[] = [
+      { role: 'system', content: systemPrompt },
+      ...history.map((msg: { role: string; content: string }) => ({
+        role: (msg.role === 'user' ? 'user' : 'assistant') as any,
+        content: msg.content
+      })),
+      { role: 'user', content: message }
+    ];
 
-        if (!response.ok) {
-          const errBody: any = await response.json().catch(() => ({}));
-          const status = response.status;
-          throw { status, message: errBody.error?.message || 'Groq API error' };
-        }
+    const response = await aiProvider.chat(messages, {
+      model: 'llama-3.1-8b-instant',
+      temperature: 0.2,
+      maxTokens: 1024
+    });
 
-        const data: any = await response.json();
-        return data.choices?.[0]?.message?.content || '';
-      } catch (err: any) {
-        if (err.status === 429 && retryCount === 0) {
-          // Wait 6 seconds then retry once
-          await new Promise(resolve => setTimeout(resolve, 6000));
-          return callGroq(1);
-        }
-        throw err;
-      }
-    };
-
-    const response = await callGroq();
-    res.json({ reply: response });
+    res.json({ reply: response.content });
   } catch (error: any) {
     console.error('Chat error:', error);
 

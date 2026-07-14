@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { presalesApi } from '@/lib/presalesApi';
-import { X, Loader2, PlusCircle, Check } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { X, Loader2, PlusCircle } from 'lucide-react';
 
 interface AddOpportunityModalProps {
   isOpen: boolean;
@@ -158,57 +157,6 @@ export default function AddOpportunityModal({
               className="w-full px-3.5 py-2 text-sm border border-border rounded-xl bg-zinc-900 text-foreground focus:outline-none focus:ring-2 focus:ring-azure-500/30 transition-all"
             />
           </div>
-
-          {/* Timeline Checkbox Selectors */}
-          <div className="space-y-2">
-            <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Create Timelines For *
-            </label>
-            
-            <div className="flex flex-col gap-2.5 sm:flex-row sm:gap-4 pt-1">
-              {/* PNB checkbox */}
-              <button
-                type="button"
-                onClick={() => setCreatePnb(!createPnb)}
-                className="flex items-center gap-2.5 text-sm font-medium text-foreground text-left focus:outline-none select-none group"
-              >
-                <div
-                  className={cn(
-                    'w-5 h-5 rounded-md border flex items-center justify-center transition-all duration-200',
-                    createPnb
-                      ? 'bg-azure-500 border-azure-500 text-white shadow-sm shadow-azure-500/10'
-                      : 'bg-zinc-900 border-border group-hover:border-muted-foreground/60'
-                  )}
-                >
-                  {createPnb && <Check className="w-3.5 h-3.5 stroke-[3]" />}
-                </div>
-                <span>PNB (Proposal & Bid)</span>
-              </button>
-
-              {/* TNM checkbox */}
-              <button
-                type="button"
-                onClick={() => setCreateTnm(!createTnm)}
-                className="flex items-center gap-2.5 text-sm font-medium text-foreground text-left focus:outline-none select-none group"
-              >
-                <div
-                  className={cn(
-                    'w-5 h-5 rounded-md border flex items-center justify-center transition-all duration-200',
-                    createTnm
-                      ? 'bg-azure-500 border-azure-500 text-white shadow-sm shadow-azure-500/10'
-                      : 'bg-zinc-900 border-border group-hover:border-muted-foreground/60'
-                  )}
-                >
-                  {createTnm && <Check className="w-3.5 h-3.5 stroke-[3]" />}
-                </div>
-                <span>TNM (Time & Material)</span>
-              </button>
-            </div>
-          </div>
-
-          <p className="text-[11px] text-muted-foreground mt-1">
-            New timelines start automatically at the first stage of their lifecycle.
-          </p>
 
           {error && <p className="text-xs text-red-400 font-medium">{error}</p>}
         </div>

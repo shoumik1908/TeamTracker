@@ -44,6 +44,69 @@ router.get('/', async (req: Request, res: Response) => {
   res.json({ data: projects, pagination: { page: pageNum, limit: limitNum, total, totalPages: Math.ceil(total / limitNum) } });
 });
 
+// GET /api/projects/:id/pulse
+router.get('/:id/pulse', async (req: Request, res: Response) => {
+  try {
+    const projectId = req.params.id;
+    
+    const [openActionItems, openBlockers, recentDecisions, project] = await Promise.all([
+      prisma.meetingActionItem.findMany({
+        where: { meetingRecord: { projectId }, status: 'open' },
+        include: { assignedTo: true, meetingRecord: { select: { meetingDate: true, meetingTitle: true } } },
+        orderBy: { dueDate: 'asc' }
+      }),
+      prisma.blockerRisk.findMany({
+        where: { projectId, status: 'open' },
+        include: { firstRaisedMeeting: { select: { meetingDate: true, meetingTitle: true } } },
+        orderBy: { createdAt: 'desc' }
+      }),
+      prisma.keyDecision.findMany({
+        where: { meetingRecord: { projectId } },
+        include: { decidedBy: true, meetingRecord: { select: { meetingDate: true, meetingTitle: true } } },
+        orderBy: { createdAt: 'desc' },
+        take: 5
+      }),
+      prisma.project.findUnique({
+        where: { id: projectId },
+        select: {
+          meetingRecords: {
+            orderBy: { meetingDate: 'desc' },
+            take: 1,
+            select: { meetingDate: true }
+          }
+        }
+      })
+    ]);
+
+    const lastMeetingDate = project?.meetingRecords[0]?.meetingDate || null;
+
+    res.json({
+      openActionItems,
+      openBlockers,
+      recentDecisions,
+      lastMeetingDate
+    });
+  } catch (error: any) {
+    console.error('[Project Pulse Error]', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// PATCH /api/projects/:id/blockers/:blockerId/status
+router.patch('/:id/blockers/:blockerId/status', async (req: Request, res: Response) => {
+  try {
+    const { blockerId } = req.params;
+    const { status } = req.body;
+    await prisma.blockerRisk.update({
+      where: { id: blockerId },
+      data: { status }
+    });
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // GET /api/projects/:id
 router.get('/:id', async (req: Request, res: Response) => {
   const project = await prisma.project.findUnique({

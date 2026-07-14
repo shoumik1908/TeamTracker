@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
-  LayoutDashboard, Users, Award, ClipboardList, FolderKanban,
-  Clock, Bell, FileBarChart, ChevronLeft, ChevronRight,
-  Zap, MessageSquareDiff, Target,
+  LayoutDashboard, Users, Award, FolderKanban,
+  Bell, FileBarChart, ChevronLeft, ChevronRight,
+  Zap, MessageSquareDiff, Target, Rocket, FolderOpen, History
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
@@ -13,13 +13,14 @@ const navItems = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/members', icon: Users, label: 'Team Members' },
   { to: '/certifications', icon: Award, label: 'Certifications' },
-  { to: '/tracker', icon: ClipboardList, label: 'Cert Tracker' },
   { to: '/projects', icon: FolderKanban, label: 'Projects' },
   { to: '/presales', icon: Target, label: 'PreSales' },
+  { to: '/gtm', icon: Rocket, label: 'GTM' },
   { to: '/project-updates', icon: MessageSquareDiff, label: 'Project Updates' },
-  { to: '/deadlines', icon: Clock, label: 'Deadlines' },
   { to: '/notifications', icon: Bell, label: 'Notifications' },
   { to: '/reports', icon: FileBarChart, label: 'Reports' },
+  { to: '/files', icon: FolderOpen, label: 'Files' },
+  { to: '/logs', icon: History, label: 'Logs' },
 ];
 
 

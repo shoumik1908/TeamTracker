@@ -23,11 +23,25 @@ model TeamMember {
   createdAt              DateTime                @default(now())
   updatedAt              DateTime                @updatedAt
 
+  // CV fields (populated after CV upload + Groq extraction)
+  skillsExtracted        Json?                   // Array of strings from Groq
+  yearsOfExperience      Int?
+  cvSummary              String?
+  atsScore               Int?
+  atsScoreBreakdown      Json?                   // Detailed breakdown of the ATS score
+  atsSuggestions         Json?                   // Array of string suggestions
+  cvBlobUrl              String?
+  cvOriginalFilename     String?
+  cvUploadedAt           DateTime?
+
   assignedCertifications AssignedCertification[]
   projectMembers         ProjectMember[]
   managedProjects        Project[]               @relation("ProjectManager")
   notifications          Notification[]
   projectUpdates         ProjectUpdate[]
+  meetingActionItems     MeetingActionItem[]
+  keyDecisions           KeyDecision[]
+  meetingAttendances     MeetingAttendee[]
 
   managerId              String?
   manager                TeamMember?             @relation("TeamManager", fields: [managerId], references: [id], onDelete: SetNull)
@@ -65,6 +79,7 @@ model AssignedCertification {
   expiryDate        DateTime?
   certificateUrl    String?
   credentialId      String?
+  originalFilename  String?
   uploadDate        DateTime?
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
@@ -99,19 +114,23 @@ model Project {
   files          ProjectFile[]
   links          ProjectLink[]
   notes          ProjectNote[]
+  meetingRecords MeetingRecord[]
+  blockers       BlockerRisk[]
 
   @@map("projects")
 }
 
 model ProjectMember {
-  id        String     @id @default(cuid())
-  projectId String
-  memberId  String
-  role      String?
-  joinedAt  DateTime   @default(now())
+  id            String   @id @default(cuid())
+  projectId     String?
+  opportunityId String?
+  memberId      String
+  role          String?
+  joinedAt      DateTime @default(now())
 
-  project   Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  member    TeamMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  project       Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  opportunity   PreSalesOpportunity? @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  member        TeamMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
 
   @@unique([projectId, memberId])
   @@map("project_members")
@@ -119,14 +138,16 @@ model ProjectMember {
 
 model ProjectUpdate {
   id            String     @id @default(cuid())
-  projectId     String
+  projectId     String?
+  opportunityId String?
   memberId      String
   updateText    String
   updateType    String     // Progress / Blocker / Milestone / General
   progressValue Int?
   createdAt     DateTime   @default(now())
 
-  project       Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project       Project?    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  opportunity   PreSalesOpportunity? @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
   member        TeamMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
 
   @@map("project_updates")
@@ -164,6 +185,98 @@ model TeamsMeeting {
   project           Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@map("teams_meetings")
+}
+
+model MeetingRecord {
+  id                String   @id @default(cuid())
+  projectId         String?
+  opportunityId     String?
+  meetingTitle      String
+  meetingDate       DateTime
+  recordingType     String?  // 'file' | 'link'
+  recordingUrl      String?
+  transcriptUrl     String?
+  transcriptText    String?  @db.Text
+  transcriptSource  String?  // 'pasted' | 'uploaded_file'
+  aiMinutes         Json?
+  createdBy         String?
+  createdAt         DateTime @default(now())
+
+  project           Project?  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  opportunity       PreSalesOpportunity? @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  actionItems       MeetingActionItem[]
+  keyDecisions      KeyDecision[]
+  blockersAndRisks  BlockerRisk[]         @relation("MeetingBlockers")
+  resolvedBlockers  BlockerRisk[]         @relation("ResolvedInMeeting")
+  attendees         MeetingAttendee[]
+
+  @@map("meeting_records")
+}
+
+model MeetingActionItem {
+  id                String   @id @default(cuid())
+  meetingRecordId   String
+  task              String   @db.Text
+  originalOwnerText String
+  assignedToId      String?  
+  dueDate           DateTime?
+  completed         Boolean  @default(false)
+  status            String   @default("open") // 'open' | 'completed'
+  priority          String?  // 'high' | 'medium' | 'low'
+  createdAt         DateTime @default(now())
+
+  meetingRecord     MeetingRecord @relation(fields: [meetingRecordId], references: [id], onDelete: Cascade)
+  assignedTo        TeamMember?   @relation(fields: [assignedToId], references: [id], onDelete: SetNull)
+
+  @@map("meeting_action_items")
+}
+
+model KeyDecision {
+  id                String   @id @default(cuid())
+  meetingRecordId   String
+  decisionText      String   @db.Text
+  context           String?  @db.Text
+  decidedById       String?
+
+  createdAt         DateTime @default(now())
+
+  meetingRecord     MeetingRecord @relation(fields: [meetingRecordId], references: [id], onDelete: Cascade)
+  decidedBy         TeamMember?   @relation(fields: [decidedById], references: [id], onDelete: SetNull)
+
+  @@map("key_decisions")
+}
+
+model BlockerRisk {
+  id                     String   @id @default(cuid())
+  projectId              String?
+  opportunityId          String?
+  description            String   @db.Text
+  status                 String   @default("open") // 'open' | 'resolved'
+  firstRaisedMeetingId   String
+  resolvedInMeetingId    String?
+
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  project                Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  firstRaisedMeeting     MeetingRecord @relation("MeetingBlockers", fields: [firstRaisedMeetingId], references: [id], onDelete: Cascade)
+  resolvedInMeeting      MeetingRecord? @relation("ResolvedInMeeting", fields: [resolvedInMeetingId], references: [id], onDelete: SetNull)
+
+  @@map("blockers_risks")
+}
+
+model MeetingAttendee {
+  id                String   @id @default(cuid())
+  meetingRecordId   String
+  memberId          String?
+  rawName           String
+
+  createdAt         DateTime @default(now())
+
+  meetingRecord     MeetingRecord @relation(fields: [meetingRecordId], references: [id], onDelete: Cascade)
+  member            TeamMember?   @relation(fields: [memberId], references: [id], onDelete: SetNull)
+
+  @@map("meeting_attendees")
 }
 
 // Enums
@@ -210,53 +323,180 @@ model PreSalesOpportunity {
   id                String   @id @default(cuid())
   name              String
   clientName        String
+  description       String?  @db.Text
   account           String   // 'PNB' or 'TNM'
+  stages            String[]
+  currentStageIndex Int      @default(0)
+  progressPercent   Int      @default(0)  // 0-100, continuous progress (AI-driven or stage-boundary on manual click)
+
+  // ── Proposal Summary ────────────────────────────────────────────────────────
+  // These nine columns are populated ONLY by POST /:id/generate-proposal.
+  // They are NEVER touched by PATCH /:id/stage, PATCH /:id/progress, or POST /:id/reset —
+  // those routes only update currentStageIndex and/or progressPercent.
+  executiveSummary        String?   @db.Text
+  scopeOfWork             String?   @db.Text
+  architecture            String?   @db.Text
+  implementationApproach  String?   @db.Text
+  deliveryApproach        String?   @db.Text
+  assumptions             String?   @db.Text
+  outOfScope              String?   @db.Text
+  timelines               String?   @db.Text
+  commercials             String?   @db.Text
+  sourceDocuments         Json?     // array of { fileName, blobUrl, uploadedAt }
+  descriptionGeneratedAt  DateTime?
+  // ────────────────────────────────────────────────────────────────────────────
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  updates           ProjectUpdate[]
+  assignments       ProjectMember[]
+  files             ProjectFile[]
+  links             ProjectLink[]
+  notes             ProjectNote[]
+  meetingRecords    MeetingRecord[]
+
+  @@map("presales_opportunities")
+}
+
+model GtmPlan {
+  id                String   @id @default(cuid())
+  name              String
+  clientName        String
+  category          String   // 'NEW_MARKET_ENTRY' or 'EXISTING_CLIENT_EXPANSION'
   stages            String[]
   currentStageIndex Int      @default(0)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
-  @@map("presales_opportunities")
+  campaigns         GtmCampaign[]
+  files             GtmCollateral[]
+
+  @@map("gtm_plans")
+}
+
+model GtmPartner {
+  id           String                  @id @default(cuid())
+  name         String
+  tier         String                  // e.g. Gold Partner, Select Partner
+  renewalDate  DateTime                @map("renewal_date")
+  createdAt    DateTime                @default(now()) @map("created_at")
+  updatedAt    DateTime                @updatedAt @map("updated_at")
+
+  requirements GtmPartnerRequirement[]
+  campaigns    GtmCampaign[]
+  files        GtmCollateral[]
+
+  @@map("gtm_partners")
+}
+
+model GtmPartnerRequirement {
+  id                String      @id @default(cuid())
+  partnerId         String      @map("partner_id")
+  certificationName String      @map("certification_name")
+  minimumCount      Int         @map("minimum_count")
+  createdAt         DateTime    @default(now()) @map("created_at")
+  updatedAt         DateTime    @updatedAt @map("updated_at")
+
+  partner           GtmPartner  @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  @@map("gtm_partner_requirements")
+}
+
+model GtmCampaign {
+  id          String      @id @default(cuid())
+  name        String
+  launchId    String?     @map("launch_id")
+  partnerId   String?     @map("partner_id")
+  status      String      // 'Planned' | 'Active' | 'Completed'
+  startDate   DateTime?   @map("start_date")
+  endDate     DateTime?   @map("end_date")
+  description String?     @db.Text
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+
+  launch      GtmPlan?    @relation(fields: [launchId], references: [id], onDelete: SetNull)
+  partner     GtmPartner? @relation(fields: [partnerId], references: [id], onDelete: SetNull)
+
+  @@map("gtm_campaigns")
+}
+
+model GtmCollateral {
+  id          String      @id @default(cuid())
+  name        String
+  url         String
+  type        String
+  size        Int
+  uploadedBy  String      @map("uploaded_by")
+  uploadedAt  DateTime    @default(now()) @map("uploaded_at")
+  launchId    String?     @map("launch_id")
+  partnerId   String?     @map("partner_id")
+
+  launch      GtmPlan?    @relation(fields: [launchId], references: [id], onDelete: SetNull)
+  partner     GtmPartner? @relation(fields: [partnerId], references: [id], onDelete: SetNull)
+
+  @@map("gtm_collaterals")
+}
+
+model StageChangeLog {
+  id              String   @id @default(cuid())
+  opportunityId   String   // The specific PreSalesOpportunity row ID
+  track           String   // 'PNB' | 'TNM'
+  previousStage   String
+  newStage        String
+  source          String   // 'manual' | 'ai_suggested'
+  reasoning       String?  // Groq's reasoning field (only for ai_suggested)
+  blobUrl         String?  // URL of the uploaded document (only for ai_suggested)
+  originalFilename String? // The actual original file name of the document
+  createdAt       DateTime @default(now())
+
+  @@map("stage_change_logs")
 }
 
 model ProjectFile {
-  id         String   @id @default(cuid())
-  projectId  String
-  name       String
+  id            String   @id @default(cuid())
+  projectId     String?
+  opportunityId String?
+  name          String
   url        String
   type       String
   size       Int
   uploadedBy String
   uploadedAt DateTime @default(now())
 
-  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project       Project?  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  opportunity   PreSalesOpportunity? @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
 
   @@map("project_files")
 }
 
 model ProjectLink {
-  id          String   @id @default(cuid())
-  projectId   String
-  title       String
+  id            String   @id @default(cuid())
+  projectId     String?
+  opportunityId String?
+  title         String
   url         String
   description String?
   addedBy     String
   addedAt     DateTime @default(now())
 
-  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project       Project?  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  opportunity   PreSalesOpportunity? @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
 
   @@map("project_links")
 }
 
 model ProjectNote {
-  id        String   @id @default(cuid())
-  projectId String
-  title     String
+  id            String   @id @default(cuid())
+  projectId     String?
+  opportunityId String?
+  title         String
   content   String   @db.Text
   updatedBy String
   updatedAt DateTime @updatedAt
 
-  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project       Project?  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  opportunity   PreSalesOpportunity? @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
 
   @@map("project_notes")
 }
@@ -275,4 +515,15 @@ model CertificateEditRequest {
   assignment      AssignedCertification @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
 
   @@map("certificate_edit_requests")
+}
+
+model ActivityLog {
+  id          String   @id @default(cuid())
+  category    String   // e.g., 'Certificate', 'CV', 'GTM', 'Project'
+  action      String   // e.g., 'UPLOAD', 'DELETE', 'UPDATE', 'CREATE'
+  details     String   @db.Text
+  performedBy String   @default("System")
+  createdAt   DateTime @default(now())
+
+  @@map("activity_logs")
 }

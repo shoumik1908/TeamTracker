@@ -61,6 +61,9 @@ export const CONTAINERS = {
   PROFILE_IMAGES: process.env.AZURE_CONTAINER_PROFILE_IMAGES || 'profile-images',
   PROJECT_DOCS: process.env.AZURE_CONTAINER_PROJECT_DOCS || 'project-documents',
   REPORTS: process.env.AZURE_CONTAINER_REPORTS || 'reports',
+  CVS: process.env.AZURE_CONTAINER_CVS || 'resume',
+  PRESALES_DOCS: process.env.AZURE_CONTAINER_PRESALES_DOCS || 'presales-documents',
+  PROJECT_RECORDINGS: process.env.AZURE_CONTAINER_PROJECT_RECORDINGS || 'project-recordings',
 };
 
 export async function uploadFile(
@@ -69,19 +72,26 @@ export async function uploadFile(
   originalName: string,
   mimeType: string,
   memberId?: string,
-  memberName?: string
+  memberName?: string,
+  customBlobPrefix?: string
 ): Promise<{ url: string; blobName: string }> {
   const ext = originalName.split('.').pop() || '';
   const uniqueName = `${uuidv4()}.${ext}`;
 
-  if (containerName === CONTAINERS.CERTIFICATES) {
-    console.log(`[ADLS Gen2] Directing upload to Data Lake for memberId: ${memberId}, name: ${memberName}`);
+  if (containerName === CONTAINERS.CERTIFICATES || containerName === CONTAINERS.PROJECT_RECORDINGS) {
+    console.log(`[ADLS Gen2] Directing upload to Data Lake for container: ${containerName}`);
     const serviceClient = getDataLakeServiceClient();
     const fileSystemClient = serviceClient.getFileSystemClient(containerName);
+    await fileSystemClient.createIfNotExists();
     
-    // Create member folder: {teamMemberId}-{PersonName}
-    const sanitizedName = memberName ? sanitizeDirectoryName(memberName) : 'unknown_member';
-    const folderName = `${memberId || 'unknown_id'}-${sanitizedName}`;
+    let folderName = '';
+    if (containerName === CONTAINERS.CERTIFICATES) {
+      const sanitizedName = memberName ? sanitizeDirectoryName(memberName) : 'unknown_member';
+      folderName = `${memberId || 'unknown_id'}-${sanitizedName}`;
+    } else {
+      // For PROJECT_RECORDINGS, memberId is repurposed as projectId
+      folderName = memberId || 'unknown_project';
+    }
 
     // Ensure directory exists
     const directoryClient = fileSystemClient.getDirectoryClient(folderName);
@@ -102,19 +112,21 @@ export async function uploadFile(
   } else {
     // Normal blob client
     const containerClient = await getContainerClient(containerName);
-    const blockBlobClient = containerClient.getBlockBlobClient(uniqueName);
+    await containerClient.createIfNotExists();
+    const finalBlobName = customBlobPrefix ? `${customBlobPrefix}/${uniqueName}` : uniqueName;
+    const blockBlobClient = containerClient.getBlockBlobClient(finalBlobName);
 
     await blockBlobClient.uploadData(fileBuffer, {
       blobHTTPHeaders: { blobContentType: mimeType },
     });
 
-    const url = `https://${accountName}.blob.core.windows.net/${containerName}/${uniqueName}`;
-    return { url, blobName: uniqueName };
+    const url = `https://${accountName}.blob.core.windows.net/${containerName}/${finalBlobName}`;
+    return { url, blobName: finalBlobName };
   }
 }
 
 export async function deleteFile(containerName: string, blobName: string): Promise<void> {
-  if (containerName === CONTAINERS.CERTIFICATES) {
+  if (containerName === CONTAINERS.CERTIFICATES || containerName === CONTAINERS.PROJECT_RECORDINGS) {
     console.log(`[ADLS Gen2] Deleting file via Data Lake Client: ${blobName}`);
     const serviceClient = getDataLakeServiceClient();
     const fileSystemClient = serviceClient.getFileSystemClient(containerName);
@@ -156,6 +168,16 @@ export function extractBlobName(urlStr: string): string {
   } catch {
     const parts = urlStr.split('/');
     return decodeURIComponent(parts[parts.length - 1]);
+  }
+}
+
+export function getContainerNameFromUrl(urlStr: string): string {
+  try {
+    const parsed = new URL(urlStr);
+    const parts = parsed.pathname.split('/').filter(Boolean);
+    return decodeURIComponent(parts[0]);
+  } catch {
+    return CONTAINERS.PROJECT_DOCS;
   }
 }
 

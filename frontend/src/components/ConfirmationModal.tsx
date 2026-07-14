@@ -8,6 +8,9 @@ interface ConfirmationModalProps {
   isPending?: boolean;
   onClose: () => void;
   onConfirm: () => void;
+  title?: string;
+  message?: React.ReactNode;
+  subMessage?: string;
 }
 
 export default function ConfirmationModal({
@@ -17,6 +20,9 @@ export default function ConfirmationModal({
   isPending = false,
   onClose,
   onConfirm,
+  title,
+  message,
+  subMessage,
 }: ConfirmationModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
   const cancelButtonRef = useRef<HTMLButtonElement>(null);
@@ -96,7 +102,7 @@ export default function ConfirmationModal({
               <HelpCircle className="w-5 h-5" />
             </div>
             <h2 id="modal-title" className="font-semibold text-lg text-foreground">
-              Confirm Stage Transition
+              {title || 'Confirm Stage Transition'}
             </h2>
           </div>
           <button
@@ -111,7 +117,11 @@ export default function ConfirmationModal({
         {/* Content */}
         <div className="p-6 space-y-3">
           <p id="modal-desc" className="text-sm text-foreground/90 leading-relaxed">
-            Are you sure you want to move <strong className="text-foreground font-semibold">{opportunityName}</strong> to the stage:
+            {message || (
+              <>
+                Are you sure you want to move <strong className="text-foreground font-semibold">{opportunityName}</strong> to the stage:
+              </>
+            )}
           </p>
           <div className="p-4 bg-muted/20 border border-border/80 rounded-xl flex items-center justify-center">
             <span className="text-base font-bold text-azure-400 tracking-wide">
@@ -119,7 +129,7 @@ export default function ConfirmationModal({
             </span>
           </div>
           <p className="text-xs text-muted-foreground">
-            This will immediately update the opportunity's sales progression timeline.
+            {subMessage || "This will immediately update the opportunity's sales progression timeline."}
           </p>
         </div>
 

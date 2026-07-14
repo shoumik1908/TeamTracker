@@ -44,6 +44,9 @@ export const membersApi = {
   update: (id: string, data: FormData) => api.put(`/members/${id}`, data, { headers: { 'Content-Type': 'multipart/form-data' } }),
   delete: (id: string) => api.delete(`/members/${id}`),
   departments: () => api.get('/members/departments/list'),
+  uploadCv: (id: string, formData: FormData) =>
+    api.post(`/members/${id}/upload-cv`, formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  deleteCv: (id: string) => api.delete(`/members/${id}/cv`),
 };
 
 // ---- Certifications ----
@@ -162,5 +165,67 @@ export const documentationApi = {
     api.put(`/projects/${projectId}/documentation/notes/${noteId}`, data),
   deleteNote: (projectId: string, noteId: string, memberId: string) =>
     api.delete(`/projects/${projectId}/documentation/notes/${noteId}`, { params: { memberId } }),
+};
+
+export const meetingRecordsApi = {
+  list: (projectId: string) => api.get(`/projects/${projectId}/meeting-records`),
+  create: (projectId: string, formData: FormData) => 
+    api.post(`/projects/${projectId}/meeting-records`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    }),
+  delete: (projectId: string, recordId: string) => 
+    api.delete(`/projects/${projectId}/meeting-records/${recordId}`),
+  toggleActionItem: (projectId: string, itemId: string, completed: boolean) =>
+    api.patch(`/projects/${projectId}/meeting-records/action-items/${itemId}`, { completed }),
+  reanalyze: (projectId: string, recordId: string) =>
+    api.post(`/projects/${projectId}/meeting-records/${recordId}/reanalyze`),
+  updateTranscript: (projectId: string, recordId: string, transcriptText: string) =>
+    api.patch(`/projects/${projectId}/meeting-records/${recordId}/transcript`, { transcriptText })
+};
+
+// ---- PreSales Documentation ----
+export const presalesDocumentationApi = {
+  getUploadUrl: (opportunityId: string, data: { fileName: string; fileType: string; uploadedBy: string }) =>
+    api.post(`/presales/${opportunityId}/documentation/upload-url`, data),
+    
+  createFileMetadata: (opportunityId: string, data: { blobName: string; fileName: string; fileType: string; size: number; uploadedBy: string }) =>
+    api.post(`/presales/${opportunityId}/documentation/files`, data),
+    
+  deleteFile: (opportunityId: string, fileId: string, memberId: string) =>
+    api.delete(`/presales/${opportunityId}/documentation/files/${fileId}`, { params: { memberId } }),
+
+  getDownloadUrl: (opportunityId: string, fileId: string, memberId: string) =>
+    api.get(`/presales/${opportunityId}/documentation/files/${fileId}/download-url`, { params: { memberId } }),
+
+  createLink: (opportunityId: string, data: Record<string, unknown>) =>
+    api.post(`/presales/${opportunityId}/documentation/links`, data),
+  updateLink: (opportunityId: string, linkId: string, data: Record<string, unknown>) =>
+    api.put(`/presales/${opportunityId}/documentation/links/${linkId}`, data),
+  deleteLink: (opportunityId: string, linkId: string, memberId: string) =>
+    api.delete(`/presales/${opportunityId}/documentation/links/${linkId}`, { params: { memberId } }),
+
+  createNote: (opportunityId: string, data: Record<string, unknown>) =>
+    api.post(`/presales/${opportunityId}/documentation/notes`, data),
+  updateNote: (opportunityId: string, noteId: string, data: Record<string, unknown>) =>
+    api.put(`/presales/${opportunityId}/documentation/notes/${noteId}`, data),
+  deleteNote: (opportunityId: string, noteId: string, memberId: string) =>
+    api.delete(`/presales/${opportunityId}/documentation/notes/${noteId}`, { params: { memberId } }),
+};
+
+// ---- PreSales Meeting Records ----
+export const presalesMeetingRecordsApi = {
+  list: (opportunityId: string) => api.get(`/presales/${opportunityId}/meeting-records`),
+  create: (opportunityId: string, formData: FormData) => 
+    api.post(`/presales/${opportunityId}/meeting-records`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    }),
+  delete: (opportunityId: string, recordId: string) => 
+    api.delete(`/presales/${opportunityId}/meeting-records/${recordId}`),
+  toggleActionItem: (opportunityId: string, itemId: string, completed: boolean) =>
+    api.patch(`/presales/${opportunityId}/meeting-records/action-items/${itemId}`, { completed }),
+  reanalyze: (opportunityId: string, recordId: string) =>
+    api.post(`/presales/${opportunityId}/meeting-records/${recordId}/reanalyze`),
+  updateTranscript: (opportunityId: string, recordId: string, transcriptText: string) =>
+    api.patch(`/presales/${opportunityId}/meeting-records/${recordId}/transcript`, { transcriptText })
 };
 

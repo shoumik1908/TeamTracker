@@ -7,10 +7,11 @@ const prisma = new PrismaClient();
 
 // GET /api/project-updates
 router.get('/', async (req: Request, res: Response) => {
-  const { projectId, limit = '50' } = req.query;
+  const { projectId, opportunityId, limit = '50' } = req.query;
 
   const where: any = {};
   if (projectId) where.projectId = projectId as string;
+  if (opportunityId) where.opportunityId = opportunityId as string;
 
   const updates = await prisma.projectUpdate.findMany({
     where,
@@ -18,6 +19,7 @@ router.get('/', async (req: Request, res: Response) => {
     orderBy: { createdAt: 'desc' },
     include: {
       project: { select: { id: true, name: true, status: true } },
+      opportunity: { select: { id: true, name: true } },
       member: { select: { id: true, name: true, designation: true, profilePictureUrl: true } },
     },
   });
@@ -27,16 +29,17 @@ router.get('/', async (req: Request, res: Response) => {
 
 // POST /api/project-updates
 router.post('/', async (req: Request, res: Response) => {
-  const { projectId, memberId, updateText, updateType, progressValue } = req.body;
+  const { projectId, opportunityId, memberId, updateText, updateType, progressValue } = req.body;
 
-  if (!projectId) throw new AppError('projectId is required', 400);
+  if (!projectId && !opportunityId) throw new AppError('projectId or opportunityId is required', 400);
   if (!memberId) throw new AppError('memberId is required', 400);
   if (!updateText?.trim()) throw new AppError('updateText is required', 400);
   if (!updateType) throw new AppError('updateType is required', 400);
 
   const update = await prisma.projectUpdate.create({
     data: {
-      projectId,
+      projectId: projectId || null,
+      opportunityId: opportunityId || null,
       memberId,
       updateText: updateText.trim(),
       updateType,
@@ -44,16 +47,19 @@ router.post('/', async (req: Request, res: Response) => {
     },
     include: {
       project: { select: { id: true, name: true, status: true } },
+      opportunity: { select: { id: true, name: true } },
       member: { select: { id: true, name: true, designation: true, profilePictureUrl: true } },
     },
   });
+
+  const contextName = update.project ? update.project.name : (update.opportunity ? update.opportunity.name : 'Unknown');
 
   // Fire a notification so the manager sees it in the Notifications feed too
   await prisma.notification.create({
     data: {
       memberId,
       type: 'PROJECT_UPDATED',
-      title: `${updateType} Update: ${update.project.name}`,
+      title: `${updateType} Update: ${contextName}`,
       message: updateText.trim().slice(0, 120),
     },
   });
@@ -76,31 +82,38 @@ router.put('/:id', async (req: Request, res: Response) => {
     },
     include: {
       project: { select: { id: true, name: true, status: true } },
+      opportunity: { select: { id: true, name: true } },
       member: { select: { id: true, name: true, designation: true, profilePictureUrl: true } },
     },
   });
 
   // Also update the associated notification to keep it in sync on the dashboard
   try {
-    const project = await prisma.project.findUnique({ where: { id: existing.projectId } });
-    if (project) {
-      const match = await prisma.notification.findFirst({
-        where: {
-          memberId: existing.memberId,
-          type: 'PROJECT_UPDATED',
-          title: `${existing.updateType} Update: ${project.name}`,
-          message: existing.updateText.trim().slice(0, 120),
+    let contextName = 'Unknown';
+    if (existing.projectId) {
+      const project = await prisma.project.findUnique({ where: { id: existing.projectId } });
+      if (project) contextName = project.name;
+    } else if (existing.opportunityId) {
+      const opp = await prisma.preSalesOpportunity.findUnique({ where: { id: existing.opportunityId } });
+      if (opp) contextName = opp.name;
+    }
+
+    const match = await prisma.notification.findFirst({
+      where: {
+        memberId: existing.memberId,
+        type: 'PROJECT_UPDATED',
+        title: `${existing.updateType} Update: ${contextName}`,
+        message: existing.updateText.trim().slice(0, 120),
+      }
+    });
+    if (match) {
+      await prisma.notification.update({
+        where: { id: match.id },
+        data: {
+          title: `${updated.updateType} Update: ${contextName}`,
+          message: updated.updateText.trim().slice(0, 120),
         }
       });
-      if (match) {
-        await prisma.notification.update({
-          where: { id: match.id },
-          data: {
-            title: `${updated.updateType} Update: ${project.name}`,
-            message: updated.updateText.trim().slice(0, 120),
-          }
-        });
-      }
     }
   } catch (error) {
     console.error('Failed to sync notification on update edit:', error);
@@ -119,17 +132,23 @@ router.delete('/:id', async (req: Request, res: Response) => {
 
   // Delete the associated notification so it disappears from the dashboard feed
   try {
-    const project = await prisma.project.findUnique({ where: { id: existing.projectId } });
-    if (project) {
-      await prisma.notification.deleteMany({
-        where: {
-          memberId: existing.memberId,
-          type: 'PROJECT_UPDATED',
-          title: `${existing.updateType} Update: ${project.name}`,
-          message: existing.updateText.trim().slice(0, 120),
-        }
-      });
+    let contextName = 'Unknown';
+    if (existing.projectId) {
+      const project = await prisma.project.findUnique({ where: { id: existing.projectId } });
+      if (project) contextName = project.name;
+    } else if (existing.opportunityId) {
+      const opp = await prisma.preSalesOpportunity.findUnique({ where: { id: existing.opportunityId } });
+      if (opp) contextName = opp.name;
     }
+
+    await prisma.notification.deleteMany({
+      where: {
+        memberId: existing.memberId,
+        type: 'PROJECT_UPDATED',
+        title: `${existing.updateType} Update: ${contextName}`,
+        message: existing.updateText.trim().slice(0, 120),
+      }
+    });
   } catch (error) {
     console.error('Failed to delete associated notification:', error);
   }
