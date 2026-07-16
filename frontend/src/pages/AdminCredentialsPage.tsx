@@ -1,9 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ShieldCheck, UserCog, Power, KeyRound, AlertTriangle, Search } from 'lucide-react';
+import { ShieldCheck, Power, KeyRound, AlertTriangle, Search } from 'lucide-react';
 import { adminApi } from '../lib/api';
 import { getInitials } from '../lib/utils';
-import { User } from '../context/AuthContext';
 
 export default function AdminCredentialsPage() {
   const qc = useQueryClient();

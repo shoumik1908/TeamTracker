@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { membersApi, notificationsApi } from '../lib/api';
 import { filesApi } from '../lib/filesApi';
-import { format, formatDistanceToNow, isValid } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
 
 class ErrorBoundary extends React.Component<any, { hasError: boolean, error: any }> {
   constructor(props: any) { super(props); this.state = { hasError: false, error: null }; }
