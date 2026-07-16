@@ -10,7 +10,7 @@ import { format } from 'date-fns';
 
 export default function FilesPage() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeTab, setActiveTab] = useState<'All' | 'Certificates' | 'CVs' | 'PreSales'>('All');
+  const [activeTab, setActiveTab] = useState<'All' | 'Certificates' | 'CVs' | 'PreSales' | 'Projects'>('All');
   
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
     'By Team Member': true,
@@ -79,6 +79,7 @@ export default function FilesPage() {
       case 'Certificate': return <Award className="w-4 h-4 text-emerald-400" />;
       case 'CV': return <FileType className="w-4 h-4 text-azure-400" />;
       case 'GTM Document': return <FileText className="w-4 h-4 text-purple-400" />;
+      case 'Project Document': return <FolderOpen className="w-4 h-4 text-orange-400" />;
       default: return <FileText className="w-4 h-4 text-muted-foreground" />;
     }
   };
@@ -94,6 +95,7 @@ export default function FilesPage() {
       if (activeTab === 'Certificates' && file.category !== 'Certificate') return false;
       if (activeTab === 'CVs' && file.category !== 'CV') return false;
       if (activeTab === 'PreSales' && file.category !== 'GTM Document') return false;
+      if (activeTab === 'Projects' && file.category !== 'Project Document') return false;
 
       // Search filter
       const search = searchTerm.toLowerCase();
@@ -154,7 +156,7 @@ export default function FilesPage() {
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             {/* Tabs */}
             <div className="flex p-1 bg-muted/20 border border-border rounded-xl">
-              {['All', 'Certificates', 'CVs', 'PreSales'].map(tab => (
+              {['All', 'Projects', 'Certificates', 'CVs', 'PreSales'].map(tab => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab as any)}

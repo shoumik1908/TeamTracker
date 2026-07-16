@@ -15,6 +15,14 @@ export class DuplicateCertificateError extends Error {
   }
 }
 
+api.interceptors.request.use(config => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
 api.interceptors.response.use(
   res => res,
   err => {
@@ -229,3 +237,18 @@ export const presalesMeetingRecordsApi = {
     api.patch(`/presales/${opportunityId}/meeting-records/${recordId}/transcript`, { transcriptText })
 };
 
+// ---- Auth & Admin ----
+export const authApi = {
+  login: (data: Record<string, string>) => api.post('/auth/login', data),
+  register: (data: Record<string, string>) => api.post('/auth/register', data),
+  changePassword: (data: Record<string, string>) => api.post('/auth/change-password', data),
+  getMe: () => api.get('/auth/me')
+};
+
+export const adminApi = {
+  getUsers: () => api.get('/admin/users'),
+  getRoles: () => api.get('/admin/roles'),
+  updateRole: (userId: string, roleId: string) => api.patch(`/admin/users/${userId}/role`, { roleId }),
+  updateStatus: (userId: string, isActive: boolean) => api.patch(`/admin/users/${userId}/status`, { isActive }),
+  resetPassword: (userId: string) => api.post(`/admin/users/${userId}/reset-password`)
+};

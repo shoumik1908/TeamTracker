@@ -14,6 +14,7 @@ export type NotificationType =
 export interface TeamMember {
   id: string;
   name: string;
+  email?: string;
   phone?: string;
 
   designation?: string;

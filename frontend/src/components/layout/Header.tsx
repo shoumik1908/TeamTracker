@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Bell, X, Loader2, Menu } from 'lucide-react';
+import { Search, Bell, X, Loader2, Menu, LogOut, User as UserIcon } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@/context/AuthContext';
 import { searchApi, notificationsApi } from '@/lib/api';
 import { cn, formatRelative, getInitials } from '@/lib/utils';
 import type { SearchResults, Notification } from '@/types';
@@ -17,10 +18,13 @@ export default function Header({
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
+  const profileRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const { user, logout } = useAuth();
 
   const { data: searchData, isFetching: isSearching } = useQuery<SearchResults>({
     queryKey: ['search', searchQuery],
@@ -54,6 +58,7 @@ export default function Header({
     function handle(e: MouseEvent) {
       if (searchRef.current && !searchRef.current.contains(e.target as Node)) setShowSearch(false);
       if (notifRef.current && !notifRef.current.contains(e.target as Node)) setShowNotifications(false);
+      if (profileRef.current && !profileRef.current.contains(e.target as Node)) setShowProfile(false);
     }
     document.addEventListener('mousedown', handle);
     return () => document.removeEventListener('mousedown', handle);
@@ -207,6 +212,51 @@ export default function Header({
                 <button onClick={() => { navigate('/notifications'); setShowNotifications(false); }}
                   className="w-full text-center text-xs text-azure-400 hover:text-azure-300 font-medium py-1.5">
                   View all notifications
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Profile Dropdown */}
+        <div ref={profileRef} className="relative ml-2">
+          <button
+            onClick={() => setShowProfile(!showProfile)}
+            className="flex items-center justify-center w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 font-bold text-xs ring-2 ring-transparent hover:ring-indigo-300 transition-all"
+          >
+            {getInitials(user?.name || 'U')}
+          </button>
+          
+          {showProfile && (
+            <div className="absolute right-0 top-full mt-2 w-56 bg-card rounded-xl border border-border shadow-xl z-50 overflow-hidden animate-fade-in">
+              <div className="p-4 border-b border-border">
+                <p className="font-semibold text-sm truncate">{user?.name}</p>
+                <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+                <span className="inline-block mt-2 px-2 py-0.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 text-[10px] font-bold rounded-full uppercase">
+                  {user?.role?.name}
+                </span>
+              </div>
+              <div className="p-1">
+                <button
+                  onClick={() => {
+                    setShowProfile(false);
+                    if (user?.teamMemberId) navigate(`/members/${user.teamMemberId}`);
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted rounded-md transition-colors"
+                >
+                  <UserIcon className="w-4 h-4 text-muted-foreground" />
+                  My Profile
+                </button>
+                <button
+                  onClick={() => {
+                    setShowProfile(false);
+                    logout();
+                    navigate('/login');
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-md transition-colors"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Sign Out
                 </button>
               </div>
             </div>

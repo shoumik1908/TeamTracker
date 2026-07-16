@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { notificationsApi } from '@/lib/api';
 import { Bell, CheckCheck, Trash2, Loader2 } from 'lucide-react';
 import { cn, formatRelative } from '@/lib/utils';
+import { useAuth } from '@/context/AuthContext';
 import type { Notification } from '@/types';
 
 const TYPE_ICONS: Record<string, string> = {
@@ -24,6 +25,8 @@ const TYPE_COLORS: Record<string, string> = {
 
 export default function NotificationsPage() {
   const qc = useQueryClient();
+  const { hasPermission } = useAuth();
+  const isAdmin = hasPermission('manageTeam');
 
   const { data, isLoading } = useQuery<{ data: Notification[]; unreadCount: number; pagination: { total: number } }>({
     queryKey: ['notifications'],
@@ -104,10 +107,12 @@ export default function NotificationsPage() {
             </div>
             <div className="flex items-center gap-1 flex-shrink-0">
               {!n.read && <div className="w-2 h-2 bg-azure-500 rounded-full" />}
-              <button onClick={e => { e.stopPropagation(); del.mutate(n.id); }}
-                className="p-1.5 text-muted-foreground hover:text-red-400 hover:bg-red-950/40 rounded-lg transition-colors opacity-0 group-hover:opacity-100">
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
+              {(isAdmin || n.memberId) && (
+                <button onClick={e => { e.stopPropagation(); del.mutate(n.id); }}
+                  className="p-1.5 text-muted-foreground hover:text-red-400 hover:bg-red-950/40 rounded-lg transition-colors opacity-0 group-hover:opacity-100">
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
           </div>
         ))}

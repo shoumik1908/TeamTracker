@@ -3,11 +3,15 @@ import { PrismaClient } from '@prisma/client';
 import multer from 'multer';
 import { uploadFile, deleteFile, extractBlobName, CONTAINERS, sanitizeDirectoryName, getContainerNameFromUrl } from '../services/blobStorage';
 import { BlobServiceClient } from '@azure/storage-blob';
-import { analyzePresalesDocWithGroq, generateProposalSummary, generateSingleSection } from '../services/groqExtractor';
+import { analyzePresalesDocWithGroq } from '../services/groqExtractor';
+import { generateProposalSummary, generateSingleSection } from '../services/azureOpenAIService';
 import { AppError } from '../middleware/errorHandler';
+import { authenticateToken, AuthRequest } from '../middleware/auth';
 
 const router = Router();
 const prisma = new PrismaClient();
+
+router.use(authenticateToken);
 
 // Multer config for presales doc uploads (PDF, DOCX, TXT, EML — in-memory, 15 MB)
 const docUpload = multer({
@@ -70,8 +74,15 @@ const tnmStages = [
 
 // GET /api/presales
 // List all PreSales opportunities ordered by creation date
-router.get('/', async (_req: Request, res: Response) => {
+router.get('/', async (req: Request, res: Response) => {
+  const user = (req as AuthRequest).user;
+  const where: any = {};
+  if (!user?.permissions?.manageTeam) {
+    where.members = { some: { memberId: user?.teamMemberId } };
+  }
+
   const opportunities = await prisma.preSalesOpportunity.findMany({
+    where,
     orderBy: { createdAt: 'desc' }
   });
   res.json({ data: opportunities });
@@ -80,6 +91,9 @@ router.get('/', async (_req: Request, res: Response) => {
 // POST /api/presales
 // Create PNB and/or TNM timelines conditionally
 router.post('/', async (req: Request, res: Response) => {
+  const user = (req as AuthRequest).user;
+  if (!user?.permissions?.manageTeam) throw new AppError('Forbidden: Only Admins can create opportunities', 403);
+
   const { name, clientName, createPnb, createTnm } = req.body;
 
   if (!name || !clientName) {
@@ -145,8 +159,16 @@ router.patch('/:id/stage', async (req: Request, res: Response) => {
     return res.status(400).json({ error: 'stageIndex is required.' });
   }
 
-  const opportunity = await prisma.preSalesOpportunity.findUnique({ where: { id } });
+  const opportunity = await prisma.preSalesOpportunity.findUnique({ 
+    where: { id },
+    include: { members: true }
+  });
   if (!opportunity) return res.status(404).json({ error: 'Opportunity not found.' });
+
+  const user = (req as AuthRequest).user;
+  if (!user?.permissions?.manageTeam && !opportunity.members.some((m: any) => m.memberId === user?.teamMemberId)) {
+    throw new AppError('Forbidden: You are not assigned to this opportunity', 403);
+  }
   if (stageIndex < 0 || stageIndex >= opportunity.stages.length) {
     return res.status(400).json({ error: 'Invalid stage index.' });
   }
@@ -177,6 +199,9 @@ router.patch('/:id/stage', async (req: Request, res: Response) => {
 
 // POST /api/presales/:id/members
 router.post('/:id/members', async (req: Request, res: Response) => {
+  const user = (req as AuthRequest).user;
+  if (!user?.permissions?.manageTeam) throw new AppError('Forbidden: Only Admins can assign members', 403);
+
   const { id } = req.params;
   const { memberId, role } = req.body;
 
@@ -197,6 +222,9 @@ router.post('/:id/members', async (req: Request, res: Response) => {
 
 // DELETE /api/presales/:id/members/:memberId
 router.delete('/:id/members/:memberId', async (req: Request, res: Response) => {
+  const user = (req as AuthRequest).user;
+  if (!user?.permissions?.manageTeam) throw new AppError('Forbidden: Only Admins can unassign members', 403);
+
   const { id, memberId } = req.params;
 
   const assignment = await prisma.projectMember.findFirst({
@@ -222,8 +250,16 @@ router.patch('/:id/progress', async (req: Request, res: Response) => {
     return res.status(400).json({ error: 'incrementPercent (number) is required.' });
   }
 
-  const opportunity = await prisma.preSalesOpportunity.findUnique({ where: { id } });
+  const opportunity = await prisma.preSalesOpportunity.findUnique({ 
+    where: { id },
+    include: { members: true }
+  });
   if (!opportunity) return res.status(404).json({ error: 'Opportunity not found.' });
+
+  const user = (req as AuthRequest).user;
+  if (!user?.permissions?.manageTeam && !opportunity.members.some((m: any) => m.memberId === user?.teamMemberId)) {
+    throw new AppError('Forbidden: You are not assigned to this opportunity', 403);
+  }
 
   const oldPercent = opportunity.progressPercent;
   const newPercent = Math.min(100, Math.max(0, oldPercent + incrementPercent));
@@ -259,8 +295,16 @@ router.patch('/:id/progress', async (req: Request, res: Response) => {
 router.post('/:id/reset', async (req: Request, res: Response) => {
   const { id } = req.params;
 
-  const opportunity = await prisma.preSalesOpportunity.findUnique({ where: { id } });
+  const opportunity = await prisma.preSalesOpportunity.findUnique({ 
+    where: { id },
+    include: { members: true }
+  });
   if (!opportunity) return res.status(404).json({ error: 'Opportunity not found.' });
+
+  const user = (req as AuthRequest).user;
+  if (!user?.permissions?.manageTeam && !opportunity.members.some((m: any) => m.memberId === user?.teamMemberId)) {
+    throw new AppError('Forbidden: You are not assigned to this opportunity', 403);
+  }
 
   const oldStage = opportunity.stages[opportunity.currentStageIndex];
   
@@ -406,6 +450,9 @@ router.post('/analyze-doc', docUpload.single('file'), async (req: Request, res: 
 });
 
 router.delete('/', async (req: Request, res: Response) => {
+  const user = (req as AuthRequest).user;
+  if (!user?.permissions?.manageTeam) throw new AppError('Forbidden: Only Admins can delete opportunities', 403);
+
   const name = req.query.name as string;
   const clientName = req.query.clientName as string;
   const account = req.query.account as string;
@@ -433,6 +480,9 @@ router.delete('/', async (req: Request, res: Response) => {
 // PUT /api/presales
 // Update opportunity and client names for all matching timelines
 router.put('/', async (req: Request, res: Response) => {
+  const user = (req as AuthRequest).user;
+  if (!user?.permissions?.manageTeam) throw new AppError('Forbidden: Only Admins can update opportunities', 403);
+
   const { oldName, oldClientName, newName, newClientName } = req.body;
 
   if (!oldName || !oldClientName || !newName || !newClientName) {
@@ -462,9 +512,23 @@ router.get('/docs', async (req: Request, res: Response) => {
     return res.status(400).json({ error: 'oppIds parameter is required.' });
   }
 
+  const user = (req as AuthRequest).user;
+  let allowedOppIds = oppIds;
+
+  if (!user?.permissions?.manageTeam) {
+    const userAssignments = await prisma.projectMember.findMany({
+      where: { memberId: user?.teamMemberId, opportunityId: { in: oppIds } }
+    });
+    allowedOppIds = userAssignments.map(a => a.opportunityId).filter(Boolean) as string[];
+  }
+
+  if (allowedOppIds.length === 0) {
+    return res.json({ data: [] });
+  }
+
   const logs = await prisma.stageChangeLog.findMany({
     where: {
-      opportunityId: { in: oppIds },
+      opportunityId: { in: allowedOppIds },
       blobUrl: { not: null }
     },
     orderBy: { createdAt: 'desc' }
@@ -542,6 +606,12 @@ router.get('/:id', async (req: Request, res: Response) => {
     });
 
     if (!opp) return res.status(404).json({ error: 'Opportunity not found' });
+
+    const user = (req as AuthRequest).user;
+    if (!user?.permissions?.manageTeam && !opp.assignments.some((a: any) => a.memberId === user?.teamMemberId)) {
+      throw new AppError('Forbidden: You are not assigned to this opportunity', 403);
+    }
+
     res.json({ data: opp });
   } catch (err: any) {
     console.error('[GET Opp]', err);
@@ -567,6 +637,17 @@ router.patch('/:id', async (req: Request, res: Response) => {
   } = req.body;
 
   try {
+    const opp = await prisma.preSalesOpportunity.findUnique({
+      where: { id },
+      include: { members: true }
+    });
+    if (!opp) throw new AppError('Opportunity not found', 404);
+
+    const user = (req as AuthRequest).user;
+    if (!user?.permissions?.manageTeam && !opp.members.some((m: any) => m.memberId === user?.teamMemberId)) {
+      throw new AppError('Forbidden: You are not assigned to this opportunity', 403);
+    }
+
     const updated = await prisma.preSalesOpportunity.update({
       where: { id },
       data: { 
@@ -597,6 +678,9 @@ router.post('/:id/convert', async (req: Request, res: Response) => {
   try {
     const opp = await prisma.preSalesOpportunity.findUnique({ where: { id } });
     if (!opp) return res.status(404).json({ error: 'Opportunity not found' });
+
+    const user = (req as AuthRequest).user;
+    if (!user?.permissions?.manageTeam) throw new AppError('Forbidden: Only Admins can convert opportunities to projects', 403);
 
     // Create the Project
     const project = await prisma.project.create({
@@ -683,8 +767,16 @@ router.post('/:id/generate-proposal', proposalUpload.array('files', 10), async (
     throw new AppError('No files uploaded or kept. Please attach or select at least one PDF, DOCX, or TXT file.', 400);
   }
 
-  const opportunity = await prisma.preSalesOpportunity.findUnique({ where: { id } });
+  const opportunity = await prisma.preSalesOpportunity.findUnique({ 
+    where: { id },
+    include: { members: true }
+  });
   if (!opportunity) throw new AppError('Opportunity not found.', 404);
+
+  const user = (req as AuthRequest).user;
+  if (!user?.permissions?.manageTeam && !opportunity.members.some((m: any) => m.memberId === user?.teamMemberId)) {
+    throw new AppError('Forbidden: You are not assigned to this opportunity', 403);
+  }
 
   const currentDocs = (opportunity.sourceDocuments as any[]) || [];
   const keptDocs = currentDocs.filter((doc: any) => existingBlobUrls.includes(doc.blobUrl));
@@ -869,8 +961,16 @@ router.post('/:id/generate-section', docUpload.single('file'), async (req: Reque
     throw new AppError('sectionName is required.', 400);
   }
 
-  const opportunity = await prisma.preSalesOpportunity.findUnique({ where: { id } });
+  const opportunity = await prisma.preSalesOpportunity.findUnique({ 
+    where: { id },
+    include: { members: true }
+  });
   if (!opportunity) throw new AppError('Opportunity not found.', 404);
+
+  const user = (req as AuthRequest).user;
+  if (!user?.permissions?.manageTeam && !opportunity.members.some((m: any) => m.memberId === user?.teamMemberId)) {
+    throw new AppError('Forbidden: You are not assigned to this opportunity', 403);
+  }
 
   // 1. Extract text from file
   let plainText = '';

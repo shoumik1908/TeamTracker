@@ -1,20 +1,22 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { membersApi, projectsApi } from '@/lib/api';
 import { Plus, Search, Pencil, Trash2, X, Upload, Loader2, MoreVertical, Filter, FileUp, FileText, Award } from 'lucide-react';
 import { getInitials, cn } from '@/lib/utils';
 import type { TeamMember, PaginatedResponse } from '@/types';
+import { useAuth } from '@/context/AuthContext';
 
 interface MemberFormData {
   name: string;
+  email: string;
   phone: string;
   designation?: string;
   managerId: string;
 }
 
 const INITIAL_FORM: MemberFormData = {
-  name: '', phone: '',
+  name: '', email: '', phone: '',
   designation: '', managerId: '',
 };
 
@@ -82,7 +84,7 @@ function MemberFormModal({
 }) {
   const [form, setForm] = useState<MemberFormData>(
     member ? {
-      name: member.name, phone: member.phone || '',
+      name: member.name, email: member.email || '', phone: member.phone || '',
       designation: member.designation,
       managerId: member.managerId || '',
     } : INITIAL_FORM
@@ -154,14 +156,15 @@ function MemberFormModal({
 
           <div className="grid grid-cols-2 gap-3">
             {[
-              { label: 'Full Name *', key: 'name', placeholder: 'Alice Johnson', required: true },
-              { label: 'Phone', key: 'phone', placeholder: '+1-555-0101' },
-              { label: 'Designation', key: 'designation', placeholder: 'Senior Engineer' },
-            ].map(({ label, key, placeholder, required }) => (
+              { label: 'Full Name *', key: 'name', placeholder: 'Alice Johnson', required: true, type: 'text' },
+              { label: 'Email *', key: 'email', placeholder: 'alice@example.com', required: true, type: 'email' },
+              { label: 'Phone', key: 'phone', placeholder: '+1-555-0101', type: 'text' },
+              { label: 'Designation', key: 'designation', placeholder: 'Senior Engineer', type: 'text' },
+            ].map(({ label, key, placeholder, required, type }) => (
               <div key={key}>
                 <label className="block text-xs font-medium text-muted-foreground mb-1">{label}</label>
                 <input
-                  type="text"
+                  type={type}
                   required={required}
                   placeholder={placeholder}
                   value={form[key as keyof MemberFormData]}
@@ -196,9 +199,13 @@ function MemberFormModal({
 }
 
 export default function MembersPage() {
+  const { user: currentUser } = useAuth();
+  const isAdmin = currentUser?.role?.permissions?.manageTeam;
+
   const [search, setSearch] = useState('');
   const [projectId, setProjectId] = useState<string>('');
-  const [showForm, setShowForm] = useState(false);
+  const [searchParams] = useSearchParams();
+  const [showForm, setShowForm] = useState(searchParams.get('action') === 'new');
   const [editMember, setEditMember] = useState<TeamMember | undefined>();
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const navigate = useNavigate();
@@ -333,12 +340,14 @@ export default function MembersPage() {
           <h2 className="page-title">Team Members</h2>
           <p className="page-subtitle">{data?.pagination.total || 0} members in your organization</p>
         </div>
-        <button
-          onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 px-4 py-2.5 bg-azure-500 text-white text-sm font-medium rounded-xl hover:bg-azure-600 transition-colors shadow-lg shadow-azure-500/25"
-        >
-          <Plus className="w-4 h-4" /> Add Member
-        </button>
+        {isAdmin && (
+          <button
+            onClick={() => setShowForm(true)}
+            className="flex items-center gap-2 px-4 py-2.5 bg-azure-500 text-white text-sm font-medium rounded-xl hover:bg-azure-600 transition-colors shadow-lg shadow-azure-500/25"
+          >
+            <Plus className="w-4 h-4" /> Add Member
+          </button>
+        )}
       </div>
 
       {/* Search and Filters */}
@@ -498,14 +507,18 @@ export default function MembersPage() {
                         </div>
                       </a>
                     ) : (
-                      <button
-                        onClick={() => { setCvUploadingId(member.id); cvFileRef.current?.click(); }}
-                        disabled={cvUploadingId === member.id}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-muted hover:bg-muted-foreground/10 text-muted-foreground transition-colors border border-border"
-                      >
-                        <Upload className="w-3.5 h-3.5" />
-                        <span>Upload</span>
-                      </button>
+                      (isAdmin || currentUser?.teamMemberId === member.id) ? (
+                        <button
+                          onClick={() => { setCvUploadingId(member.id); cvFileRef.current?.click(); }}
+                          disabled={cvUploadingId === member.id}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-muted hover:bg-muted-foreground/10 text-muted-foreground transition-colors border border-border"
+                        >
+                          <Upload className="w-3.5 h-3.5" />
+                          <span>Upload</span>
+                        </button>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">—</span>
+                      )
                     )}
                   </div>
                 </td>
@@ -514,11 +527,13 @@ export default function MembersPage() {
                     {cvUploadingId === member.id && (
                       <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-400" />
                     )}
-                    <MemberMenu
-                      onEdit={() => setEditMember(member)}
-                      onDelete={() => setDeleteId(member.id)}
-                      onUploadCv={() => { setCvUploadingId(member.id); cvFileRef.current?.click(); }}
-                    />
+                    {(isAdmin || currentUser?.teamMemberId === member.id) && (
+                      <MemberMenu
+                        onEdit={() => setEditMember(member)}
+                        onDelete={() => setDeleteId(member.id)}
+                        onUploadCv={() => { setCvUploadingId(member.id); cvFileRef.current?.click(); }}
+                      />
+                    )}
                   </div>
                 </td>
               </tr>

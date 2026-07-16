@@ -4,13 +4,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { documentationApi, projectsApi, membersApi, projectUpdatesApi, meetingRecordsApi } from '@/lib/api';
 import axios from 'axios';
 import AiGeneratedMinutesBox from '@/components/AiGeneratedMinutesBox';
+import MeetingReportView from '@/components/MeetingReportView';
 import {
   FileText, Link2, Notebook, Plus, Trash2, ExternalLink,
   Pencil, Calendar, TrendingUp, AlertCircle, Loader2,
   FileDown, ChevronRight, Check, X,
   Users, Activity, CheckSquare, Square, Search,
   Trophy, AlertTriangle, MessageCircle, Video, PlayCircle, Sparkles, FileText as FileTextIcon, MoreVertical, Edit3,
-  BrainCircuit, RefreshCw
+  BrainCircuit, RefreshCw, BarChart2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -32,13 +33,24 @@ function getInitials(name: string) {
 
 // Format date nicely
 function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
+  try {
+    return new Date(dateStr).toLocaleDateString('en-US', {
+      timeZone: 'Asia/Kolkata',
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    }) + ' IST';
+  } catch(e) {
+    return new Date(dateStr).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  }
 }
 
 const UPDATE_TYPES = [
@@ -52,13 +64,13 @@ function getTypeMeta(type: string) {
   return UPDATE_TYPES.find(t => t.value === type) ?? UPDATE_TYPES[3];
 }
 
-type SectionType = 'pulse' | 'assign' | 'updates' | 'files' | 'links' | 'notes' | 'records';
+type SectionType = 'pulse' | 'assign' | 'updates' | 'files' | 'links' | 'notes' | 'records' | 'report';
 
 export default function ProjectDetailPage() {
   const { projectId } = useParams<{ projectId: string }>();
   const queryClient = useQueryClient();
 
-  const [activeSection, setActiveSection] = useState<SectionType>('pulse');
+  const [activeSection, setActiveSection] = useState<SectionType>('records');
   const [actingMemberId, setActingMemberId] = useState<string>('');
   
   const [assignSearchQuery, setAssignSearchQuery] = useState('');
@@ -770,6 +782,19 @@ export default function ProjectDetailPage() {
             </div>
           </button>
 
+          <button
+            onClick={() => setActiveSection('report')}
+            className={cn(
+              "w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all",
+              activeSection === 'report' ? "bg-azure-500/10 text-azure-400 border-l-2 border-azure-500 pl-3" : "text-muted-foreground hover:bg-zinc-800/40 hover:text-foreground"
+            )}
+          >
+            <div className="flex items-center gap-2.5">
+              <BarChart2 className="w-4 h-4" />
+              <span>Meeting Report</span>
+            </div>
+          </button>
+
           <div className="pt-2 pb-1 px-3">
             <span className="text-[10px] font-extrabold text-muted-foreground/60 uppercase tracking-wider">Docs</span>
           </div>
@@ -1142,7 +1167,7 @@ export default function ProjectDetailPage() {
                             <div className="flex items-start justify-between gap-2">
                               <div className="flex items-center gap-2 flex-wrap">
                                 <span className="text-sm font-semibold text-foreground">{u.member.name}</span>
-                                {u.member.designation && <span className="text-xs text-muted-foreground">· {u.member.designation}</span>}
+                                {u.member.designation && <span className="text-xs text-muted-foreground">┬╖ {u.member.designation}</span>}
                                 <span className={cn('inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold border', meta.badge)}>
                                   <Icon className="w-3 h-3" />
                                   {u.updateType}
@@ -1240,7 +1265,7 @@ export default function ProjectDetailPage() {
                             <p className="text-xs font-bold text-foreground leading-snug break-all">{file.name}</p>
                             <div className="flex items-center gap-2 text-[10px] text-muted-foreground mt-0.5">
                               <span>{formatBytes(file.size)}</span>
-                              <span>•</span>
+                              <span>&bull;</span>
                               <span>{file.type.split('/')[1]?.toUpperCase() || 'FILE'}</span>
                             </div>
                           </div>
@@ -1557,7 +1582,7 @@ export default function ProjectDetailPage() {
                               {updater && (
                                 <span className="font-semibold text-muted-foreground/80">Updated by {updater.name}</span>
                               )}
-                              <span>•</span>
+                              <span>&bull;</span>
                               <span>{formatDate(note.updatedAt)}</span>
                             </div>
                           </div>
@@ -1599,6 +1624,12 @@ export default function ProjectDetailPage() {
           )}
 
           {/* 5. TRANSCRIPTS & RECORDINGS */}
+          {activeSection === 'report' && project && (
+            <div className="lg:col-span-3">
+              <MeetingReportView projectId={project.id} projectName={project.name} />
+            </div>
+          )}
+
           {activeSection === 'records' && (
             <ErrorBoundary>
               <div className="bg-card border border-border rounded-2xl p-6 space-y-6">
@@ -1738,8 +1769,6 @@ export default function ProjectDetailPage() {
                               <h4 className="text-sm font-bold text-foreground">{r.meetingTitle}</h4>
                               <div className="flex items-center gap-3 mt-1.5 text-[10px] text-muted-foreground font-medium">
                                 <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" />{formatDate(r.meetingDate)}</span>
-                                <span>•</span>
-                                <span className="flex items-center gap-1.5">Added by {r.createdBy || 'System'}</span>
                               </div>
                             </div>
                           </div>

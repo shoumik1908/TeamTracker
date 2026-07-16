@@ -13,6 +13,7 @@ export interface ChatOptions {
   responseSchema?: any;
   tools?: any[];
   toolChoice?: any;
+  forceProvider?: 'azure' | 'groq';
 }
 
 export interface AIResponse {
@@ -187,6 +188,25 @@ export const aiProvider = {
    */
   chat: async (messages: ChatMessage[], options: ChatOptions = {}): Promise<AIResponse> => {
     let lastError: any = null;
+
+    if (options.forceProvider === 'azure') {
+      try {
+        return await AIProviderFactory.callAzure(messages, options);
+      } catch (err: any) {
+        console.error(`[AI Logs] Azure OpenAI exclusive execution error: ${err.message}`);
+        throw err;
+      }
+    }
+
+    if (options.forceProvider === 'groq') {
+      try {
+        return await AIProviderFactory.callGroq(messages, options);
+      } catch (err: any) {
+        console.error(`[AI Logs] Groq exclusive execution error: ${err.message}`);
+        throw err;
+      }
+    }
+
 
     // Retry configuration for Groq
     const maxRetries = 1;

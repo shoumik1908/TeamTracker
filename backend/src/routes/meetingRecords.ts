@@ -2,7 +2,7 @@ import { Router } from 'express';
 import multer from 'multer';
 import { PrismaClient } from '@prisma/client';
 import { uploadFile, deleteFile, CONTAINERS, generateSasUrl, extractBlobName, getContainerNameFromUrl, sanitizeDirectoryName } from '../services/blobStorage';
-import { generateMeetingMinutes } from '../services/groqExtractor';
+import { generateMeetingMinutes  } from '../services/azureOpenAIService';
 import { matchTeamMember, correctNamesInTranscript } from '../utils/fuzzyMatch';
 
 const prisma = new PrismaClient();
@@ -61,7 +61,7 @@ router.get('/', async (req, res) => {
     const { projectId, opportunityId } = req.params as any;
     const records = await prisma.meetingRecord.findMany({
       where: projectId ? { projectId } : { opportunityId },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { meetingDate: 'desc' },
       include: {
         actionItems: {
           include: { assignedTo: true }
@@ -105,8 +105,8 @@ router.post('/', upload.fields([{ name: 'recordingFile', maxCount: 1 }, { name: 
     const { projectId, opportunityId } = req.params as any;
     const { meetingTitle, meetingDate, recordingType, recordingLink, transcriptSource, transcriptPasted } = req.body;
 
-    if (!meetingTitle || !meetingDate) {
-      return res.status(400).json({ error: 'Title and date are required' });
+    if (!meetingTitle) {
+      return res.status(400).json({ error: 'Title is required' });
     }
 
     const files = req.files as { [fieldname: string]: Express.Multer.File[] };
@@ -248,7 +248,7 @@ router.post('/', upload.fields([{ name: 'recordingFile', maxCount: 1 }, { name: 
 
       // Call LLM
       try {
-        finalAiMinutes = await generateMeetingMinutes(finalTranscriptText, priorActionItems, priorBlockers);
+        finalAiMinutes = await generateMeetingMinutes(finalTranscriptText, priorActionItems, priorBlockers, 1, contextMembers);
         if (finalAiMinutes && (finalAiMinutes as any).status !== 'TOKENS_EXCEEDED') {
           (finalAiMinutes as any).name_corrections = corrections;
         }
@@ -261,12 +261,25 @@ router.post('/', upload.fields([{ name: 'recordingFile', maxCount: 1 }, { name: 
       }
     }
 
+    let finalMeetingDate: Date | null = null;
+    if (finalAiMinutes && (finalAiMinutes as any).meeting_date) {
+      let dateStr = String((finalAiMinutes as any).meeting_date);
+      dateStr = dateStr.replace(/(\d)(AM|PM)/i, '$1 $2').replace(/\bIST\b/i, '+05:30');
+      const parsedDate = new Date(dateStr);
+      if (!isNaN(parsedDate.getTime())) {
+        finalMeetingDate = parsedDate;
+      }
+    }
+    if (!finalMeetingDate && meetingDate) {
+      finalMeetingDate = new Date(meetingDate);
+    }
+
     const newRecord = await prisma.meetingRecord.create({
       data: {
         projectId: projectId || null,
         opportunityId: opportunityId || null,
         meetingTitle,
-        meetingDate: new Date(meetingDate),
+        meetingDate: finalMeetingDate,
         recordingType: finalRecordingType,
         recordingUrl: finalRecordingUrl,
         transcriptUrl: finalTranscriptUrl,
@@ -448,7 +461,24 @@ router.delete('/:id', async (req, res) => {
       }
     }
 
+    const user = (req as any).user;
+    const isUploader = record.uploadedBy === user?.teamMemberId;
+    const isAdmin = user?.permissions?.manageTeam;
+
+    if (!isAdmin && !isUploader) {
+      return res.status(403).json({ error: 'Forbidden: Only Admins or the uploader can delete this record' });
+    }
+
     await prisma.meetingRecord.delete({ where: { id } });
+
+    await prisma.activityLog.create({
+      data: {
+        category: opportunityId ? 'PreSales' : 'Projects',
+        action: 'DELETE',
+        details: `User ${user?.name || 'Unknown'} deleted meeting record "${record.subject || 'Unknown'}"`,
+      }
+    });
+
     res.json({ success: true });
   } catch (error: any) {
     console.error(error);
@@ -580,7 +610,7 @@ router.post('/:recordId/reanalyze', async (req, res) => {
     }
 
     // Call LLM
-    const finalAiMinutes = await generateMeetingMinutes(correctedText, priorActionItems, priorBlockers);
+    const finalAiMinutes = await generateMeetingMinutes(correctedText, priorActionItems, priorBlockers, 1, contextMembers);
     if (finalAiMinutes) {
       (finalAiMinutes as any).name_corrections = corrections;
     }
@@ -708,9 +738,22 @@ router.post('/:recordId/reanalyze', async (req, res) => {
       }
     }
 
+    let updatedMeetingDate = record.meetingDate;
+    if (finalAiMinutes && (finalAiMinutes as any).meeting_date) {
+      let dateStr = String((finalAiMinutes as any).meeting_date);
+      dateStr = dateStr.replace(/(\d)(AM|PM)/i, '$1 $2').replace(/\bIST\b/i, '+05:30');
+      const parsedDate = new Date(dateStr);
+      if (!isNaN(parsedDate.getTime())) {
+        updatedMeetingDate = parsedDate;
+      }
+    }
+
     const updatedWithItems = await prisma.meetingRecord.update({
       where: { id: recordId },
-      data: { aiMinutes: finalAiMinutes ? (finalAiMinutes as any) : null },
+      data: { 
+        aiMinutes: finalAiMinutes ? (finalAiMinutes as any) : null,
+        meetingDate: updatedMeetingDate
+      },
       include: { actionItems: { include: { assignedTo: true } } }
     });
 
@@ -721,4 +764,7 @@ router.post('/:recordId/reanalyze', async (req, res) => {
   }
 });
 
+
+
 export default router;
+

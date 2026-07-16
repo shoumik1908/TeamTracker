@@ -3,11 +3,12 @@ import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Award, FolderKanban,
   Bell, FileBarChart, ChevronLeft, ChevronRight,
-  Zap, MessageSquareDiff, Target, Rocket, FolderOpen, History
+  Zap, MessageSquareDiff, Target, Rocket, FolderOpen, History, ShieldCheck
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import { notificationsApi } from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
 
 const navItems = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
@@ -19,8 +20,7 @@ const navItems = [
   { to: '/project-updates', icon: MessageSquareDiff, label: 'Project Updates' },
   { to: '/notifications', icon: Bell, label: 'Notifications' },
   { to: '/reports', icon: FileBarChart, label: 'Reports' },
-  { to: '/files', icon: FolderOpen, label: 'Files' },
-  { to: '/logs', icon: History, label: 'Logs' },
+  { to: '/files', icon: FolderOpen, label: 'Files' }
 ];
 
 
@@ -40,6 +40,13 @@ export default function Sidebar({
     refetchInterval: 30000,
   });
   const unreadCount = data?.data?.unreadCount || 0;
+  
+  const { hasPermission } = useAuth();
+  const isAdmin = hasPermission('manageTeam');
+
+  const filteredNavItems = isAdmin 
+    ? [...navItems, { to: '/logs', icon: History, label: 'Logs' }, { to: '/admin/credentials', icon: ShieldCheck, label: 'Access Management' }]
+    : navItems;
 
   return (
     <>
@@ -74,7 +81,7 @@ export default function Sidebar({
 
       {/* Navigation */}
       <nav className="flex-1 px-2 py-4 space-y-0.5 overflow-y-auto">
-        {navItems.map(({ to, icon: Icon, label }) => {
+        {filteredNavItems.map(({ to, icon: Icon, label }) => {
           const isActive = to === '/' ? location.pathname === '/' : location.pathname.startsWith(to);
           const isNotifications = to === '/notifications';
 

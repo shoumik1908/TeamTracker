@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { PreSalesOpportunity } from '@/types';
+import { useAuth } from '@/context/AuthContext';
 
 interface PendingChange {
   opportunity: PreSalesOpportunity;
@@ -63,6 +64,9 @@ export default function PreSalesPage() {
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'info' | 'success' } | null>(null);
   const [analyzerTarget, setAnalyzerTarget] = useState<GroupedOpportunity | null>(null);
   const [docsTarget, setDocsTarget] = useState<GroupedOpportunity | null>(null);
+
+  const { hasPermission } = useAuth();
+  const isAdmin = hasPermission('manageTeam');
 
   // Close dropdown menu when clicking anywhere else
   useEffect(() => {
@@ -136,6 +140,11 @@ export default function PreSalesPage() {
   }, [toastMessage]);
 
   const handleStageClick = (opportunity: PreSalesOpportunity, stageName: string, stageIndex: number) => {
+    if (!isAdmin) {
+      showToast('Only admins can change stages.', 'info');
+      return;
+    }
+
     if (opportunity.currentStageIndex === stageIndex) {
       showToast(`Opportunity is already in "${stageName}" stage.`, 'info');
       return;
@@ -312,12 +321,14 @@ export default function PreSalesPage() {
             Track and compare pipeline progression side-by-side for major customer accounts.
           </p>
         </div>
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-1.5 px-3 py-2 bg-azure-500 hover:bg-azure-600 text-white text-xs font-semibold rounded-xl transition-all duration-150 shadow-md shadow-azure-500/25 active:scale-[0.98]"
-        >
-          <Plus className="w-4 h-4 stroke-[2.5]" /> Add Opportunity
-        </button>
+        {isAdmin && (
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="flex items-center gap-1.5 px-3 py-2 bg-azure-500 hover:bg-azure-600 text-white text-xs font-semibold rounded-xl transition-all duration-150 shadow-md shadow-azure-500/25 active:scale-[0.98]"
+          >
+            <Plus className="w-4 h-4 stroke-[2.5]" /> Add Opportunity
+          </button>
+        )}
       </div>
 
       {/* KPI Cards */}
@@ -467,76 +478,78 @@ export default function PreSalesPage() {
                       <FileUp className="w-3 h-3" />
                       Analyze
                     </button>
-                    <div className="relative">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          const key = `${grouped.clientName}::${grouped.name}`;
-                          setOpenMenuKey(openMenuKey === key ? null : key);
-                        }}
-                        className="text-muted-foreground hover:text-foreground p-1.5 rounded-lg hover:bg-zinc-800/80 transition-colors"
-                        title="Actions"
-                        aria-label="Actions"
-                      >
-                        <MoreVertical className="w-4 h-4" />
-                      </button>
-
-                      {/* Dropdown Menu */}
-                      {openMenuKey === `${grouped.clientName}::${grouped.name}` && (
-                        <div
-                          className="absolute right-0 mt-1 w-44 bg-zinc-900 border border-border rounded-xl shadow-2xl z-40 py-1.5 overflow-hidden animate-fade-in"
-                          onClick={(e) => e.stopPropagation()}
+                    {isAdmin && (
+                      <div className="relative">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const key = `${grouped.clientName}::${grouped.name}`;
+                            setOpenMenuKey(openMenuKey === key ? null : key);
+                          }}
+                          className="text-muted-foreground hover:text-foreground p-1.5 rounded-lg hover:bg-zinc-800/80 transition-colors"
+                          title="Actions"
+                          aria-label="Actions"
                         >
-                          <button
-                            onClick={() => {
-                              setOppToEdit(grouped);
-                              setOpenMenuKey(null);
-                            }}
-                            className="w-full text-left px-3.5 py-2 text-xs hover:bg-zinc-800 text-foreground transition-colors flex items-center gap-1.5"
+                          <MoreVertical className="w-4 h-4" />
+                        </button>
+
+                        {/* Dropdown Menu */}
+                        {openMenuKey === `${grouped.clientName}::${grouped.name}` && (
+                          <div
+                            className="absolute right-0 mt-1 w-44 bg-zinc-900 border border-border rounded-xl shadow-2xl z-40 py-1.5 overflow-hidden animate-fade-in"
+                            onClick={(e) => e.stopPropagation()}
                           >
-                            <Pencil className="w-3.5 h-3.5" />
-                            Edit details
-                          </button>
-
-                          {grouped.pnbOpp && (
                             <button
                               onClick={() => {
-                                setOppToReset(grouped.pnbOpp!);
-                                setOpenMenuKey(null);
-                              }}
-                              className="w-full text-left px-3.5 py-2 text-xs hover:bg-zinc-800 text-foreground transition-colors border-t border-border/30 flex items-center gap-1.5"
-                            >
-                              <RefreshCcw className="w-3.5 h-3.5" />
-                              Reset PNB
-                            </button>
-                          )}
-
-                          {grouped.tnmOpp && (
-                            <button
-                              onClick={() => {
-                                setOppToReset(grouped.tnmOpp!);
+                                setOppToEdit(grouped);
                                 setOpenMenuKey(null);
                               }}
                               className="w-full text-left px-3.5 py-2 text-xs hover:bg-zinc-800 text-foreground transition-colors flex items-center gap-1.5"
                             >
-                              <RefreshCcw className="w-3.5 h-3.5" />
-                              Reset TNM
+                              <Pencil className="w-3.5 h-3.5" />
+                              Edit details
                             </button>
-                          )}
 
-                          <button
-                            onClick={() => {
-                              setOppToDelete({ name: grouped.name, clientName: grouped.clientName });
-                              setOpenMenuKey(null);
-                            }}
-                            className="w-full text-left px-3.5 py-2 text-xs font-semibold hover:bg-zinc-800 text-red-400 hover:text-red-300 transition-colors flex items-center gap-1.5 border-t border-border/30"
-                          >
-                            <X className="w-3.5 h-3.5" />
-                            Remove {grouped.name}
-                          </button>
-                        </div>
-                      )}
-                    </div>
+                            {grouped.pnbOpp && (
+                              <button
+                                onClick={() => {
+                                  setOppToReset(grouped.pnbOpp!);
+                                  setOpenMenuKey(null);
+                                }}
+                                className="w-full text-left px-3.5 py-2 text-xs hover:bg-zinc-800 text-foreground transition-colors border-t border-border/30 flex items-center gap-1.5"
+                              >
+                                <RefreshCcw className="w-3.5 h-3.5" />
+                                Reset PNB
+                              </button>
+                            )}
+
+                            {grouped.tnmOpp && (
+                              <button
+                                onClick={() => {
+                                  setOppToReset(grouped.tnmOpp!);
+                                  setOpenMenuKey(null);
+                                }}
+                                className="w-full text-left px-3.5 py-2 text-xs hover:bg-zinc-800 text-foreground transition-colors flex items-center gap-1.5"
+                              >
+                                <RefreshCcw className="w-3.5 h-3.5" />
+                                Reset TNM
+                              </button>
+                            )}
+
+                            <button
+                              onClick={() => {
+                                setOppToDelete({ name: grouped.name, clientName: grouped.clientName });
+                                setOpenMenuKey(null);
+                              }}
+                              className="w-full text-left px-3.5 py-2 text-xs font-semibold hover:bg-zinc-800 text-red-400 hover:text-red-300 transition-colors flex items-center gap-1.5 border-t border-border/30"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                              Remove {grouped.name}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </summary>
 

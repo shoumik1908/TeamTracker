@@ -3,16 +3,28 @@ import { PrismaClient } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
 import { deleteFile, generateSasUrl, extractBlobName, CONTAINERS, accountName } from '../services/blobStorage';
 import { AppError } from '../middleware/errorHandler';
+import { authenticateToken, AuthRequest } from '../middleware/auth';
 
 const router = Router({ mergeParams: true });
 const prisma = new PrismaClient();
 
+router.use(authenticateToken);
+
 // Helper to verify that the team member is assigned to the context (project or opportunity)
-async function verifyContextMember(projectId?: string, opportunityId?: string, memberId?: string) {
-  if (!memberId) {
-    throw new AppError('memberId is required to perform this action.', 400);
+async function verifyContextMember(projectId?: string, opportunityId?: string, user?: any) {
+  if (!user) {
+    throw new AppError('User context is required to perform this action.', 401);
   }
   
+  if (user.permissions?.manageTeam) {
+    return; // Admin always has access
+  }
+
+  const memberId = user.teamMemberId;
+  if (!memberId) {
+    throw new AppError('Access denied. No team member profile associated.', 403);
+  }
+
   if (projectId) {
     const isMember = await prisma.projectMember.findFirst({
       where: { projectId, memberId },
@@ -27,13 +39,17 @@ async function verifyContextMember(projectId?: string, opportunityId?: string, m
     if (isMember) return;
   }
 
-  throw new AppError('Access denied. Only team members assigned to this context can modify its documentation.', 403);
+  throw new AppError('Access denied. Only team members assigned to this context can view its documentation.', 403);
 }
 
 // GET /api/projects/:projectId/documentation (or presales/:opportunityId)
 // Fetch all files, links, and notes for the project/opportunity
 router.get('/', async (req: Request, res: Response) => {
   const { projectId, opportunityId } = req.params;
+  const user = (req as AuthRequest).user;
+  
+  await verifyContextMember(projectId, opportunityId, user);
+
   const whereClause = projectId ? { projectId } : { opportunityId };
 
   const [files, links, notes, project, opp] = await Promise.all([
@@ -66,13 +82,15 @@ router.get('/', async (req: Request, res: Response) => {
 // POST /api/projects/:projectId/documentation/upload-url
 // Request a SAS URL to upload a file directly to Azure
 router.post('/upload-url', async (req: Request, res: Response) => {
-  const { projectId, opportunityId } = req.params;
-  const { fileName, fileType, uploadedBy } = req.body;
+  const user = (req as AuthRequest).user;
+  if (!user?.permissions?.manageTeam) throw new AppError('Forbidden: Only Admins can upload documents', 403);
 
-  if (!uploadedBy || !fileName) {
-    throw new AppError('uploadedBy and fileName are required.', 400);
+  const { projectId, opportunityId } = req.params;
+  const { fileName, fileType } = req.body;
+
+  if (!fileName) {
+    throw new AppError('fileName is required.', 400);
   }
-  await verifyContextMember(projectId, opportunityId, uploadedBy);
 
   const ext = fileName.split('.').pop() || '';
   const blobName = `${uuidv4()}-${fileName.replace(/[^a-zA-Z0-9.\-_]/g, '_')}`;
@@ -90,13 +108,15 @@ router.post('/upload-url', async (req: Request, res: Response) => {
 // POST /api/projects/:projectId/documentation/files
 // Register uploaded file metadata in the database
 router.post('/files', async (req: Request, res: Response) => {
+  const user = (req as AuthRequest).user;
+  if (!user?.permissions?.manageTeam) throw new AppError('Forbidden: Only Admins can upload documents', 403);
+
   const { projectId, opportunityId } = req.params;
   const { blobName, fileName, fileType, size, uploadedBy } = req.body;
 
-  if (!uploadedBy || !blobName || !fileName) {
+  if (!blobName || !fileName) {
     throw new AppError('Missing required file metadata.', 400);
   }
-  await verifyContextMember(projectId, opportunityId, uploadedBy);
 
   const url = `https://${accountName}.blob.core.windows.net/${projectId ? CONTAINERS.PROJECT_DOCS : CONTAINERS.PRESALES_DOCS}/${blobName}`;
 
@@ -118,10 +138,8 @@ router.post('/files', async (req: Request, res: Response) => {
 // DELETE /api/projects/:projectId/documentation/files/:fileId
 // Delete a file from Azure Storage and remove it from the database
 router.delete('/files/:fileId', async (req: Request, res: Response) => {
+  const user = (req as AuthRequest).user;
   const { projectId, opportunityId, fileId } = req.params;
-  const memberId = (req.query.memberId as string) || req.body.memberId;
-
-  await verifyContextMember(projectId, opportunityId, memberId);
 
   const dbFile = await prisma.projectFile.findUnique({
     where: { id: fileId },
@@ -129,6 +147,13 @@ router.delete('/files/:fileId', async (req: Request, res: Response) => {
 
   if (!dbFile) {
     throw new AppError('File not found in database.', 404);
+  }
+
+  const isUploader = dbFile.uploadedBy === user?.teamMemberId;
+  const isAdmin = user?.permissions?.manageTeam;
+
+  if (!isAdmin && !isUploader) {
+    throw new AppError('Forbidden: Only Admins or the uploader can delete this document', 403);
   }
 
   // Delete file from Azure storage
@@ -140,16 +165,25 @@ router.delete('/files/:fileId', async (req: Request, res: Response) => {
     where: { id: fileId },
   });
 
+  // Log the deletion
+  await prisma.activityLog.create({
+    data: {
+      category: opportunityId ? 'PreSales' : 'Projects',
+      action: 'DELETE',
+      details: `User ${user?.name || 'Unknown'} deleted file "${dbFile.name}"`,
+    }
+  });
+
   res.json({ success: true, message: 'File deleted successfully.' });
 });
 
 // GET /api/projects/:projectId/documentation/files/:fileId/download-url
 // Generate a short-lived read-only SAS URL for file download
 router.get('/files/:fileId/download-url', async (req: Request, res: Response) => {
+  const user = (req as AuthRequest).user;
   const { projectId, opportunityId, fileId } = req.params;
-  const memberId = (req.query.memberId as string) || req.body.memberId;
 
-  await verifyContextMember(projectId, opportunityId, memberId);
+  await verifyContextMember(projectId, opportunityId, user);
 
   const dbFile = await prisma.projectFile.findUnique({
     where: { id: fileId },
@@ -175,13 +209,15 @@ router.get('/files/:fileId/download-url', async (req: Request, res: Response) =>
 // POST /api/projects/:projectId/documentation/links
 // Add an external document URL link
 router.post('/links', async (req: Request, res: Response) => {
+  const user = (req as AuthRequest).user;
+  if (!user?.permissions?.manageTeam) throw new AppError('Forbidden: Only Admins can add links', 403);
+
   const { projectId, opportunityId } = req.params;
   const { title, url, description, addedBy } = req.body;
 
-  if (!title || !url || !addedBy) {
-    throw new AppError('title, url, and addedBy memberId are required.', 400);
+  if (!title || !url) {
+    throw new AppError('title, url are required.', 400);
   }
-  await verifyContextMember(projectId, opportunityId, addedBy);
 
   const newLink = await prisma.projectLink.create({
     data: {
@@ -199,13 +235,15 @@ router.post('/links', async (req: Request, res: Response) => {
 // PUT /api/projects/:projectId/documentation/links/:linkId
 // Update an existing link details
 router.put('/links/:linkId', async (req: Request, res: Response) => {
+  const user = (req as AuthRequest).user;
+  if (!user?.permissions?.manageTeam) throw new AppError('Forbidden: Only Admins can update links', 403);
+
   const { projectId, opportunityId, linkId } = req.params;
   const { title, url, description, addedBy } = req.body;
 
-  if (!title || !url || !addedBy) {
-    throw new AppError('title, url, and addedBy memberId are required.', 400);
+  if (!title || !url) {
+    throw new AppError('title, url are required.', 400);
   }
-  await verifyContextMember(projectId, opportunityId, addedBy);
 
   const existing = await prisma.projectLink.findUnique({
     where: { id: linkId },
@@ -231,24 +269,37 @@ router.put('/links/:linkId', async (req: Request, res: Response) => {
 // DELETE /api/projects/:projectId/documentation/links/:linkId
 // Remove an external document link
 router.delete('/links/:linkId', async (req: Request, res: Response) => {
+  const user = (req as AuthRequest).user;
   const { projectId, opportunityId, linkId } = req.params;
-  const memberId = (req.query.memberId as string) || req.body.memberId;
 
-  await verifyContextMember(projectId, opportunityId, memberId);
-
-  const existing = await prisma.projectLink.findUnique({
+  const dbLink = await prisma.projectLink.findUnique({
     where: { id: linkId },
   });
 
-  if (!existing) {
-    throw new AppError('Link not found.', 404);
+  if (!dbLink) {
+    throw new AppError('Link not found in database.', 404);
+  }
+
+  const isUploader = dbLink.addedBy === user?.teamMemberId;
+  const isAdmin = user?.permissions?.manageTeam;
+
+  if (!isAdmin && !isUploader) {
+    throw new AppError('Forbidden: Only Admins or the creator can delete this link', 403);
   }
 
   await prisma.projectLink.delete({
     where: { id: linkId },
   });
 
-  res.json({ success: true, message: 'Link removed successfully.' });
+  await prisma.activityLog.create({
+    data: {
+      category: opportunityId ? 'PreSales' : 'Projects',
+      action: 'DELETE',
+      details: `User ${user?.name || 'Unknown'} deleted link "${dbLink.title}"`,
+    }
+  });
+
+  res.json({ success: true, message: 'Link deleted successfully.' });
 });
 
 // ─── NOTES ────────────────────────────────────────────────────────────────────
@@ -256,13 +307,15 @@ router.delete('/links/:linkId', async (req: Request, res: Response) => {
 // POST /api/projects/:projectId/documentation/notes
 // Create in-app markdown text document notes
 router.post('/notes', async (req: Request, res: Response) => {
+  const user = (req as AuthRequest).user;
+  if (!user?.permissions?.manageTeam) throw new AppError('Forbidden: Only Admins can add notes', 403);
+
   const { projectId, opportunityId } = req.params;
   const { title, content, updatedBy } = req.body;
 
-  if (!title || content === undefined || !updatedBy) {
-    throw new AppError('title, content, and updatedBy memberId are required.', 400);
+  if (!title || content === undefined) {
+    throw new AppError('title, content are required.', 400);
   }
-  await verifyContextMember(projectId, opportunityId, updatedBy);
 
   const newNote = await prisma.projectNote.create({
     data: {
@@ -279,13 +332,15 @@ router.post('/notes', async (req: Request, res: Response) => {
 // PUT /api/projects/:projectId/documentation/notes/:noteId
 // Update in-app markdown notes content
 router.put('/notes/:noteId', async (req: Request, res: Response) => {
+  const user = (req as AuthRequest).user;
+  if (!user?.permissions?.manageTeam) throw new AppError('Forbidden: Only Admins can update notes', 403);
+
   const { projectId, opportunityId, noteId } = req.params;
   const { title, content, updatedBy } = req.body;
 
-  if (!title || content === undefined || !updatedBy) {
-    throw new AppError('title, content, and updatedBy memberId are required.', 400);
+  if (!title || content === undefined) {
+    throw new AppError('title, content are required.', 400);
   }
-  await verifyContextMember(projectId, opportunityId, updatedBy);
 
   const existing = await prisma.projectNote.findUnique({
     where: { id: noteId },
@@ -310,21 +365,34 @@ router.put('/notes/:noteId', async (req: Request, res: Response) => {
 // DELETE /api/projects/:projectId/documentation/notes/:noteId
 // Remove in-app project notes
 router.delete('/notes/:noteId', async (req: Request, res: Response) => {
+  const user = (req as AuthRequest).user;
   const { projectId, opportunityId, noteId } = req.params;
-  const memberId = (req.query.memberId as string) || req.body.memberId;
 
-  await verifyContextMember(projectId, opportunityId, memberId);
-
-  const existing = await prisma.projectNote.findUnique({
+  const dbNote = await prisma.projectNote.findUnique({
     where: { id: noteId },
   });
 
-  if (!existing) {
-    throw new AppError('Note not found.', 404);
+  if (!dbNote) {
+    throw new AppError('Note not found in database.', 404);
+  }
+
+  const isUploader = dbNote.addedBy === user?.teamMemberId;
+  const isAdmin = user?.permissions?.manageTeam;
+
+  if (!isAdmin && !isUploader) {
+    throw new AppError('Forbidden: Only Admins or the creator can delete this note', 403);
   }
 
   await prisma.projectNote.delete({
     where: { id: noteId },
+  });
+
+  await prisma.activityLog.create({
+    data: {
+      category: opportunityId ? 'PreSales' : 'Projects',
+      action: 'DELETE',
+      details: `User ${user?.name || 'Unknown'} deleted note "${dbNote.title}"`,
+    }
   });
 
   res.json({ success: true, message: 'Note deleted successfully.' });

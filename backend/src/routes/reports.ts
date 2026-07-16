@@ -3,9 +3,13 @@ import { PrismaClient } from '@prisma/client';
 import ExcelJS from 'exceljs';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { authenticateToken, requirePermission } from '../middleware/auth';
 
 const router = Router();
 const prisma = new PrismaClient();
+
+router.use(authenticateToken);
+router.use(requirePermission('manageTeam'));
 
 type ExportFormat = 'json' | 'csv' | 'excel' | 'pdf';
 

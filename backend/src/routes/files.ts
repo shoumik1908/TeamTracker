@@ -1,17 +1,30 @@
 import { Router, Request, Response } from 'express';
 import { PrismaClient, Prisma } from '@prisma/client';
 import { generateSasUrl, extractBlobName, CONTAINERS, deleteFile } from '../services/blobStorage';
+import { authenticateToken, AuthRequest } from '../middleware/auth';
+import { AppError } from '../middleware/errorHandler';
 
 const router = Router();
 const prisma = new PrismaClient();
 
+router.use(authenticateToken);
+
 router.get('/', async (req: Request, res: Response) => {
   try {
+    const user = (req as AuthRequest).user;
+    const isAdmin = user?.permissions?.manageTeam;
+    const memberId = user?.teamMemberId;
+
     const files = [];
 
     // 1. Fetch CVs
+    const cvsWhere: any = { cvBlobUrl: { not: null } };
+    if (!isAdmin && memberId) {
+      cvsWhere.id = memberId;
+    }
+
     const membersWithCvs = await prisma.teamMember.findMany({
-      where: { cvBlobUrl: { not: null } },
+      where: cvsWhere,
       select: { id: true, name: true, cvBlobUrl: true, cvOriginalFilename: true, cvUploadedAt: true }
     });
 
@@ -32,8 +45,13 @@ router.get('/', async (req: Request, res: Response) => {
     }
 
     // 2. Fetch Certificates
+    const certsWhere: any = { certificateUrl: { not: null } };
+    if (!isAdmin && memberId) {
+      certsWhere.memberId = memberId;
+    }
+
     const assignedCerts = await prisma.assignedCertification.findMany({
-      where: { certificateUrl: { not: null } },
+      where: certsWhere,
       include: {
         member: { select: { id: true, name: true } },
         certification: { select: { name: true } }
@@ -56,19 +74,31 @@ router.get('/', async (req: Request, res: Response) => {
       }
     }
 
-    // 3. Fetch PreSales/GTM Documents
+    // 3. Fetch PreSales/GTM Documents (StageChangeLogs)
+    const oppsWhere: any = {};
+    if (!isAdmin && memberId) {
+      oppsWhere.assignments = {
+        some: { memberId }
+      };
+    }
+
+    const opps = await prisma.preSalesOpportunity.findMany({
+      where: oppsWhere,
+      select: { id: true, name: true, clientName: true }
+    });
+    
+    const allowedOppIds = new Set(opps.map(o => o.id));
+    const oppMap = new Map(opps.map(o => [o.id, o]));
+
     const stageLogs = await prisma.stageChangeLog.findMany({
-      where: { blobUrl: { not: null } },
+      where: { 
+        blobUrl: { not: null },
+        opportunityId: { in: Array.from(allowedOppIds) }
+      },
       orderBy: { createdAt: 'desc' }
     });
 
     if (stageLogs.length > 0) {
-      const oppIds = [...new Set(stageLogs.map(l => l.opportunityId))];
-      const opps = await prisma.preSalesOpportunity.findMany({
-        where: { id: { in: oppIds } }
-      });
-      const oppMap = new Map(opps.map(o => [o.id, o]));
-
       for (const log of stageLogs) {
         if (log.blobUrl) {
           const opp = oppMap.get(log.opportunityId);
@@ -89,31 +119,67 @@ router.get('/', async (req: Request, res: Response) => {
       }
     }
 
-    // 4. Fetch ProjectFile records for PreSales (opportunityId is not null)
+    // 4. Fetch ProjectFile records
+    // Determine allowed project IDs
+    const projWhere: any = {};
+    if (!isAdmin && memberId) {
+      projWhere.members = {
+        some: { memberId }
+      };
+    }
+    const userProjects = await prisma.project.findMany({
+      where: projWhere,
+      select: { id: true, name: true, client: true }
+    });
+    const allowedProjectIds = new Set(userProjects.map(p => p.id));
+
+    // We can show a project file if:
+    // (a) it has a projectId and the user is in that project
+    // (b) it has an opportunityId and the user is in that opportunity
+    const pFilesWhere: any = {};
+    if (!isAdmin && memberId) {
+      pFilesWhere.OR = [
+        { projectId: { in: Array.from(allowedProjectIds) } },
+        { opportunityId: { in: Array.from(allowedOppIds) } }
+      ];
+    } else {
+      // Admins see all (this was the original logic: it didn't filter by opp vs proj, it just fetched those with oppId? Wait...)
+      // The original code ONLY fetched where opportunityId was not null!
+      // Let's broaden this to fetch ALL project files (both proj and opp) to fix that bug
+    }
+
     const projectFiles = await prisma.projectFile.findMany({
-      where: { opportunityId: { not: null } },
-      include: { opportunity: true },
+      where: pFilesWhere,
+      include: { opportunity: true, project: true },
       orderBy: { uploadedAt: 'desc' }
     });
 
     for (const pFile of projectFiles) {
-      if (pFile.opportunity) {
-        const container = pFile.url.includes(`/${CONTAINERS.PROJECT_DOCS}/`)
-          ? CONTAINERS.PROJECT_DOCS
-          : CONTAINERS.PRESALES_DOCS;
+      const isProjectDoc = pFile.url.includes(`/${CONTAINERS.PROJECT_DOCS}/`) || !!pFile.projectId;
+      const container = isProjectDoc ? CONTAINERS.PROJECT_DOCS : CONTAINERS.PRESALES_DOCS;
+      
+      let entityName = 'Unknown Entity';
+      let entityId = 'unknown';
 
-        files.push({
-          id: `opp-file-${pFile.id}`,
-          fileName: pFile.name,
-          blobUrl: pFile.url,
-          container,
-          category: 'GTM Document',
-          entityId: pFile.opportunity.id,
-          entityName: `${pFile.opportunity.clientName} - ${pFile.opportunity.name}`,
-          entityGroup: 'By Client / Opportunity',
-          uploadDate: pFile.uploadedAt
-        });
+      if (pFile.opportunity) {
+        entityName = `${pFile.opportunity.clientName} - ${pFile.opportunity.name}`;
+        entityId = pFile.opportunity.id;
+      } else if (pFile.project) {
+        entityName = `${pFile.project.client} - ${pFile.project.name}`;
+        entityId = pFile.project.id;
       }
+
+      files.push({
+        id: `file-${pFile.id}`,
+        fileName: pFile.name,
+        blobUrl: pFile.url,
+        container,
+        category: pFile.project ? 'Project Document' : (pFile.opportunity ? 'GTM Document' : (pFile.type || 'Document')),
+        entityId,
+        entityName,
+        entityGroup: 'By Client / Opportunity',
+        uploadDate: pFile.uploadedAt
+      });
     }
 
     // Sort all files by upload date descending
@@ -175,6 +241,9 @@ router.post('/sas', async (req: Request, res: Response) => {
 // DELETE /api/files/:id
 // General endpoint to delete CVs, Certificates, Stage Change Logs or ProjectFiles
 router.delete('/:id', async (req: Request, res: Response) => {
+  const user = (req as AuthRequest).user;
+  if (!user?.permissions?.manageTeam) throw new AppError('Forbidden: Only Admins can delete documents globally', 403);
+
   const { id } = req.params;
 
   try {

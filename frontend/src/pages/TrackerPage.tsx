@@ -5,6 +5,7 @@ import { Search, Upload, Pencil, Trash2, FileText, ChevronDown, ChevronUp, X, Lo
 import { cn, formatDate, formatStatus, getStatusColor, getInitials } from '@/lib/utils';
 import type { AssignedCertification, PaginatedResponse, TeamMember, Certification } from '@/types';
 import AddCertificationModal from '@/components/AddCertificationModal';
+import { useAuth } from '@/context/AuthContext';
 
 const STATUSES = ['NOT_STARTED', 'IN_PROGRESS', 'COMPLETED', 'OVERDUE', 'EXPIRED'];
 const PRIORITIES = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
@@ -219,6 +220,8 @@ function EditProgressModal({ assignment, onClose, onSave }: {
 }
 
 export default function TrackerPage() {
+  const { user: currentUser } = useAuth();
+  const isAdmin = currentUser?.role?.permissions?.manageTeam;
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
   const [provider] = useState('');
@@ -527,10 +530,12 @@ export default function TrackerPage() {
             className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl border border-border hover:bg-muted/40 transition-colors">
             <Upload className="w-4 h-4" /> Upload Certificate
           </button>
-          <button onClick={() => setShowAssign(true)}
-            className="flex items-center gap-2 px-4 py-2.5 bg-azure-500 text-white text-sm font-medium rounded-xl hover:bg-azure-600 transition-colors shadow-lg shadow-azure-500/25">
-            <Plus className="w-4 h-4" /> Assign Certification
-          </button>
+          {isAdmin && (
+            <button onClick={() => setShowAssign(true)}
+              className="flex items-center gap-2 px-4 py-2.5 bg-azure-500 text-white text-sm font-medium rounded-xl hover:bg-azure-600 transition-colors shadow-lg shadow-azure-500/25">
+              <Plus className="w-4 h-4" /> Assign Certification
+            </button>
+          )}
         </div>
       </div>
 
@@ -588,12 +593,14 @@ export default function TrackerPage() {
                       <div className="h-full bg-azure-500 rounded-full transition-all" style={{ width: `${progress}%` }} />
                     </div>
                   </div>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setAddFor({ id: group.member.id, name: group.member.name }); }}
-                    title={`Add certification for ${group.member.name}`}
-                    className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 bg-azure-500/10 text-azure-300 border border-azure-800/40 rounded-lg hover:bg-azure-500 hover:text-white transition-colors">
-                    <Plus className="w-3.5 h-3.5" /> Add
-                  </button>
+                  {isAdmin && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setAddFor({ id: group.member.id, name: group.member.name }); }}
+                      title={`Add certification for ${group.member.name}`}
+                      className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 bg-azure-500/10 text-azure-300 border border-azure-800/40 rounded-lg hover:bg-azure-500 hover:text-white transition-colors">
+                      <Plus className="w-3.5 h-3.5" /> Add
+                    </button>
+                  )}
                   {expandedMembers.has(group.member.id) ? <ChevronUp className="w-5 h-5 text-muted-foreground" /> : <ChevronDown className="w-5 h-5 text-muted-foreground" />}
                 </div>
               </div>
@@ -877,14 +884,20 @@ export default function TrackerPage() {
               <div>
                 <label className="block text-xs font-medium text-muted-foreground mb-1">Team Member *</label>
                 <select
-                  value={selectedMemberId}
-                  disabled={!isUniversal}
+                  value={isAdmin ? selectedMemberId : currentUser?.teamMemberId || ''}
+                  disabled={!isUniversal || !isAdmin}
                   onChange={e => { setSelectedMemberId(e.target.value); }}
                   className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-muted/20 focus:outline-none focus:ring-2 focus:ring-azure-500/30 disabled:opacity-75 disabled:cursor-not-allowed">
-                  <option value="">Select member…</option>
-                  {membersList.map(m => (
-                    <option key={m.id} value={m.id}>{m.name}</option>
-                  ))}
+                  {!isAdmin ? (
+                    <option value={currentUser?.teamMemberId || ''}>{currentUser?.name}</option>
+                  ) : (
+                    <>
+                      <option value="">Select member…</option>
+                      {membersList.map(m => (
+                        <option key={m.id} value={m.id}>{m.name}</option>
+                      ))}
+                    </>
+                  )}
                 </select>
               </div>
 
@@ -977,10 +990,11 @@ export default function TrackerPage() {
                     setShowMissingModal(true);
                   } else {
                     // ⚡ Client-side duplicate pre-check (fast, uses already-loaded state)
-                    if (isUniversal && selectedMemberId && selectedCertId) {
+                    const finalMemberId = isAdmin ? selectedMemberId : currentUser?.teamMemberId;
+                    if (isUniversal && finalMemberId && selectedCertId) {
                       const existingInState = data?.data?.find(
                         (a: AssignedCertification) =>
-                          a.memberId === selectedMemberId &&
+                          a.memberId === finalMemberId &&
                           a.certificationId === selectedCertId &&
                           a.certificateUrl
                       );
@@ -997,7 +1011,7 @@ export default function TrackerPage() {
                       file: uploadFile || undefined,
                       completionDate: completionDateInput || undefined,
                       expiryDate: expiryDateInput || undefined,
-                      memberId: selectedMemberId,
+                      memberId: isAdmin ? selectedMemberId : (currentUser?.teamMemberId || undefined),
                       certificationId: selectedCertId
                     });
                   }

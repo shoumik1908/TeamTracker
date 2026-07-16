@@ -1,9 +1,12 @@
-import { Router, Request, Response } from 'express';
+import { Router, Response } from 'express';
 import { PrismaClient, ProjectStatus, Priority } from '@prisma/client';
 import { AppError } from '../middleware/errorHandler';
+import { authenticateToken, AuthRequest, requirePermission } from '../middleware/auth';
 
 const router = Router();
 const prisma = new PrismaClient();
+
+router.use(authenticateToken);
 
 // GET /api/projects
 router.get('/', async (req: Request, res: Response) => {
@@ -21,6 +24,16 @@ router.get('/', async (req: Request, res: Response) => {
   }
   if (status) where.status = status as ProjectStatus;
   if (priority) where.priority = priority as Priority;
+
+  // RBAC: If user is not admin, only show assigned projects
+  const user = (req as AuthRequest).user;
+  if (!user?.permissions?.manageTeam) {
+    where.members = {
+      some: {
+        memberId: user?.teamMemberId
+      }
+    };
+  }
 
   const [projects, total] = await Promise.all([
     prisma.project.findMany({
@@ -109,6 +122,7 @@ router.patch('/:id/blockers/:blockerId/status', async (req: Request, res: Respon
 
 // GET /api/projects/:id
 router.get('/:id', async (req: Request, res: Response) => {
+  const user = (req as AuthRequest).user;
   const project = await prisma.project.findUnique({
     where: { id: req.params.id },
     include: {
@@ -126,6 +140,15 @@ router.get('/:id', async (req: Request, res: Response) => {
     },
   });
   if (!project) throw new AppError('Project not found', 404);
+
+  // RBAC check
+  if (!user?.permissions?.manageTeam) {
+    const isMember = project.members.some(m => m.memberId === user?.teamMemberId);
+    if (!isMember) {
+      throw new AppError('Forbidden: You are not assigned to this project', 403);
+    }
+  }
+
   res.json(project);
 });
 

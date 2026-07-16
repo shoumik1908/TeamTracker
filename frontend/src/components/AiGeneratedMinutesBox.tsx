@@ -1,9 +1,10 @@
+import { generateMeetingDocx } from '../lib/exportDocx';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   BrainCircuit, RefreshCw, AlertTriangle, Users, List, Lightbulb, 
   CheckSquare, Square, HelpCircle, ChevronRight, Info, FileText
-} from 'lucide-react';
+, Download } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 // Helper to format date nicely in frontend
@@ -74,6 +75,7 @@ export interface AiGeneratedMinutesBoxProps {
   isReanalyzing: boolean;
   onReanalyze: () => void;
   onToggleActionItem: (itemId: string, completed: boolean) => void;
+  record?: any;
 }
 
 export default function AiGeneratedMinutesBox({
@@ -82,7 +84,8 @@ export default function AiGeneratedMinutesBox({
   theme,
   isReanalyzing,
   onReanalyze,
-  onToggleActionItem
+  onToggleActionItem,
+  record
 }: AiGeneratedMinutesBoxProps) {
   // Check format mode
   const isMoM = Boolean(aiMinutes.purpose || aiMinutes.meeting_title || aiMinutes.discussion_points);
@@ -230,7 +233,18 @@ export default function AiGeneratedMinutesBox({
                 <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
                   <FileText className="w-3.5 h-3.5" /> Meeting Summary (Full Details)
                 </span>
-                <ChevronRight className="w-3.5 h-3.5 text-muted-foreground transition-transform group-open/mom-summary:rotate-90" />
+                <div className="flex items-center gap-3">
+                  {record && (
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); generateMeetingDocx(record, aiMinutes, actionItems); }}
+                      className="flex items-center gap-1.5 text-[10px] font-bold text-indigo-400 hover:text-indigo-300 transition-colors bg-indigo-500/10 hover:bg-indigo-500/20 px-2 py-1 rounded-md"
+                    >
+                      <Download className="w-3 h-3" />
+                      DOCX
+                    </button>
+                  )}
+                  <ChevronRight className="w-3.5 h-3.5 text-muted-foreground transition-transform group-open/mom-summary:rotate-90" />
+                </div>
               </summary>
               <div className="mt-3.5 space-y-4">
                 {/* A. Header Grid */}
@@ -359,7 +373,21 @@ export default function AiGeneratedMinutesBox({
                     {(aiMinutes.decisions || []).length > 0 ? (
                       (aiMinutes.decisions || []).map((d: any, i: number) => (
                         <tr key={i} className="hover:bg-zinc-900/30 transition-colors">
-                          <td className="p-2.5 text-foreground font-medium align-top leading-relaxed">{d.decision}</td>
+                          <td className="p-2.5 text-foreground font-medium align-top leading-relaxed">
+                            {d.decision}
+                            <div className="mt-1 flex gap-2">
+                              {d.confidence && d.confidence.toLowerCase() !== 'high' && (
+                                <span className={`inline-block text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider ${d.confidence.toLowerCase() === 'low' ? 'bg-red-500/20 text-red-400' : 'bg-amber-500/20 text-amber-400'}`}>
+                                  {d.confidence} Conf
+                                </span>
+                              )}
+                              {(d.source_excerpt || d.sourceExcerpt) && (
+                                <span className="inline-block text-[10px] text-muted-foreground cursor-help" title={d.source_excerpt || d.sourceExcerpt}>
+                                  Source ℹ️
+                                </span>
+                              )}
+                            </div>
+                          </td>
                           <td className="p-2.5 text-emerald-400 font-semibold align-top">{d.owner || 'Unassigned'}</td>
                           <td className="p-2.5 text-muted-foreground align-top leading-normal">{d.rationale || 'N/A'}</td>
                         </tr>
@@ -491,9 +519,16 @@ export default function AiGeneratedMinutesBox({
               <div className="mt-2.5">
                 {(aiMinutes.open_risks_blockers || []).length > 0 ? (
                   <ul className="list-disc pl-5 space-y-1.5">
-                    {(aiMinutes.open_risks_blockers || []).map((risk: string, i: number) => (
-                      <li key={i} className="text-xs text-red-200/80 leading-relaxed font-sans">
-                        {risk}
+                    {(aiMinutes.open_risks_blockers || []).map((risk: any, i: number) => (
+                      <li key={i} className="text-xs text-red-200/80 leading-relaxed font-sans group/risk">
+                        {risk.description || risk}
+                        {risk.confidence && (
+                          <span className="ml-2 inline-flex items-center text-[9px] opacity-0 group-hover/risk:opacity-100 transition-opacity">
+                            <span className={`px-1 py-0.5 rounded border ${risk.confidence === 'High' ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-amber-500/10 text-amber-400 border-amber-500/20'}`}>
+                              {risk.confidence} Confidence
+                            </span>
+                          </span>
+                        )}
                       </li>
                     ))}
                   </ul>
@@ -502,6 +537,43 @@ export default function AiGeneratedMinutesBox({
                 )}
               </div>
             </details>
+
+            {/* ────────── PROGRESS UPDATES ────────── */}
+            {aiMinutes.progress_updates && aiMinutes.progress_updates.length > 0 && (
+              <details 
+                open={showRisksMoM} // sharing toggle for now
+                onToggle={(e) => setShowRisksMoM(e.currentTarget.open)} 
+                className="group/mom-prog border-b border-border/30 pb-4 [&_summary::-webkit-details-marker]:hidden"
+              >
+                <summary className="cursor-pointer list-none flex items-center justify-between hover:text-foreground/90 transition-colors">
+                  <span className="text-[10px] font-bold text-azure-500/70 uppercase tracking-wider flex items-center gap-1.5">
+                    <List className="w-3.5 h-3.5 text-azure-500" /> Progress Updates
+                    <span className="ml-1.5 px-1.5 py-0.25 text-[9px] font-bold bg-azure-950/60 text-azure-400 border border-azure-500/10 rounded-full">
+                      {aiMinutes.progress_updates.length}
+                    </span>
+                  </span>
+                  <ChevronRight className="w-3.5 h-3.5 text-muted-foreground transition-transform group-open/mom-prog:rotate-90" />
+                </summary>
+                <div className="mt-2.5">
+                  <ul className="list-disc pl-5 space-y-1.5">
+                    {aiMinutes.progress_updates.map((prog: any, i: number) => (
+                      <li key={i} className="text-xs text-foreground/80 leading-relaxed font-sans group/prog">
+                        <span className="font-semibold">{prog.topic}:</span> {prog.exact_value}
+                        {prog.confidence && (
+                          <span className="ml-2 inline-flex items-center text-[9px] opacity-0 group-hover/prog:opacity-100 transition-opacity">
+                            <span className={`px-1 py-0.5 rounded border ${prog.confidence === 'High' ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-amber-500/10 text-amber-400 border-amber-500/20'}`}>
+                              {prog.confidence}
+                            </span>
+                          </span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </details>
+            )}
+
+
           </>
         ) : (
           /* ────────── LEGACY Fallback Rendering Layout ────────── */

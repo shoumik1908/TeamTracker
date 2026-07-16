@@ -1,7 +1,9 @@
+import { generateMeetingDocx } from '../lib/exportDocx';
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { presalesDocumentationApi, membersApi, presalesMeetingRecordsApi } from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
 import { presalesApi } from '@/lib/presalesApi';
 import axios from 'axios';
 import GenerateProposalModal from '@/components/GenerateProposalModal';
@@ -14,8 +16,8 @@ import {
   Users, Search,
   AlertTriangle, Video, PlayCircle, Sparkles, FileText as FileTextIcon, MoreVertical, Edit3,
   BrainCircuit, RefreshCw, FilePlus2
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
+, Download } from 'lucide-react';
+import { cn, extractMeetingDate } from '@/lib/utils';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 // Helper to format byte sizes
@@ -34,14 +36,24 @@ function getInitials(name: string) {
 }
 
 // Format date nicely
-function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString('en-US', {
+function formatDate(dateStr: string | null) {
+  if (!dateStr) return 'Date Pending';
+  const d = new Date(dateStr);
+  const isMidnightUTC = dateStr.includes('T00:00:00.000Z');
+  
+  const options: Intl.DateTimeFormatOptions = {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
+    timeZone: isMidnightUTC ? 'UTC' : undefined
+  };
+  
+  if (!isMidnightUTC) {
+    options.hour = '2-digit';
+    options.minute = '2-digit';
+  }
+  
+  return d.toLocaleDateString('en-US', options);
 }
 
 
@@ -56,8 +68,11 @@ export default function PreSalesDetailPage() {
   const navigate = useNavigate();
 
   const [activeSection, setActiveSection] = useState<SectionType>('files');
-  const [actingMemberId, setActingMemberId] = useState<string>('');
   const [showProposalModal, setShowProposalModal] = useState(false);
+
+  const { user, hasPermission } = useAuth();
+  const isAdmin = hasPermission('manageTeam');
+  const actingMemberId = user?.teamMemberId || '';
   
   const [editingSectionKey, setEditingSectionKey] = useState<string | null>(null);
   const [editingSectionValue, setEditingSectionValue] = useState('');
@@ -72,12 +87,31 @@ export default function PreSalesDetailPage() {
   const [showRecordForm, setShowRecordForm] = useState(false);
   const [recordTitle, setRecordTitle] = useState('');
   const [recordDate, setRecordDate] = useState('');
+  const [dateAutoFilled, setDateAutoFilled] = useState(false);
+  const [userEditedDate, setUserEditedDate] = useState(false);
   const [recordingType, setRecordingType] = useState<'none'|'link'|'file'>('none');
   const [recordingLink, setRecordingLink] = useState('');
   const [recordingFile, setRecordingFile] = useState<File | null>(null);
   const [transcriptSource, setTranscriptSource] = useState<'none'|'pasted'|'uploaded_file'>('none');
   const [transcriptPasted, setTranscriptPasted] = useState('');
   const [transcriptFile, setTranscriptFile] = useState<File | null>(null);
+
+  useEffect(() => {
+    if (userEditedDate) return;
+    if (transcriptPasted) {
+      const extracted = extractMeetingDate(transcriptPasted);
+      if (extracted) {
+        setRecordDate(extracted);
+        setDateAutoFilled(true);
+      }
+    } else if (transcriptFile) {
+      const extracted = extractMeetingDate('', transcriptFile);
+      if (extracted) {
+        setRecordDate(extracted);
+        setDateAutoFilled(true);
+      }
+    }
+  }, [transcriptPasted, transcriptFile, userEditedDate]);
 
   const [editingTranscriptId, setEditingTranscriptId] = useState<string | null>(null);
   const [editingTranscriptText, setEditingTranscriptText] = useState('');
@@ -139,13 +173,6 @@ export default function PreSalesDetailPage() {
 
   const allMembers = membersRes?.data || [];
   const meetingRecords = recordsRes?.data || [];
-
-  // Default the acting member to the first assigned member once loaded
-  useEffect(() => {
-    if (opportunity?.members?.length > 0 && !actingMemberId) {
-      setActingMemberId(opportunity.members[0].member.id);
-    }
-  }, [opportunity, actingMemberId]);
 
   // Mutations
   const uploadFileMutation = useMutation({
@@ -382,6 +409,8 @@ export default function PreSalesDetailPage() {
       // Reset form
       setRecordTitle('');
       setRecordDate('');
+      setDateAutoFilled(false);
+      setUserEditedDate(false);
       setRecordingType('none');
       setRecordingLink('');
       setRecordingFile(null);
@@ -571,14 +600,16 @@ export default function PreSalesDetailPage() {
           </div>
 
           <div className="flex items-center gap-3 ml-auto">
-            <button 
-              onClick={() => convertMutation.mutate()}
-              disabled={convertMutation.isPending}
-              className="px-3 py-1.5 text-xs font-semibold bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20 rounded-lg transition-colors flex items-center gap-1.5 disabled:opacity-50"
-            >
-              {convertMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-              Convert to Project
-            </button>
+            {isAdmin && (
+              <button 
+                onClick={() => convertMutation.mutate()}
+                disabled={convertMutation.isPending}
+                className="px-3 py-1.5 text-xs font-semibold bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20 rounded-lg transition-colors flex items-center gap-1.5 disabled:opacity-50"
+              >
+                {convertMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                Convert to Project
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -724,12 +755,14 @@ export default function PreSalesDetailPage() {
             <Users className="w-4 h-4 text-violet-400" />
             Currently Assigned ({assignedMembers.length})
           </h3>
-          <button
-            onClick={() => setIsAssignDropdownOpen(!isAssignDropdownOpen)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-violet-500/10 text-violet-400 hover:bg-violet-500/20 rounded-lg transition-colors"
-          >
-            <Plus className="w-3.5 h-3.5" /> Assign Members
-          </button>
+          {isAdmin && (
+            <button
+              onClick={() => setIsAssignDropdownOpen(!isAssignDropdownOpen)}
+              className="px-2.5 py-1 text-[10px] font-semibold bg-zinc-800 hover:bg-zinc-700 text-foreground rounded-lg transition-colors flex items-center gap-1.5"
+            >
+              <Plus className="w-3.5 h-3.5" /> Assign Members
+            </button>
+          )}
           
           {isAssignDropdownOpen && (
             <div className="absolute right-0 top-10 w-80 bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl z-50 overflow-hidden flex flex-col max-h-[400px]">
@@ -861,7 +894,7 @@ export default function PreSalesDetailPage() {
                   <span className="text-xs font-semibold text-foreground leading-none">{m.member.name}</span>
                   <span className="text-[10px] text-muted-foreground mt-0.5">{m.role || 'Member'}</span>
                 </div>
-                {m.role !== 'Project Manager' && (
+                {isAdmin && m.role !== 'Project Manager' && (
                   <button
                     onClick={() => {
                       if (confirm(`Remove ${m.member.name} from the opportunity?`)) {
@@ -1063,18 +1096,20 @@ export default function PreSalesDetailPage() {
                             >
                               <FileDown className="w-3.5 h-3.5" />
                             </button>
-                            <button
-                              onClick={() => {
-                                if (confirm('Are you sure you want to delete this file?')) {
-                                  deleteFileMutation.mutate(file.id);
-                                }
-                              }}
-                              disabled={!actingMemberId || deleteFileMutation.isPending}
-                              className="p-1.5 hover:bg-red-950/20 text-muted-foreground hover:text-red-400 rounded-lg transition-all disabled:opacity-40"
-                              title="Delete file"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
+                            {(isAdmin || file.uploadedBy === actingMemberId) && (
+                              <button
+                                onClick={() => {
+                                  if (confirm('Are you sure you want to delete this file?')) {
+                                    deleteFileMutation.mutate(file.id);
+                                  }
+                                }}
+                                disabled={!actingMemberId || deleteFileMutation.isPending}
+                                className="p-1.5 hover:bg-red-950/20 text-muted-foreground hover:text-red-400 rounded-lg transition-all disabled:opacity-40"
+                                title="Delete file"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -1229,17 +1264,19 @@ export default function PreSalesDetailPage() {
                             >
                               <Pencil className="w-3 h-3" />
                             </button>
-                            <button
-                              onClick={() => {
-                                if (confirm('Are you sure you want to delete this link?')) {
-                                  deleteLinkMutation.mutate(lnk.id);
-                                }
-                              }}
-                              disabled={!actingMemberId || deleteLinkMutation.isPending}
-                              className="p-1 hover:bg-red-950/20 hover:text-red-400 text-muted-foreground rounded-lg transition-all"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </button>
+                            {(isAdmin || lnk.addedBy === actingMemberId) && (
+                              <button
+                                onClick={() => {
+                                  if (confirm('Are you sure you want to delete this link?')) {
+                                    deleteLinkMutation.mutate(lnk.id);
+                                  }
+                                }}
+                                disabled={!actingMemberId || deleteLinkMutation.isPending}
+                                className="p-1 hover:bg-red-950/20 hover:text-red-400 text-muted-foreground rounded-lg transition-all"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -1360,18 +1397,20 @@ export default function PreSalesDetailPage() {
                             >
                               <Pencil className="w-3.5 h-3.5" />
                             </button>
-                            <button
-                              onClick={() => {
-                                if (confirm('Are you sure you want to delete this note?')) {
-                                  deleteNoteMutation.mutate(note.id);
-                                }
-                              }}
-                              disabled={!actingMemberId || deleteNoteMutation.isPending}
-                              className="p-1.5 hover:bg-red-950/20 hover:text-red-400 text-muted-foreground rounded-lg transition-all"
-                              title="Delete note"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
+                            {(isAdmin || note.addedBy === actingMemberId) && (
+                              <button
+                                onClick={() => {
+                                  if (confirm('Are you sure you want to delete this note?')) {
+                                    deleteNoteMutation.mutate(note.id);
+                                  }
+                                }}
+                                disabled={!actingMemberId || deleteNoteMutation.isPending}
+                                className="p-1.5 hover:bg-red-950/20 hover:text-red-400 text-muted-foreground rounded-lg transition-all"
+                                title="Delete note"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
                           </div>
                         </div>
 
@@ -1427,11 +1466,18 @@ export default function PreSalesDetailPage() {
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1.5">Meeting Date</label>
+                      <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1.5 flex items-center gap-2">
+                        Meeting Date
+                        {dateAutoFilled && <span className="text-violet-400 normal-case bg-violet-500/10 px-1.5 py-0.5 rounded text-[9px] font-bold tracking-wide">✨ Auto-detected</span>}
+                      </label>
                       <input
-                        type="date"
+                        type="datetime-local"
                         value={recordDate}
-                        onChange={e => setRecordDate(e.target.value)}
+                        onChange={e => {
+                          setRecordDate(e.target.value);
+                          setUserEditedDate(true);
+                          setDateAutoFilled(false);
+                        }}
                         className="w-full bg-zinc-950 border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-violet-500/50"
                       />
                     </div>
@@ -1483,7 +1529,7 @@ export default function PreSalesDetailPage() {
                       onClick={() => {
                         const fd = new FormData();
                         fd.append('meetingTitle', recordTitle);
-                        fd.append('meetingDate', recordDate);
+                        if (recordDate) fd.append('meetingDate', recordDate);
                         fd.append('recordingType', recordingType);
                         if (recordingType === 'link') fd.append('recordingLink', recordingLink);
                         if (recordingType === 'file' && recordingFile) fd.append('recordingFile', recordingFile);
@@ -1494,7 +1540,7 @@ export default function PreSalesDetailPage() {
 
                         createRecordMutation.mutate(fd);
                       }}
-                      disabled={createRecordMutation.isPending || !recordTitle || !recordDate || (recordingType === 'none' && transcriptSource === 'none')}
+                      disabled={createRecordMutation.isPending || !recordTitle || (recordingType === 'none' && transcriptSource === 'none')}
                       className="px-4 py-2 bg-violet-500 hover:bg-violet-600 text-white rounded-lg text-xs font-bold disabled:opacity-50 flex items-center gap-2"
                     >
                       {createRecordMutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
@@ -1529,9 +1575,7 @@ export default function PreSalesDetailPage() {
                             <div>
                               <h4 className="text-sm font-bold text-foreground">{r.meetingTitle}</h4>
                               <div className="flex items-center gap-3 mt-1.5 text-[10px] text-muted-foreground font-medium">
-                                <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" />{formatDate(r.meetingDate)}</span>
-                                <span>•</span>
-                                <span className="flex items-center gap-1.5">Added by {r.createdBy || 'System'}</span>
+                                <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" />{r.aiMinutes?.meeting_date || formatDate(r.meetingDate)}</span>
                               </div>
                             </div>
                           </div>
@@ -1539,6 +1583,13 @@ export default function PreSalesDetailPage() {
                           <ChevronRight className="w-4 h-4 text-muted-foreground group-open/record:rotate-90 transition-transform shrink-0 mr-4" />
                         </div>
 
+                        <button 
+                              onClick={(e) => { e.stopPropagation(); generateMeetingDocx(r, r.aiMinutes); }}
+                              className="p-1.5 hover:bg-zinc-800 text-muted-foreground hover:text-indigo-400 rounded-lg transition-all"
+                              title="Download DOCX Summary"
+                            >
+                              <Download className="w-4 h-4" />
+                            </button>
                         <div className="relative">
                           <div className="group/menu" onClick={(e) => e.stopPropagation()}>
                             <button className="p-1.5 hover:bg-zinc-800 text-muted-foreground hover:text-foreground rounded-lg transition-all cursor-pointer flex items-center justify-center">
@@ -1556,18 +1607,20 @@ export default function PreSalesDetailPage() {
                               >
                                 <Edit3 className="w-3.5 h-3.5" /> Edit Transcript
                               </button>
-                              <button
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  if (confirm('Are you sure you want to delete this record?')) {
-                                    deleteRecordMutation.mutate(r.id);
-                                  }
-                                }}
-                                disabled={deleteRecordMutation.isPending}
-                                className="w-full text-left px-3 py-2 text-xs text-red-400 hover:bg-red-950/30 flex items-center gap-2 transition-colors"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" /> Delete Record
-                              </button>
+                              {(isAdmin || r.uploadedBy === actingMemberId) && (
+                                <button
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    if (confirm('Are you sure you want to delete this record?')) {
+                                      deleteRecordMutation.mutate(r.id);
+                                    }
+                                  }}
+                                  disabled={deleteRecordMutation.isPending}
+                                  className="w-full text-left px-3 py-2 text-xs text-red-400 hover:bg-red-950/30 flex items-center gap-2 transition-colors"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" /> Delete Record
+                                </button>
+                              )}
                             </div>
                           </div>
                         </div>

@@ -1,11 +1,18 @@
 import { Router } from 'express';
 import { PrismaClient } from '@prisma/client';
+import { authenticateToken, AuthRequest } from '../middleware/auth';
+import { AppError } from '../middleware/errorHandler';
 
 const prisma = new PrismaClient();
 
 const router = Router();
 
+router.use(authenticateToken);
+
 router.get('/', async (req, res) => {
+  const user = (req as AuthRequest).user;
+  if (!user?.permissions?.manageTeam) throw new AppError('Forbidden: Only Admins can view logs', 403);
+
   const { search = '', category = 'All', dateRange = 'all', page = '1', limit = '50' } = req.query;
 
   const pageNum = parseInt(page as string) || 1;

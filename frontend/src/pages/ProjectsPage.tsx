@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { projectsApi, membersApi } from '@/lib/api';
 import { Plus, Search, Pencil, Trash2, Users, X, Loader2, Calendar, UserPlus, MoreVertical, Video, Play, FileText, Sparkles } from 'lucide-react';
@@ -179,7 +179,8 @@ export default function ProjectsPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [, setPage] = useState(1);
-  const [showForm, setShowForm] = useState(false);
+  const [searchParams] = useSearchParams();
+  const [showForm, setShowForm] = useState(searchParams.get('action') === 'new');
   const [editProject, setEditProject] = useState<Project | undefined>();
   const [manageTeamProject, setManageTeamProject] = useState<Project | undefined>();
   const [meetingsProject, setMeetingsProject] = useState<Project | undefined>();

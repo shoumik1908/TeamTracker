@@ -1,15 +1,25 @@
 import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
+import { authenticateToken, AuthRequest } from '../middleware/auth';
 
 const router = Router();
 const prisma = new PrismaClient();
 
+router.use(authenticateToken);
+
 // GET /api/dashboard/stats
-router.get('/stats', async (_req: Request, res: Response) => {
+router.get('/stats', async (req: Request, res: Response) => {
+  const user = (req as AuthRequest).user;
+  const isAdmin = user?.permissions?.manageTeam;
+  const teamMemberId = user?.teamMemberId;
+
   const now = new Date();
   const today = new Date(now); today.setHours(0, 0, 0, 0);
   const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
   const nextWeek = new Date(today); nextWeek.setDate(nextWeek.getDate() + 7);
+
+  const projectWhere = isAdmin ? {} : { members: { some: { memberId: teamMemberId } } };
+  const certWhere = isAdmin ? {} : { memberId: teamMemberId };
 
   const [
     totalMembers,
@@ -22,16 +32,16 @@ router.get('/stats', async (_req: Request, res: Response) => {
     expiredCerts,
     upcomingDeadlines,
   ] = await Promise.all([
-    prisma.teamMember.count(),
-    prisma.project.count({ where: { status: { in: ['PLANNING', 'IN_PROGRESS', 'ON_HOLD'] } } }),
-    prisma.project.count({ where: { status: 'COMPLETED' } }),
-    prisma.assignedCertification.count(),
-    prisma.assignedCertification.count({ where: { status: 'COMPLETED' } }),
-    prisma.assignedCertification.count({ where: { status: { in: ['NOT_STARTED', 'IN_PROGRESS'] } } }),
-    prisma.assignedCertification.count({ where: { status: 'OVERDUE' } }),
-    prisma.assignedCertification.count({ where: { status: 'EXPIRED' } }),
+    prisma.teamMember.count(), // Open to all, just a count
+    prisma.project.count({ where: { ...projectWhere, status: { in: ['PLANNING', 'IN_PROGRESS', 'ON_HOLD'] } } }),
+    prisma.project.count({ where: { ...projectWhere, status: 'COMPLETED' } }),
+    prisma.assignedCertification.count({ where: certWhere }),
+    prisma.assignedCertification.count({ where: { ...certWhere, status: 'COMPLETED' } }),
+    prisma.assignedCertification.count({ where: { ...certWhere, status: { in: ['NOT_STARTED', 'IN_PROGRESS'] } } }),
+    prisma.assignedCertification.count({ where: { ...certWhere, status: 'OVERDUE' } }),
+    prisma.assignedCertification.count({ where: { ...certWhere, status: 'EXPIRED' } }),
     prisma.assignedCertification.count({
-      where: { deadline: { gte: today, lt: nextWeek }, status: { not: 'COMPLETED' } },
+      where: { ...certWhere, deadline: { gte: today, lt: nextWeek }, status: { not: 'COMPLETED' } },
     }),
   ]);
 
@@ -49,9 +59,16 @@ router.get('/stats', async (_req: Request, res: Response) => {
 });
 
 // GET /api/dashboard/certification-status
-router.get('/certification-status', async (_req: Request, res: Response) => {
+router.get('/certification-status', async (req: Request, res: Response) => {
+  const user = (req as AuthRequest).user;
+  const isAdmin = user?.permissions?.manageTeam;
+  const teamMemberId = user?.teamMemberId;
+
+  const certWhere = isAdmin ? {} : { memberId: teamMemberId };
+
   const statusCounts = await prisma.assignedCertification.groupBy({
     by: ['status'],
+    where: certWhere,
     _count: { status: true },
   });
 
@@ -64,8 +81,15 @@ router.get('/certification-status', async (_req: Request, res: Response) => {
 });
 
 // GET /api/dashboard/project-progress
-router.get('/project-progress', async (_req: Request, res: Response) => {
+router.get('/project-progress', async (req: Request, res: Response) => {
+  const user = (req as AuthRequest).user;
+  const isAdmin = user?.permissions?.manageTeam;
+  const teamMemberId = user?.teamMemberId;
+
+  const projectWhere = isAdmin ? {} : { members: { some: { memberId: teamMemberId } } };
+
   const projects = await prisma.project.findMany({
+    where: projectWhere,
     select: { name: true, progress: true, status: true },
     orderBy: { progress: 'desc' },
     take: 8,
@@ -74,12 +98,19 @@ router.get('/project-progress', async (_req: Request, res: Response) => {
 });
 
 // GET /api/dashboard/monthly-completions
-router.get('/monthly-completions', async (_req: Request, res: Response) => {
+router.get('/monthly-completions', async (req: Request, res: Response) => {
+  const user = (req as AuthRequest).user;
+  const isAdmin = user?.permissions?.manageTeam;
+  const teamMemberId = user?.teamMemberId;
+
+  const certWhere = isAdmin ? {} : { memberId: teamMemberId };
+
   const sixMonthsAgo = new Date();
   sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
   const completions = await prisma.assignedCertification.findMany({
     where: {
+      ...certWhere,
       status: 'COMPLETED',
       completionDate: { gte: sixMonthsAgo },
     },
@@ -109,8 +140,18 @@ router.get('/monthly-completions', async (_req: Request, res: Response) => {
 });
 
 // GET /api/dashboard/recent-activities
-router.get('/recent-activities', async (_req: Request, res: Response) => {
+router.get('/recent-activities', async (req: Request, res: Response) => {
+  const user = (req as AuthRequest).user;
+  const isAdmin = user?.permissions?.manageTeam;
+  const teamMemberId = user?.teamMemberId;
+
+  // Activities don't have a direct member association in all cases except when memberId is set
+  // For scoping, if not admin, show notifications for their own profile.
+  // Actually Notification table has `memberId`.
+  const notificationWhere = isAdmin ? {} : { memberId: teamMemberId };
+
   const notifications = await prisma.notification.findMany({
+    where: notificationWhere,
     orderBy: { createdAt: 'desc' },
     take: 10,
     include: {
@@ -121,7 +162,14 @@ router.get('/recent-activities', async (_req: Request, res: Response) => {
 });
 
 // GET /api/dashboard/upcoming-deadlines
-router.get('/upcoming-deadlines', async (_req: Request, res: Response) => {
+router.get('/upcoming-deadlines', async (req: Request, res: Response) => {
+  const user = (req as AuthRequest).user;
+  const isAdmin = user?.permissions?.manageTeam;
+  const teamMemberId = user?.teamMemberId;
+
+  const certWhere = isAdmin ? {} : { memberId: teamMemberId };
+  const projectWhere = isAdmin ? {} : { members: { some: { memberId: teamMemberId } } };
+
   const now = new Date();
   const nextMonth = new Date(now);
   nextMonth.setDate(nextMonth.getDate() + 30);
@@ -129,6 +177,7 @@ router.get('/upcoming-deadlines', async (_req: Request, res: Response) => {
   const [certDeadlines, projectDeadlines] = await Promise.all([
     prisma.assignedCertification.findMany({
       where: {
+        ...certWhere,
         deadline: { gte: now, lte: nextMonth },
         status: { not: 'COMPLETED' },
       },
@@ -141,6 +190,7 @@ router.get('/upcoming-deadlines', async (_req: Request, res: Response) => {
     }),
     prisma.project.findMany({
       where: {
+        ...projectWhere,
         endDate: { gte: now, lte: nextMonth },
         status: { not: 'COMPLETED' },
       },

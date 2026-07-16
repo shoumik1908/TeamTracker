@@ -1,9 +1,12 @@
 import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { AppError } from '../middleware/errorHandler';
+import { authenticateToken, AuthRequest } from '../middleware/auth';
 
 const router = Router();
 const prisma = new PrismaClient();
+
+router.use(authenticateToken);
 
 // GET /api/project-updates
 router.get('/', async (req: Request, res: Response) => {
@@ -12,6 +15,16 @@ router.get('/', async (req: Request, res: Response) => {
   const where: any = {};
   if (projectId) where.projectId = projectId as string;
   if (opportunityId) where.opportunityId = opportunityId as string;
+
+  // RBAC: Only show updates for projects the user is assigned to (unless admin)
+  const user = (req as AuthRequest).user;
+  if (!user?.permissions?.manageTeam) {
+    where.project = {
+      members: {
+        some: { memberId: user?.teamMemberId }
+      }
+    };
+  }
 
   const updates = await prisma.projectUpdate.findMany({
     where,
@@ -29,10 +42,12 @@ router.get('/', async (req: Request, res: Response) => {
 
 // POST /api/project-updates
 router.post('/', async (req: Request, res: Response) => {
-  const { projectId, opportunityId, memberId, updateText, updateType, progressValue } = req.body;
+  const user = (req as AuthRequest).user;
+  const { projectId, opportunityId, updateText, updateType, progressValue } = req.body;
+  const memberId = user?.permissions?.manageTeam ? req.body.memberId || user?.teamMemberId : user?.teamMemberId;
 
   if (!projectId && !opportunityId) throw new AppError('projectId or opportunityId is required', 400);
-  if (!memberId) throw new AppError('memberId is required', 400);
+  if (!memberId) throw new AppError('memberId is required (User is not linked to a team member profile)', 400);
   if (!updateText?.trim()) throw new AppError('updateText is required', 400);
   if (!updateType) throw new AppError('updateType is required', 400);
 
@@ -73,6 +88,12 @@ router.put('/:id', async (req: Request, res: Response) => {
 
   const existing = await prisma.projectUpdate.findUnique({ where: { id: req.params.id } });
   if (!existing) throw new AppError('Update not found', 404);
+
+  // RBAC: Users can only update their own updates
+  const user = (req as AuthRequest).user;
+  if (!user?.permissions?.manageTeam && existing.memberId !== user?.teamMemberId) {
+    throw new AppError('Forbidden: You can only edit your own updates', 403);
+  }
 
   const updated = await prisma.projectUpdate.update({
     where: { id: req.params.id },
@@ -127,6 +148,12 @@ router.delete('/:id', async (req: Request, res: Response) => {
   const existing = await prisma.projectUpdate.findUnique({ where: { id: req.params.id } });
   if (!existing) throw new AppError('Update not found', 404);
   
+  // RBAC: Users can only delete their own updates
+  const user = (req as AuthRequest).user;
+  if (!user?.permissions?.manageTeam && existing.memberId !== user?.teamMemberId) {
+    throw new AppError('Forbidden: You can only delete your own updates', 403);
+  }
+
   // Delete the update
   await prisma.projectUpdate.delete({ where: { id: req.params.id } });
 

@@ -1,10 +1,12 @@
 import { Router, Request, Response } from 'express';
 import { PrismaClient, Prisma } from '@prisma/client';
 import multer from 'multer';
+import bcrypt from 'bcryptjs';
 import { uploadImage } from '../middleware/upload';
 import { uploadFile, deleteFile, extractBlobName, CONTAINERS, sanitizeDirectoryName } from '../services/blobStorage';
 import { AppError } from '../middleware/errorHandler';
 import { extractCvWithGroq } from '../services/groqExtractor';
+import { authenticateToken, AuthRequest } from '../middleware/auth';
 
 // Multer config for CV uploads (PDF + DOCX, in-memory, 10 MB limit)
 const cvUpload = multer({
@@ -25,6 +27,8 @@ const cvUpload = multer({
 
 const router = Router();
 const prisma = new PrismaClient();
+
+router.use(authenticateToken);
 
 // GET /api/members - List all members with search & pagination
 router.get('/', async (req: Request, res: Response) => {
@@ -58,12 +62,14 @@ router.get('/', async (req: Request, res: Response) => {
         manager: { select: { id: true, name: true, profilePictureUrl: true, designation: true } },
         projectMembers: {
           where: {
-            project: {
-              status: { not: 'COMPLETED' }
-            }
+            OR: [
+              { project: { status: { not: 'COMPLETED' } } },
+              { opportunityId: { not: null } }
+            ]
           },
           include: {
-            project: { select: { name: true, status: true } }
+            project: { select: { name: true, status: true } },
+            opportunity: { select: { name: true, clientName: true } }
           }
         },
         _count: {
@@ -78,11 +84,15 @@ router.get('/', async (req: Request, res: Response) => {
   ]);
 
   const mappedMembers = members.map(member => {
-    const activeProjects = member.projectMembers.filter(pm => pm.project && pm.project.status !== 'COMPLETED');
-    const allocationStatus = activeProjects.length > 0 ? 'ALLOCATED' : 'BENCHED';
-    const currentProjectName = activeProjects[0]?.project?.name || null;
-    const activeProjectsCount = activeProjects.length;
-    const activeProjectNames = activeProjects.map(pm => pm.project?.name).filter(Boolean);
+    const activeAssignments = member.projectMembers.filter(pm => 
+      (pm.project && pm.project.status !== 'COMPLETED') || pm.opportunity
+    );
+    const allocationStatus = activeAssignments.length > 0 ? 'ALLOCATED' : 'BENCHED';
+    
+    const assignmentNames = activeAssignments.map(pm => pm.project?.name || pm.opportunity?.name).filter(Boolean);
+    const currentProjectName = assignmentNames[0] || null;
+    const activeProjectsCount = activeAssignments.length;
+    const activeProjectNames = assignmentNames;
 
     return {
       ...member,
@@ -114,7 +124,12 @@ router.get('/:id', async (req: Request, res: Response) => {
       projectMembers: {
         include: {
           project: true,
+          opportunity: true,
         },
+      },
+      meetingActionItems: {
+        orderBy: { createdAt: 'desc' },
+        take: 10,
       },
     },
   });
@@ -129,11 +144,15 @@ router.get('/:id', async (req: Request, res: Response) => {
     ? Math.round(certs.reduce((sum, c) => sum + c.progress, 0) / totalCerts)
     : 0;
 
-  const activeProjects = member.projectMembers.filter(pm => pm.project && pm.project.status !== 'COMPLETED');
-  const allocationStatus = activeProjects.length > 0 ? 'ALLOCATED' : 'BENCHED';
-  const currentProjectName = activeProjects[0]?.project?.name || null;
-  const activeProjectsCount = activeProjects.length;
-  const activeProjectNames = activeProjects.map(pm => pm.project?.name).filter(Boolean);
+  const activeAssignments = member.projectMembers.filter(pm => 
+    (pm.project && pm.project.status !== 'COMPLETED') || pm.opportunity
+  );
+  const allocationStatus = activeAssignments.length > 0 ? 'ALLOCATED' : 'BENCHED';
+  
+  const assignmentNames = activeAssignments.map(pm => pm.project?.name || pm.opportunity?.name).filter(Boolean);
+  const currentProjectName = assignmentNames[0] || null;
+  const activeProjectsCount = activeAssignments.length;
+  const activeProjectNames = assignmentNames;
 
   res.json({
     ...member,
@@ -148,7 +167,7 @@ router.get('/:id', async (req: Request, res: Response) => {
       overdueCertifications: certs.filter(c => c.status === 'OVERDUE').length,
       expiredCertifications: certs.filter(c => c.status === 'EXPIRED').length,
       totalProjects: member.projectMembers.length,
-      activeProjects: activeProjects.length,
+      activeProjects: activeAssignments.length,
       overallProgress: avgProgress,
     },
   });
@@ -156,7 +175,10 @@ router.get('/:id', async (req: Request, res: Response) => {
 
 // POST /api/members - Create member
 router.post('/', uploadImage.single('profilePicture'), async (req: Request, res: Response) => {
-  const { name, phone, designation, joiningDate, skills } = req.body;
+  const user = (req as AuthRequest).user;
+  if (!user?.permissions?.manageTeam) throw new AppError('Forbidden: Only Admins can add members', 403);
+
+  const { name, email, phone, designation, joiningDate, skills } = req.body;
 
   if (!name || !joiningDate) {
     throw new AppError('Name and joining date are required', 400);
@@ -177,6 +199,7 @@ router.post('/', uploadImage.single('profilePicture'), async (req: Request, res:
   const member = await prisma.teamMember.create({
     data: {
       name,
+      email,
       phone,
 
       designation,
@@ -185,6 +208,27 @@ router.post('/', uploadImage.single('profilePicture'), async (req: Request, res:
       profilePictureUrl,
     },
   });
+
+  // Auto-create User credentials if email is provided
+  if (email) {
+    const teamMemberRole = await prisma.role.findFirst({ where: { name: 'Team Member' } });
+    if (teamMemberRole) {
+      const firstName = name.split(' ')[0].toLowerCase();
+      const defaultPassword = `${firstName}+xebia`;
+      const hashedPassword = await bcrypt.hash(defaultPassword, 10);
+      
+      await prisma.user.create({
+        data: {
+          email,
+          name,
+          password: hashedPassword,
+          roleId: teamMemberRole.id,
+          teamMemberId: member.id,
+          mustChangePassword: true,
+        },
+      });
+    }
+  }
 
   // Create notification
   await prisma.notification.create({
@@ -202,7 +246,12 @@ router.post('/', uploadImage.single('profilePicture'), async (req: Request, res:
 // PUT /api/members/:id - Update member
 router.put('/:id', uploadImage.single('profilePicture'), async (req: Request, res: Response) => {
   const { id } = req.params;
-  const { name, phone, designation, joiningDate, skills } = req.body;
+  const user = (req as AuthRequest).user;
+  if (!user?.permissions?.manageTeam && user?.teamMemberId !== id) {
+    throw new AppError('Forbidden: You can only edit your own profile', 403);
+  }
+
+  const { name, email, phone, designation, joiningDate, skills } = req.body;
 
   const existing = await prisma.teamMember.findUnique({ where: { id } });
   if (!existing) throw new AppError('Member not found', 404);
@@ -228,6 +277,7 @@ router.put('/:id', uploadImage.single('profilePicture'), async (req: Request, re
     where: { id },
     data: {
       ...(name && { name }),
+      ...(email !== undefined && { email }),
       ...(phone !== undefined && { phone }),
 
       ...(designation && { designation }),
@@ -244,6 +294,9 @@ router.put('/:id', uploadImage.single('profilePicture'), async (req: Request, re
 
 // DELETE /api/members/:id - Delete member
 router.delete('/:id', async (req: Request, res: Response) => {
+  const user = (req as AuthRequest).user;
+  if (!user?.permissions?.manageTeam) throw new AppError('Forbidden: Only Admins can delete members', 403);
+
   const { id } = req.params;
 
   const existing = await prisma.teamMember.findUnique({ where: { id } });
@@ -271,6 +324,10 @@ router.delete('/:id', async (req: Request, res: Response) => {
 // POST /api/members/:id/upload-cv
 router.post('/:id/upload-cv', cvUpload.single('cv'), async (req: Request, res: Response) => {
   const { id } = req.params;
+  const user = (req as AuthRequest).user;
+  if (!user?.permissions?.manageTeam && user?.teamMemberId !== id) {
+    throw new AppError('Forbidden: You can only upload your own CV', 403);
+  }
 
   if (!req.file) {
     throw new AppError('No file uploaded. Please attach a PDF or DOCX file.', 400);
@@ -380,6 +437,10 @@ router.post('/:id/upload-cv', cvUpload.single('cv'), async (req: Request, res: R
 // DELETE /api/members/:id/cv - Remove CV
 router.delete('/:id/cv', async (req: Request, res: Response) => {
   const { id } = req.params;
+  const user = (req as AuthRequest).user;
+  if (!user?.permissions?.manageTeam && user?.teamMemberId !== id) {
+    throw new AppError('Forbidden: You can only delete your own CV', 403);
+  }
 
   const member = await prisma.teamMember.findUnique({ where: { id } });
   if (!member) throw new AppError('Member not found', 404);

@@ -3,6 +3,7 @@ import { PrismaClient, CertificationStatus, Priority } from '@prisma/client';
 import { upload } from '../middleware/upload';
 import { uploadFile, deleteFile, extractBlobName, CONTAINERS } from '../services/blobStorage';
 import { AppError } from '../middleware/errorHandler';
+import { authenticateToken, AuthRequest, requirePermission } from '../middleware/auth';
 import { extractCertificateFields, isConfigured as isDocIntelConfigured, checkNameMatch } from '../services/documentIntelligence';
 import { matchCertificateTitle } from '../services/certMatcher';
 import { matchTeamMember } from '../utils/fuzzyMatch';
@@ -14,6 +15,8 @@ const fuzz = require('fuzzball') as {
 
 const router = Router();
 const prisma = new PrismaClient();
+
+router.use(authenticateToken);
 
 // ============ CERTIFICATION CATALOG ============
 
@@ -128,6 +131,12 @@ router.get('/assignments/all', async (req: Request, res: Response) => {
     where.deadline = { gte: today, lt: nextWeek };
   }
 
+  // RBAC: If user is not admin, only show their assignments
+  const user = (req as AuthRequest).user;
+  if (!user?.permissions?.manageTeam) {
+    where.memberId = user?.teamMemberId;
+  }
+
   const pageNum = parseInt(page as string);
   const limitNum = parseInt(limit as string);
 
@@ -213,6 +222,12 @@ router.put('/assignments/:id', async (req: Request, res: Response) => {
     include: { member: true, certification: true },
   });
   if (!existing) throw new AppError('Assignment not found', 404);
+
+  // RBAC: Users can only update their own assignments
+  const user = (req as AuthRequest).user;
+  if (!user?.permissions?.manageTeam && existing.memberId !== user?.teamMemberId) {
+    throw new AppError('Forbidden: You can only update your own certification assignments', 403);
+  }
 
   const wasCompleted = existing.status !== 'COMPLETED';
   

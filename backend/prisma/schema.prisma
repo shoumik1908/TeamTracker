@@ -15,6 +15,7 @@ datasource db {
 model TeamMember {
   id                     String                  @id @default(cuid())
   name                   String
+  email                  String?                 @unique
   phone                  String?
   designation            String?
   joiningDate            DateTime
@@ -46,6 +47,7 @@ model TeamMember {
   managerId              String?
   manager                TeamMember?             @relation("TeamManager", fields: [managerId], references: [id], onDelete: SetNull)
   subordinates           TeamMember[]            @relation("TeamManager")
+  user                   User?
 
   @@map("team_members")
 }
@@ -192,7 +194,7 @@ model MeetingRecord {
   projectId         String?
   opportunityId     String?
   meetingTitle      String
-  meetingDate       DateTime
+  meetingDate       DateTime?
   recordingType     String?  // 'file' | 'link'
   recordingUrl      String?
   transcriptUrl     String?
@@ -223,6 +225,8 @@ model MeetingActionItem {
   completed         Boolean  @default(false)
   status            String   @default("open") // 'open' | 'completed'
   priority          String?  // 'high' | 'medium' | 'low'
+  confidence        String?  // 'High' | 'Medium' | 'Low'
+  sourceExcerpt     String?  @db.Text
   createdAt         DateTime @default(now())
 
   meetingRecord     MeetingRecord @relation(fields: [meetingRecordId], references: [id], onDelete: Cascade)
@@ -237,6 +241,8 @@ model KeyDecision {
   decisionText      String   @db.Text
   context           String?  @db.Text
   decidedById       String?
+  confidence        String?  // 'High' | 'Medium' | 'Low'
+  sourceExcerpt     String?  @db.Text
 
   createdAt         DateTime @default(now())
 
@@ -526,4 +532,34 @@ model ActivityLog {
   createdAt   DateTime @default(now())
 
   @@map("activity_logs")
+}
+
+model Role {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  permissions Json     // { "read": true, "write": true, "delete": false, "manageTeam": false }
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users       User[]
+
+  @@map("roles")
+}
+
+model User {
+  id                 String      @id @default(cuid())
+  name               String
+  email              String      @unique
+  passwordHash       String
+  roleId             String
+  teamMemberId       String?     @unique
+  mustChangePassword Boolean     @default(true)
+  isActive           Boolean     @default(true)
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+
+  role               Role        @relation(fields: [roleId], references: [id])
+  teamMember         TeamMember? @relation(fields: [teamMemberId], references: [id], onDelete: SetNull)
+
+  @@map("users")
 }

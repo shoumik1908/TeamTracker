@@ -8,6 +8,9 @@ import { validateAiConfig } from './services/aiProvider';
 // Validate AI environment configuration
 validateAiConfig();
 
+import authRouter from './routes/auth';
+import adminRouter from './routes/admin';
+
 
 import membersRouter from './routes/members';
 import certificationsRouter from './routes/certifications';
@@ -25,6 +28,7 @@ import documentationRouter from './routes/documentation';
 import filesRouter from './routes/files';
 import logsRouter from './routes/logs';
 import meetingRecordsRouter from './routes/meetingRecords';
+import meetingReportRouter from './routes/meetingReport';
 import { errorHandler } from './middleware/errorHandler';
 import { initLogCleanupJob } from './jobs/logCleanup';
 import { initMeetingMinutesRetryJob } from './jobs/meetingMinutesRetry';
@@ -53,6 +57,8 @@ app.get('/health', (_req, res) => {
 });
 
 // Routes
+app.use('/api/auth', authRouter);
+app.use('/api/admin', adminRouter);
 app.use('/api/members', membersRouter);
 app.use('/api/certifications', certificationsRouter);
 app.use('/api/projects', projectsRouter);
@@ -68,6 +74,7 @@ app.use('/api/files', filesRouter);
 app.use('/api/logs', logsRouter);
 app.use('/api/projects/:projectId/documentation', documentationRouter);
 app.use('/api/projects/:projectId/meeting-records', meetingRecordsRouter);
+app.use('/api/projects/:projectId/meeting-report', meetingReportRouter);
 app.use('/api/presales/:opportunityId/documentation', documentationRouter);
 app.use('/api/presales/:opportunityId/meeting-records', meetingRecordsRouter);
 app.use('/api', teamsRouter);

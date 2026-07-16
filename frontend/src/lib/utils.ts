@@ -90,3 +90,42 @@ export const PROJECT_STATUS_COLORS: Record<string, string> = {
   ON_HOLD: '#f59e0b',
   COMPLETED: '#22c55e',
 };
+
+export function extractMeetingDate(text: string, file?: File | null): string | null {
+  const sample = text.substring(0, 1000);
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  const toLocal = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+
+  // 1. Try ISO with time (e.g. 2026-07-10 14:30:00 or 2026-07-10T14:30)
+  const isoTimeMatch = sample.match(/\b(202\d-[01]\d-[0-3]\d[ T][0-2]\d:[0-5]\d(?::[0-5]\d)?)\b/);
+  if (isoTimeMatch) {
+    const d = new Date(isoTimeMatch[1].replace(' ', 'T'));
+    if (!isNaN(d.getTime())) return d.toISOString().slice(0, 16);
+  }
+
+  // 2. Try text with time (e.g. July 10, 2026 at 2:30 PM or July 10, 2026 14:30)
+  const textTimeMatch = sample.match(/\b((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]* \d{1,2}, 202\d(?: at)? \d{1,2}:\d{2}(?: ?[apAP][mM])?)\b/i);
+  if (textTimeMatch) {
+    const d = new Date(textTimeMatch[1].replace(/ at /i, ' '));
+    if (!isNaN(d.getTime())) return toLocal(d);
+  }
+
+  // 3. Fallback to ISO date only
+  const isoMatch = sample.match(/\b(202\d-[01]\d-[0-3]\d)\b/);
+  if (isoMatch) return isoMatch[1];
+  
+  // 4. Fallback to text date only
+  const textMatch = sample.match(/\b((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]* \d{1,2}, 202\d)\b/i);
+  if (textMatch) {
+    const d = new Date(textMatch[1]);
+    if (!isNaN(d.getTime())) return d.toISOString().split('T')[0];
+  }
+  
+  // 5. Fallback to file creation time
+  if (file && file.lastModified) {
+    const d = new Date(file.lastModified);
+    if (!isNaN(d.getTime())) return toLocal(d);
+  }
+  
+  return null;
+}

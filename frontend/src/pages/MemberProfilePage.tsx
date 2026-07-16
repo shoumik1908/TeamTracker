@@ -5,6 +5,7 @@ import { membersApi, certificationsApi, projectsApi } from '@/lib/api';
 import type { TeamMemberProfile, AssignedCertification, ProjectMemberWithProject } from '@/types';
 import { ArrowLeft, Phone, Award, FolderKanban, TrendingUp, Pencil, Upload, X, Loader2, FileText, Plus, MoreVertical, Trash2, BrainCircuit, CheckCircle2, RefreshCw, ChevronDown, ChevronUp, ThumbsUp, AlertTriangle, Lightbulb } from 'lucide-react';
 import { cn, formatDate, getInitials, formatStatus, getStatusColor, getProgressColor } from '@/lib/utils';
+import { useAuth } from '@/context/AuthContext';
 
 // Helper for Circular Gauge
 function CircularGauge({ score, size = 64 }: { score: number, size?: number }) {
@@ -214,7 +215,11 @@ function ProjectMenu({ onEditRole, onRemove }: { onEditRole: () => void; onRemov
 }
 
 export default function MemberProfilePage() {
+  const { user: currentUser } = useAuth();
   const { id } = useParams<{ id: string }>();
+  const isSelf = currentUser?.teamMemberId === id;
+  const isAdmin = currentUser?.role?.permissions?.manageTeam;
+  const canEdit = isAdmin || isSelf;
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [updateCert, setUpdateCert] = useState<AssignedCertification | undefined>();
@@ -268,6 +273,29 @@ export default function MemberProfilePage() {
   const [skillsError, setSkillsError] = useState<string | null>(null);
   const [isCertsOpen, setIsCertsOpen] = useState(false);
   const [isAtsExpanded, setIsAtsExpanded] = useState(false);
+
+  const [isEditingPhone, setIsEditingPhone] = useState(false);
+  const [phoneInput, setPhoneInput] = useState('');
+  const [phoneError, setPhoneError] = useState<string | null>(null);
+
+  const updatePhoneMutation = useMutation({
+    mutationFn: async (phone: string) => {
+      const fd = new FormData();
+      fd.append('phone', phone);
+      return membersApi.update(id!, fd);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['member', id] });
+      setIsEditingPhone(false);
+    },
+    onError: (err: Error) => {
+      setPhoneError(err.message);
+    }
+  });
+
+  const handleSavePhone = () => {
+    updatePhoneMutation.mutate(phoneInput.trim());
+  };
 
   const updateSkillsMutation = useMutation({
     mutationFn: async (skillsList: string[]) => {
@@ -357,12 +385,6 @@ export default function MemberProfilePage() {
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-2">
-            {member.phone && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Phone className="w-4 h-4 text-azure-500" /><span>{member.phone}</span>
-              </div>
-            )}
-
             {member.manager && (
               <div className="flex items-center gap-2 text-sm text-muted-foreground col-span-2 md:col-span-1">
                 <span>👤 Reports to: <strong className="text-foreground">{member.manager.name}</strong></span>
@@ -469,7 +491,83 @@ export default function MemberProfilePage() {
       </div>
 
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        
+        {/* Contacts Card */}
+        <div className="bg-card rounded-xl border border-border p-5 space-y-4 flex flex-col justify-between">
+          <div className="space-y-4 w-full">
+            <div className="flex items-center gap-2">
+              <Phone className="w-4 h-4 text-emerald-400" />
+              <h3 className="font-semibold text-sm">Contacts</h3>
+            </div>
+            
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Email</span>
+                <span className="text-sm font-medium text-foreground break-all">
+                  {member.email || 'No email provided'}
+                </span>
+              </div>
+
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Phone Number</span>
+                  {!isEditingPhone ? (
+                    canEdit && (
+                      <button
+                        onClick={() => {
+                          setPhoneInput(member.phone || '');
+                          setIsEditingPhone(true);
+                          setPhoneError(null);
+                        }}
+                        className="text-[10px] font-medium text-emerald-400 hover:text-emerald-300 transition-colors flex items-center gap-1"
+                      >
+                        <Pencil className="w-3 h-3" /> Edit
+                      </button>
+                    )
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={handleSavePhone}
+                        disabled={updatePhoneMutation.isPending}
+                        className="text-[10px] font-bold text-azure-400 hover:text-azure-300 disabled:opacity-50"
+                      >
+                        {updatePhoneMutation.isPending ? 'Saving...' : 'Save'}
+                      </button>
+                      <span className="text-muted-foreground text-[10px]">|</span>
+                      <button
+                        onClick={() => setIsEditingPhone(false)}
+                        className="text-[10px] font-bold text-red-400 hover:text-red-300"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {phoneError && (
+                  <div className="text-[10px] text-red-400 p-1">
+                    {phoneError}
+                  </div>
+                )}
+
+                {isEditingPhone ? (
+                  <input
+                    type="text"
+                    value={phoneInput}
+                    onChange={(e) => setPhoneInput(e.target.value)}
+                    placeholder="+1 (555) 000-0000"
+                    className="w-full mt-1 px-3 py-1.5 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-azure-500/30"
+                  />
+                ) : (
+                  <span className="text-sm font-medium text-foreground">
+                    {member.phone || 'No phone number added'}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
         {/* CV Card */}
         <div className="bg-card rounded-xl border border-border p-5 space-y-4 flex flex-col justify-between">
           <div className="space-y-4 w-full">
@@ -484,32 +582,36 @@ export default function MemberProfilePage() {
                     Last updated {new Date(member.cvUploadedAt).toLocaleDateString()}
                   </span>
                 )}
-                <button
-                  onClick={() => cvFileRef.current?.click()}
-                  disabled={uploadCvMutation.isPending}
-                  className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-60 shadow-sm shadow-indigo-500/20"
-                >
-                  {uploadCvMutation.isPending
-                    ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    : member.cvUploadedAt
-                      ? <RefreshCw className="w-3.5 h-3.5" />
-                      : <Upload className="w-3.5 h-3.5" />
-                  }
-                  {uploadCvMutation.isPending ? 'Uploading...' : member.cvUploadedAt ? 'Re-upload CV' : 'Upload CV'}
-                </button>
-                {member.cvBlobUrl && (
-                  <button
-                    onClick={() => {
-                      if (confirm('Are you sure you want to remove the CV?')) {
-                        deleteCvMutation.mutate();
+                {canEdit && (
+                  <>
+                    <button
+                      onClick={() => cvFileRef.current?.click()}
+                      disabled={uploadCvMutation.isPending}
+                      className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-60 shadow-sm shadow-indigo-500/20"
+                    >
+                      {uploadCvMutation.isPending
+                        ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        : member.cvUploadedAt
+                          ? <RefreshCw className="w-3.5 h-3.5" />
+                          : <Upload className="w-3.5 h-3.5" />
                       }
-                    }}
-                    disabled={deleteCvMutation.isPending}
-                    className="flex items-center justify-center p-1.5 text-red-400 hover:text-red-300 hover:bg-red-400/10 rounded-lg transition-colors disabled:opacity-50"
-                    title="Remove CV"
-                  >
-                    {deleteCvMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                  </button>
+                      {uploadCvMutation.isPending ? 'Uploading...' : member.cvUploadedAt ? 'Re-upload CV' : 'Upload CV'}
+                    </button>
+                    {member.cvBlobUrl && (
+                      <button
+                        onClick={() => {
+                          if (confirm('Are you sure you want to remove the CV?')) {
+                            deleteCvMutation.mutate();
+                          }
+                        }}
+                        disabled={deleteCvMutation.isPending}
+                        className="flex items-center justify-center p-1.5 text-red-400 hover:text-red-300 hover:bg-red-400/10 rounded-lg transition-colors disabled:opacity-50"
+                        title="Remove CV"
+                      >
+                        {deleteCvMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                      </button>
+                    )}
+                  </>
                 )}
                 <input
                   ref={cvFileRef}
@@ -700,16 +802,18 @@ export default function MemberProfilePage() {
                 <h3 className="font-semibold text-sm">Skills & Expertise</h3>
               </div>
               {!isEditingSkills ? (
-                <button
-                  onClick={() => {
-                    setSkillsInput(member.skills.join(', '));
-                    setIsEditingSkills(true);
-                    setSkillsError(null);
-                  }}
-                  className="text-xs font-medium text-azure-400 hover:text-azure-300 flex items-center gap-1 transition-colors"
-                >
-                  <Pencil className="w-3.5 h-3.5" /> Edit Skills
-                </button>
+                canEdit && (
+                  <button
+                    onClick={() => {
+                      setSkillsInput(member.skills.join(', '));
+                      setIsEditingSkills(true);
+                      setSkillsError(null);
+                    }}
+                    className="text-xs font-medium text-azure-400 hover:text-azure-300 flex items-center gap-1 transition-colors"
+                  >
+                    <Pencil className="w-3.5 h-3.5" /> Edit Skills
+                  </button>
+                )
               ) : (
                 <div className="flex items-center gap-2">
                   <button
@@ -771,10 +875,12 @@ export default function MemberProfilePage() {
         <div className="bg-card rounded-xl border border-border p-5">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-sm">Current Projects</h3>
-            <button onClick={() => setShowAddProject(true)}
-              className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 bg-azure-500 text-white rounded-lg hover:bg-azure-600 transition-colors shadow-sm shadow-azure-500/25">
-              <Plus className="w-3.5 h-3.5" /> Add to Project
-            </button>
+            {canEdit && (
+              <button onClick={() => setShowAddProject(true)}
+                className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 bg-azure-500 text-white rounded-lg hover:bg-azure-600 transition-colors shadow-sm shadow-azure-500/25">
+                <Plus className="w-3.5 h-3.5" /> Add to Project
+              </button>
+            )}
           </div>
           {member.projectMembers.length === 0
             ? <p className="text-sm text-muted-foreground">Not assigned to any projects — click <strong className="text-foreground">Add to Project</strong> to assign one.</p>
@@ -790,10 +896,12 @@ export default function MemberProfilePage() {
                         <span className={cn('text-[10px] px-2 py-0.5 rounded-full border font-medium', getStatusColor(pm.project.status))}>
                           {formatStatus(pm.project.status)}
                         </span>
-                        <ProjectMenu
-                          onEditRole={() => { setRoleInput(pm.role || ''); setEditRolePm(pm); }}
-                          onRemove={() => removeProject.mutate(pm)}
-                        />
+                        {canEdit && (
+                          <ProjectMenu
+                            onEditRole={() => { setRoleInput(pm.role || ''); setEditRolePm(pm); }}
+                            onRemove={() => removeProject.mutate(pm)}
+                          />
+                        )}
                       </div>
                     </div>
                     <div className="mt-2">
@@ -824,10 +932,12 @@ export default function MemberProfilePage() {
               </span>
             </div>
             <div className="flex items-center gap-2.5" onClick={e => e.stopPropagation()}>
-              <button onClick={() => setShowAdd(true)}
-                className="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 bg-azure-500 text-white rounded-lg hover:bg-azure-600 transition-colors shadow-sm shadow-azure-500/25">
-                <Plus className="w-3 h-3" /> Add
-              </button>
+              {canEdit && (
+                <button onClick={() => setShowAdd(true)}
+                  className="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 bg-azure-500 text-white rounded-lg hover:bg-azure-600 transition-colors shadow-sm shadow-azure-500/25">
+                  <Plus className="w-3 h-3" /> Add
+                </button>
+              )}
               <ChevronDown className={cn("w-4 h-4 text-muted-foreground transition-transform duration-200", isCertsOpen && "rotate-180")} />
             </div>
           </div>
@@ -849,10 +959,12 @@ export default function MemberProfilePage() {
                           <span className={cn('text-[10px] px-2 py-0.5 rounded-full border font-medium', getStatusColor(ac.status))}>
                             {formatStatus(ac.status)}
                           </span>
-                          <button onClick={() => setUpdateCert(ac)} title="Update certification"
-                            className="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md border border-azure-800/40 text-azure-300 hover:bg-azure-900/30 hover:text-azure-200 transition-colors">
-                            <Pencil className="w-3 h-3" /> Update
-                          </button>
+                          {canEdit && (
+                            <button onClick={() => setUpdateCert(ac)} title="Update certification"
+                              className="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md border border-azure-800/40 text-azure-300 hover:bg-azure-900/30 hover:text-azure-200 transition-colors">
+                              <Pencil className="w-3 h-3" /> Update
+                            </button>
+                          )}
                         </div>
                       </div>
                       <div className="mt-2">

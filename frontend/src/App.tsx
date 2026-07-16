@@ -1,5 +1,10 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/layout/Layout';
+import LoginPage from './pages/LoginPage';
+import ProtectedRoute from './components/auth/ProtectedRoute';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import AdminCredentialsPage from './pages/AdminCredentialsPage';
+import TeamMemberDashboard from './pages/TeamMemberDashboard';
 import DashboardPage from './pages/DashboardPage';
 import MembersPage from './pages/MembersPage';
 import MemberProfilePage from './pages/MemberProfilePage';
@@ -17,29 +22,41 @@ import ProjectDetailPage from './pages/ProjectDetailPage';
 import FilesPage from './pages/FilesPage';
 import LogsPage from './pages/LogsPage';
 
+function DashboardRouter() {
+  const { hasPermission } = useAuth();
+  const isAdmin = hasPermission('manageTeam');
+  return isAdmin ? <DashboardPage /> : <TeamMemberDashboard />;
+}
+
 export default function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Layout />}>
-          <Route index element={<DashboardPage />} />
-          <Route path="members" element={<MembersPage />} />
-          <Route path="members/:id" element={<MemberProfilePage />} />
-          <Route path="certifications" element={<CertificationsPage />} />
-          <Route path="tracker" element={<TrackerPage />} />
-          <Route path="projects" element={<ProjectsPage />} />
-          <Route path="projects/:projectId" element={<ProjectDetailPage />} />
-          <Route path="project-updates" element={<ProjectUpdatesPage />} />
-          <Route path="deadlines" element={<DeadlinesPage />} />
-          <Route path="notifications" element={<NotificationsPage />} />
-          <Route path="reports" element={<ReportsPage />} />
-          <Route path="presales" element={<PreSalesPage />} />
-          <Route path="presales/:opportunityId" element={<PreSalesDetailPage />} />
-          <Route path="gtm" element={<GtmTrackerPage />} />
-          <Route path="files" element={<FilesPage />} />
-          <Route path="logs" element={<LogsPage />} />
-        </Route>
-      </Routes>
-    </BrowserRouter>
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/" element={<ProtectedRoute />}>
+            <Route element={<Layout />}>
+              <Route index element={<DashboardRouter />} />
+              <Route path="admin/credentials" element={<AdminCredentialsPage />} />
+              <Route path="members" element={<MembersPage />} />
+              <Route path="members/:id" element={<MemberProfilePage />} />
+              <Route path="certifications" element={<CertificationsPage />} />
+              <Route path="tracker" element={<TrackerPage />} />
+              <Route path="projects" element={<ProjectsPage />} />
+              <Route path="projects/:projectId" element={<ProjectDetailPage />} />
+              <Route path="project-updates" element={<ProjectUpdatesPage />} />
+              <Route path="deadlines" element={<DeadlinesPage />} />
+              <Route path="notifications" element={<NotificationsPage />} />
+              <Route path="reports" element={<ReportsPage />} />
+              <Route path="presales" element={<PreSalesPage />} />
+              <Route path="presales/:opportunityId" element={<PreSalesDetailPage />} />
+              <Route path="gtm" element={<GtmTrackerPage />} />
+              <Route path="files" element={<FilesPage />} />
+              <Route path="logs" element={<LogsPage />} />
+            </Route>
+          </Route>
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
   );
 }

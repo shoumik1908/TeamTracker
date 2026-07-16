@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { generateMeetingMinutes } from '../services/groqExtractor';
+import { generateMeetingMinutes  } from '../services/azureOpenAIService';
 import { matchTeamMember, correctNamesInTranscript } from '../utils/fuzzyMatch';
 import cron from 'node-cron';
 
@@ -74,7 +74,11 @@ export const retryMeetingMinutesAnalysis = async () => {
       }
 
       try {
-        const { correctedText, corrections } = correctNamesInTranscript(record.transcriptText || '', contextMembers);
+        let baseText = record.transcriptText || '';
+        if (!record.meetingDate) {
+          baseText = `[SYSTEM CONTEXT: The transcript file was created on ${record.createdAt.toISOString()}. If the transcript text DOES NOT mention an explicit meeting date/time, default to this creation date for the meeting_date. ALWAYS output the final meeting_date in IST (Indian Standard Time), appending " IST" to the string.]\n\n` + baseText;
+        }
+        const { correctedText, corrections } = correctNamesInTranscript(baseText, contextMembers);
         if (corrections.length > 0) {
           await prisma.meetingRecord.update({
             where: { id: record.id },
@@ -82,7 +86,7 @@ export const retryMeetingMinutesAnalysis = async () => {
           });
         }
 
-        const finalAiMinutes = await generateMeetingMinutes(correctedText, priorActionItems, priorBlockers);
+        const finalAiMinutes = await generateMeetingMinutes(correctedText, priorActionItems, priorBlockers, 1, contextMembers);
         if (finalAiMinutes && (finalAiMinutes as any).status !== 'TOKENS_EXCEEDED') {
           (finalAiMinutes as any).name_corrections = corrections;
           // Delete old relational items
@@ -204,9 +208,19 @@ export const retryMeetingMinutesAnalysis = async () => {
           }
 
           // Update meetingRecord with the minutes
+          const updateData: any = { aiMinutes: finalAiMinutes as any };
+          if (finalAiMinutes.meeting_date) {
+            let dateStr = String(finalAiMinutes.meeting_date);
+            dateStr = dateStr.replace(/(\d)(AM|PM)/i, '$1 $2').replace(/\bIST\b/i, '+05:30');
+            const parsedDate = new Date(dateStr);
+            if (!isNaN(parsedDate.getTime())) {
+              updateData.meetingDate = parsedDate;
+            }
+          }
+
           await prisma.meetingRecord.update({
             where: { id: record.id },
-            data: { aiMinutes: finalAiMinutes as any }
+            data: updateData
           });
 
           console.log(`[Minutes Retry Job] Successfully generated and stored AI minutes for record: ${record.id}`);

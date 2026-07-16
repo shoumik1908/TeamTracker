@@ -2,9 +2,13 @@ import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
 import { deleteFile, generateSasUrl, extractBlobName, CONTAINERS, accountName } from '../services/blobStorage';
+import { authenticateToken, AuthRequest } from '../middleware/auth';
+import { AppError } from '../middleware/errorHandler';
 
 const router = Router();
 const prisma = new PrismaClient();
+
+router.use(authenticateToken);
 
 // Standardized GTM stages
 const gtmStages = [
@@ -340,8 +344,17 @@ router.delete('/campaigns/:id', async (req: Request, res: Response) => {
 
 // GET /api/gtm/collaterals
 // List all GTM collateral materials
-router.get('/collaterals', async (_req: Request, res: Response) => {
+router.get('/collaterals', async (req: Request, res: Response) => {
+  const user = (req as AuthRequest).user;
+  const isAdmin = user?.permissions?.manageTeam;
+  
+  const where: any = {};
+  if (!isAdmin && user?.teamMemberId) {
+    where.uploadedBy = user.teamMemberId;
+  }
+
   const collaterals = await prisma.gtmCollateral.findMany({
+    where,
     include: { launch: true, partner: true },
     orderBy: { uploadedAt: 'desc' }
   });

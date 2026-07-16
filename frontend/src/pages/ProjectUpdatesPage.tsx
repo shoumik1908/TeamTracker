@@ -7,6 +7,7 @@ import {
   MoreVertical, Pencil, Trash2,
 } from 'lucide-react';
 import { cn, formatRelative } from '@/lib/utils';
+import { useAuth } from '@/context/AuthContext';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -104,6 +105,7 @@ function UpdateForm({
   initialText = '',
   isEdit = false,
   isSaving,
+  currentUser,
   onClose,
   onSave,
 }: {
@@ -115,11 +117,12 @@ function UpdateForm({
   initialText?: string;
   isEdit?: boolean;
   isSaving: boolean;
+  currentUser?: any;
   onClose: () => void;
   onSave: (data: Record<string, unknown>) => void;
 }) {
   const [formProjectId, setFormProjectId] = useState(initialProjectId);
-  const [formMemberId, setFormMemberId] = useState(initialMemberId);
+  const [formMemberId, setFormMemberId] = useState(initialMemberId || currentUser?.teamMemberId || '');
   const [formType, setFormType] = useState(initialType);
   const [formText, setFormText] = useState(initialText);
   const [formError, setFormError] = useState('');
@@ -159,15 +162,21 @@ function UpdateForm({
       {!isEdit && (
         <div>
           <label className="block text-xs font-medium text-muted-foreground mb-1.5">Posted by *</label>
-          <select
-            id="modal-member-select"
-            value={formMemberId}
-            onChange={e => setFormMemberId(e.target.value)}
-            className="w-full bg-background border border-border rounded-xl px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-azure-500/40 transition-all"
-          >
-            <option value="">Select member…</option>
-            {members.map(m => <option key={m.id} value={m.id}>{m.name}{m.designation ? ` — ${m.designation}` : ''}</option>)}
-          </select>
+          {currentUser?.teamMemberId ? (
+            <div className="w-full bg-muted/50 border border-border rounded-xl px-3 py-2.5 text-sm text-muted-foreground flex items-center">
+              Posting as: {members.find(m => m.id === currentUser.teamMemberId)?.name || currentUser.name}
+            </div>
+          ) : (
+            <select
+              id="modal-member-select"
+              value={formMemberId}
+              onChange={e => setFormMemberId(e.target.value)}
+              className="w-full bg-background border border-border rounded-xl px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-azure-500/40 transition-all"
+            >
+              <option value="">Select member…</option>
+              {members.map(m => <option key={m.id} value={m.id}>{m.name}{m.designation ? ` — ${m.designation}` : ''}</option>)}
+            </select>
+          )}
         </div>
       )}
 
@@ -260,6 +269,7 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function ProjectUpdatesPage() {
+  const { user } = useAuth();
   const qc = useQueryClient();
   const [showAdd, setShowAdd]             = useState(false);
   const [editTarget, setEditTarget]       = useState<ProjectUpdate | null>(null);
@@ -474,6 +484,7 @@ export default function ProjectUpdatesPage() {
           <UpdateForm
             projects={projects}
             members={members}
+            currentUser={user}
             isSaving={createMutation.isPending}
             onClose={() => setShowAdd(false)}
             onSave={data => createMutation.mutate(data)}
@@ -487,6 +498,7 @@ export default function ProjectUpdatesPage() {
           <UpdateForm
             projects={projects}
             members={members}
+            currentUser={user}
             initialProjectId={editTarget.projectId}
             initialMemberId={editTarget.memberId}
             initialType={editTarget.updateType}

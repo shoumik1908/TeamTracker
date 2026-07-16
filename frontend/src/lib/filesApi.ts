@@ -5,7 +5,7 @@ export interface FileItem {
   fileName: string;
   blobUrl: string;
   container: string;
-  category: 'CV' | 'Certificate' | 'GTM Document';
+  category: 'CV' | 'Certificate' | 'GTM Document' | 'PDF' | 'Word Doc';
   entityId: string;
   entityName: string;
   entityGroup: 'By Team Member' | 'By Client / Opportunity';

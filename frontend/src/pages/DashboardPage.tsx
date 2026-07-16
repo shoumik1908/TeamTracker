@@ -1,62 +1,19 @@
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { dashboardApi } from '@/lib/api';
-import {
-  Users, FolderKanban, CheckCircle, Calendar
-} from 'lucide-react';
 import type { DashboardStats, Notification } from '@/types';
-import { cn, formatRelative, formatDate } from '@/lib/utils';
-
-interface KPICardProps {
-  title: string;
-  value: number;
-  icon: React.ComponentType<{ className?: string }>;
-  color: string;
-  bgColor: string;
-  subtitle?: string;
-  to?: string;
-}
-
-function KPICard({ title, value, icon: Icon, color, bgColor, subtitle, to }: KPICardProps) {
-  const navigate = useNavigate();
-  return (
-    <div
-      onClick={to ? () => navigate(to) : undefined}
-      role={to ? 'button' : undefined}
-      tabIndex={to ? 0 : undefined}
-      onKeyDown={to ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(to); } } : undefined}
-      className={cn(
-        'bg-card rounded-xl border border-border p-5 hover-card animate-fade-in',
-        to && 'cursor-pointer hover:border-azure-500/50 focus:outline-none focus:ring-2 focus:ring-azure-500/40 transition-colors'
-      )}
-    >
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{title}</p>
-          <p className={cn('text-3xl font-bold mt-1.5', color)}>{value}</p>
-          {subtitle && <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>}
-        </div>
-        <div className={cn('w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0', bgColor)}>
-          <Icon className={cn('w-5 h-5', color)} />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-
+import { formatRelative, formatDate } from '@/lib/utils';
+import { useAuth } from '@/context/AuthContext';
 
 export default function DashboardPage() {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  
   const { data: stats, isLoading: statsLoading } = useQuery<DashboardStats>({
     queryKey: ['dashboard-stats'],
     queryFn: () => dashboardApi.stats().then(r => r.data),
     refetchInterval: 30000,
   });
-
-
-
-
-
 
   const { data: recentActivities } = useQuery<Notification[]>({
     queryKey: ['recent-activities'],
@@ -70,87 +27,129 @@ export default function DashboardPage() {
     refetchInterval: 30000,
   });
 
-  const kpiCards = stats ? [
-    { title: 'Total Team Members', value: stats.totalMembers, icon: Users, color: 'text-azure-400', bgColor: 'bg-azure-900/20', to: '/members' },
-    { title: 'Active Projects', value: stats.activeProjects, icon: FolderKanban, color: 'text-purple-400', bgColor: 'bg-purple-900/20', to: '/projects' },
-    { title: 'Completed Projects', value: stats.completedProjects, icon: CheckCircle, color: 'text-green-400', bgColor: 'bg-green-900/20', to: '/projects' },
-    { title: 'Total Team Certificates', value: stats.completedCertifications, icon: CheckCircle, color: 'text-green-400', bgColor: 'bg-green-900/20', to: '/tracker' },
-    { title: 'Upcoming Deadlines', value: stats.upcomingDeadlines, icon: Calendar, color: 'text-orange-400', bgColor: 'bg-orange-900/20', subtitle: 'Within 7 days', to: '/deadlines' },
-  ] : [];
-
   const notifTypeIcon: Record<string, string> = {
     CERTIFICATION_ASSIGNED: '📋', DEADLINE_APPROACHING: '⏰',
     CERTIFICATE_UPLOADED: '📄', CERTIFICATION_COMPLETED: '🎉',
     PROJECT_UPDATED: '🚀', PROJECT_ASSIGNED: '👥',
   };
 
+  const firstName = user?.name?.split(' ')[0] || 'Admin';
+
   if (statsLoading) {
-    return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} className="bg-card rounded-xl border border-border p-5 h-24 animate-pulse">
-            <div className="h-3 bg-muted rounded w-1/2 mb-3" />
-            <div className="h-8 bg-muted rounded w-1/3" />
-          </div>
-        ))}
-      </div>
-    );
+    return <div className="p-8 text-center text-muted-foreground animate-pulse">Loading admin dashboard...</div>;
   }
 
   return (
-    <div className="space-y-6">
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {kpiCards.map((card, i) => (
-          <KPICard key={i} {...card} />
-        ))}
-      </div>
-
-      {/* Recent Activities - Full Width */}
-      <div className="bg-card rounded-xl border border-border p-5">
-        <h3 className="font-semibold text-sm mb-4">Recent Activities</h3>
-        <div className="space-y-3">
-          {recentActivities?.length === 0 && (
-            <p className="text-sm text-muted-foreground text-center py-4">No recent activity yet</p>
-          )}
-          {recentActivities?.slice(0, 6).map(activity => (
-            <div key={activity.id} className="flex items-start gap-3 p-3 rounded-lg bg-muted/40 hover:bg-muted/60 transition-colors">
-              <span className="text-lg flex-shrink-0 mt-0.5">{notifTypeIcon[activity.type] || '📢'}</span>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium leading-tight">{activity.title}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{activity.message}</p>
-              </div>
-              <p className="text-[10px] text-muted-foreground/60 flex-shrink-0 mt-1">{formatRelative(activity.createdAt)}</p>
+    <div className="app-dashboard">
+      <div className="app-page">
+        
+        {/* Welcome Row */}
+        <div className="welcome-row animate-fade-in" style={{ animationDelay: '0ms' }}>
+          <div className="welcome">
+            <h1>Welcome back, {firstName} ⚡</h1>
+            <div className="meta">
+              <span>Admin Overview</span>
+              <span className="sep">•</span>
+              <span>All systems operational</span>
             </div>
-          ))}
+          </div>
+          <div className="quick-actions">
+            <button className="qa-btn" onClick={() => navigate('/members?action=new')}>
+              <span className="plus">+</span> Add Member
+            </button>
+            <button className="qa-btn" onClick={() => navigate('/projects?action=new')}>
+              <span className="plus">+</span> New Project
+            </button>
+          </div>
         </div>
-      </div>
 
-      {/* Upcoming Deadlines Widget */}
-      <div className="bg-card rounded-xl border border-border p-5">
-        <h3 className="font-semibold text-sm mb-4">Upcoming Certification Deadlines</h3>
-        {upcomingData?.certifications?.length === 0 && (
-          <p className="text-sm text-muted-foreground">No upcoming deadlines in the next 30 days.</p>
-        )}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          {upcomingData?.certifications?.map((item: any) => (
-            <div key={item.id} className="flex items-center gap-3 p-3 rounded-lg bg-muted/20 border border-border/50">
-              <div className="w-8 h-8 rounded-full bg-azure-900/40 flex items-center justify-center text-azure-300 text-xs font-bold flex-shrink-0">
-                {item.member?.name?.[0] || '?'}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold truncate">{item.certification?.name}</p>
-                <p className="text-xs text-muted-foreground truncate">{item.member?.name}</p>
-                <p className="text-xs text-orange-400 font-medium mt-0.5">{formatDate(item.deadline)}</p>
-              </div>
-              <div className="flex-shrink-0">
-                <div className="w-10 h-10 rounded-full border-2 border-azure-800/60 flex items-center justify-center">
-                  <span className="text-xs font-bold text-azure-400">{item.progress}%</span>
-                </div>
-              </div>
-            </div>
-          ))}
+        {/* KPI Strip */}
+        <div className="kpi-strip animate-fade-in" style={{ animationDelay: '50ms', gridTemplateColumns: 'repeat(5, 1fr)' }}>
+          <div className="kpi cursor-pointer" onClick={() => navigate('/members')}>
+            <div className="label">Total Members</div>
+            <div className="value">{stats?.totalMembers || 0}</div>
+            <div className="sub">Active profiles</div>
+          </div>
+          <div className="kpi cursor-pointer" onClick={() => navigate('/projects')}>
+            <div className="label">Active Projects</div>
+            <div className="value">{stats?.activeProjects || 0}</div>
+            <div className="sub">In progress</div>
+          </div>
+          <div className="kpi cursor-pointer" onClick={() => navigate('/projects')}>
+            <div className="label">Completed Projects</div>
+            <div className="value">{stats?.completedProjects || 0}</div>
+            <div className="sub">Delivered</div>
+          </div>
+          <div className="kpi cursor-pointer" onClick={() => navigate('/tracker')}>
+            <div className="label">Team Certs</div>
+            <div className="value">{stats?.completedCertifications || 0}</div>
+            <div className="sub">Total completed</div>
+          </div>
+          <div className="kpi cursor-pointer" onClick={() => navigate('/deadlines')}>
+            <div className="label">Deadlines</div>
+            <div className="value" style={{ color: 'var(--amber)' }}>{stats?.upcomingDeadlines || 0}</div>
+            <div className="sub">Next 7 days</div>
+          </div>
         </div>
+
+        {/* Main Grid */}
+        <div className="grid-main animate-fade-in" style={{ animationDelay: '100ms', gridTemplateColumns: '1fr 1fr' }}>
+          
+          {/* Upcoming Deadlines */}
+          <div className="card flex flex-col h-[400px]">
+            <div className="card-head flex-shrink-0">
+              <h2>Upcoming Deadlines</h2>
+              <a href="#" onClick={(e) => { e.preventDefault(); navigate('/deadlines'); }}>View all</a>
+            </div>
+            {upcomingData?.certifications?.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-4">No upcoming deadlines.</p>
+            ) : (
+              <div className="flex flex-col overflow-y-auto pr-2 -mr-2">
+                {upcomingData?.certifications?.map((item: any) => (
+                  <div key={item.id} className="cert-item">
+                    <div className="w-8 h-8 rounded-full bg-brand-tint flex items-center justify-center text-brand font-bold flex-shrink-0">
+                      {item.member?.name?.[0] || '?'}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="cert-name truncate">{item.certification?.name}</div>
+                      <div className="text-xs text-muted-foreground truncate">{item.member?.name}</div>
+                    </div>
+                    <div className="cert-sub text-right">
+                      <div className="font-semibold" style={{ color: 'var(--amber)' }}>{formatDate(item.deadline)}</div>
+                      <div className="text-[10px]" style={{ color: 'var(--brand)' }}>{item.progress}% done</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Recent Activities */}
+          <div className="card flex flex-col h-[400px]">
+            <div className="card-head flex-shrink-0">
+              <h2>Recent Activities</h2>
+              <a href="#" onClick={(e) => { e.preventDefault(); navigate('/notifications'); }}>View all</a>
+            </div>
+            {recentActivities?.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-4">No recent activity yet.</p>
+            ) : (
+              <div className="flex flex-col overflow-y-auto pr-2 -mr-2">
+                {recentActivities?.map(activity => (
+                  <div key={activity.id} className="notif">
+                    <div className="bell">{notifTypeIcon[activity.type] || '📢'}</div>
+                    <div className="flex-1">
+                      <div className="font-medium text-[13.5px] leading-tight text-ink">{activity.title}</div>
+                      <div className="text-xs text-ink-soft mt-0.5 leading-snug">{activity.message}</div>
+                      <span className="when">{formatRelative(activity.createdAt)}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+        </div>
+
       </div>
     </div>
   );
