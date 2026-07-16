@@ -10,6 +10,7 @@ export interface AuthRequest extends Request {
   user?: {
     id: string;
     email: string;
+    name: string;
     roleId: string;
     teamMemberId: string | null;
     mustChangePassword: boolean;

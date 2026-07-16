@@ -1,4 +1,4 @@
-import { Router, Response } from 'express';
+import { Router, Request, Response } from 'express';
 import { PrismaClient, ProjectStatus, Priority } from '@prisma/client';
 import { AppError } from '../middleware/errorHandler';
 import { authenticateToken, AuthRequest, requirePermission } from '../middleware/auth';

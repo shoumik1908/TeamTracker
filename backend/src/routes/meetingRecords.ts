@@ -462,7 +462,7 @@ router.delete('/:id', async (req, res) => {
     }
 
     const user = (req as any).user;
-    const isUploader = record.uploadedBy === user?.teamMemberId;
+    const isUploader = record.createdBy === user?.teamMemberId;
     const isAdmin = user?.permissions?.manageTeam;
 
     if (!isAdmin && !isUploader) {
@@ -475,7 +475,7 @@ router.delete('/:id', async (req, res) => {
       data: {
         category: opportunityId ? 'PreSales' : 'Projects',
         action: 'DELETE',
-        details: `User ${user?.name || 'Unknown'} deleted meeting record "${record.subject || 'Unknown'}"`,
+        details: `User ${user?.name || 'Unknown'} deleted meeting record "${record.meetingTitle || 'Unknown'}"`,
       }
     });
 

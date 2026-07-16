@@ -78,7 +78,7 @@ router.get('/', async (req: Request, res: Response) => {
   const user = (req as AuthRequest).user;
   const where: any = {};
   if (!user?.permissions?.manageTeam) {
-    where.members = { some: { memberId: user?.teamMemberId } };
+    where.assignments = { some: { memberId: user?.teamMemberId } };
   }
 
   const opportunities = await prisma.preSalesOpportunity.findMany({
@@ -161,12 +161,12 @@ router.patch('/:id/stage', async (req: Request, res: Response) => {
 
   const opportunity = await prisma.preSalesOpportunity.findUnique({ 
     where: { id },
-    include: { members: true }
+    include: { assignments: true }
   });
   if (!opportunity) return res.status(404).json({ error: 'Opportunity not found.' });
 
   const user = (req as AuthRequest).user;
-  if (!user?.permissions?.manageTeam && !opportunity.members.some((m: any) => m.memberId === user?.teamMemberId)) {
+  if (!user?.permissions?.manageTeam && !opportunity.assignments.some((m: any) => m.memberId === user?.teamMemberId)) {
     throw new AppError('Forbidden: You are not assigned to this opportunity', 403);
   }
   if (stageIndex < 0 || stageIndex >= opportunity.stages.length) {
@@ -252,12 +252,12 @@ router.patch('/:id/progress', async (req: Request, res: Response) => {
 
   const opportunity = await prisma.preSalesOpportunity.findUnique({ 
     where: { id },
-    include: { members: true }
+    include: { assignments: true }
   });
   if (!opportunity) return res.status(404).json({ error: 'Opportunity not found.' });
 
   const user = (req as AuthRequest).user;
-  if (!user?.permissions?.manageTeam && !opportunity.members.some((m: any) => m.memberId === user?.teamMemberId)) {
+  if (!user?.permissions?.manageTeam && !opportunity.assignments.some((m: any) => m.memberId === user?.teamMemberId)) {
     throw new AppError('Forbidden: You are not assigned to this opportunity', 403);
   }
 
@@ -297,12 +297,12 @@ router.post('/:id/reset', async (req: Request, res: Response) => {
 
   const opportunity = await prisma.preSalesOpportunity.findUnique({ 
     where: { id },
-    include: { members: true }
+    include: { assignments: true }
   });
   if (!opportunity) return res.status(404).json({ error: 'Opportunity not found.' });
 
   const user = (req as AuthRequest).user;
-  if (!user?.permissions?.manageTeam && !opportunity.members.some((m: any) => m.memberId === user?.teamMemberId)) {
+  if (!user?.permissions?.manageTeam && !opportunity.assignments.some((m: any) => m.memberId === user?.teamMemberId)) {
     throw new AppError('Forbidden: You are not assigned to this opportunity', 403);
   }
 
@@ -517,7 +517,7 @@ router.get('/docs', async (req: Request, res: Response) => {
 
   if (!user?.permissions?.manageTeam) {
     const userAssignments = await prisma.projectMember.findMany({
-      where: { memberId: user?.teamMemberId, opportunityId: { in: oppIds } }
+      where: { memberId: user?.teamMemberId as string, opportunityId: { in: oppIds } }
     });
     allowedOppIds = userAssignments.map(a => a.opportunityId).filter(Boolean) as string[];
   }
@@ -639,12 +639,12 @@ router.patch('/:id', async (req: Request, res: Response) => {
   try {
     const opp = await prisma.preSalesOpportunity.findUnique({
       where: { id },
-      include: { members: true }
+      include: { assignments: true }
     });
     if (!opp) throw new AppError('Opportunity not found', 404);
 
     const user = (req as AuthRequest).user;
-    if (!user?.permissions?.manageTeam && !opp.members.some((m: any) => m.memberId === user?.teamMemberId)) {
+    if (!user?.permissions?.manageTeam && !opp.assignments.some((m: any) => m.memberId === user?.teamMemberId)) {
       throw new AppError('Forbidden: You are not assigned to this opportunity', 403);
     }
 
@@ -769,12 +769,12 @@ router.post('/:id/generate-proposal', proposalUpload.array('files', 10), async (
 
   const opportunity = await prisma.preSalesOpportunity.findUnique({ 
     where: { id },
-    include: { members: true }
+    include: { assignments: true }
   });
   if (!opportunity) throw new AppError('Opportunity not found.', 404);
 
   const user = (req as AuthRequest).user;
-  if (!user?.permissions?.manageTeam && !opportunity.members.some((m: any) => m.memberId === user?.teamMemberId)) {
+  if (!user?.permissions?.manageTeam && !opportunity.assignments.some((m: any) => m.memberId === user?.teamMemberId)) {
     throw new AppError('Forbidden: You are not assigned to this opportunity', 403);
   }
 
@@ -963,12 +963,12 @@ router.post('/:id/generate-section', docUpload.single('file'), async (req: Reque
 
   const opportunity = await prisma.preSalesOpportunity.findUnique({ 
     where: { id },
-    include: { members: true }
+    include: { assignments: true }
   });
   if (!opportunity) throw new AppError('Opportunity not found.', 404);
 
   const user = (req as AuthRequest).user;
-  if (!user?.permissions?.manageTeam && !opportunity.members.some((m: any) => m.memberId === user?.teamMemberId)) {
+  if (!user?.permissions?.manageTeam && !opportunity.assignments.some((m: any) => m.memberId === user?.teamMemberId)) {
     throw new AppError('Forbidden: You are not assigned to this opportunity', 403);
   }
 

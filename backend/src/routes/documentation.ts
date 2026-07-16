@@ -376,7 +376,7 @@ router.delete('/notes/:noteId', async (req: Request, res: Response) => {
     throw new AppError('Note not found in database.', 404);
   }
 
-  const isUploader = dbNote.addedBy === user?.teamMemberId;
+  const isUploader = dbNote.updatedBy === user?.teamMemberId;
   const isAdmin = user?.permissions?.manageTeam;
 
   if (!isAdmin && !isUploader) {

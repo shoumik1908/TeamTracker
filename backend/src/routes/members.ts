@@ -221,7 +221,7 @@ router.post('/', uploadImage.single('profilePicture'), async (req: Request, res:
         data: {
           email,
           name,
-          password: hashedPassword,
+          passwordHash: hashedPassword,
           roleId: teamMemberRole.id,
           teamMemberId: member.id,
           mustChangePassword: true,
@@ -289,6 +289,40 @@ router.put('/:id', uploadImage.single('profilePicture'), async (req: Request, re
     },
   });
 
+  // Sync User credentials
+  const existingUser = await prisma.user.findUnique({ where: { teamMemberId: id } });
+  
+  if (existingUser && (email !== undefined || name)) {
+    // If email is explicitly set to empty string or null, we might want to deactivate or delete, 
+    // but for now we just update email and name. If it's a unique constraint violation, Prisma handles it.
+    await prisma.user.update({
+      where: { id: existingUser.id },
+      data: {
+        ...(email !== undefined && { email: email || existingUser.email }),
+        ...(name && { name }),
+      }
+    });
+  } else if (!existingUser && email) {
+    // Auto-create User credentials if email is newly provided
+    const teamMemberRole = await prisma.role.findFirst({ where: { name: 'Team Member' } });
+    if (teamMemberRole) {
+      const firstName = (name || existing.name).split(' ')[0].toLowerCase();
+      const defaultPassword = `${firstName}+xebia`;
+      const hashedPassword = await bcrypt.hash(defaultPassword, 10);
+      
+      await prisma.user.create({
+        data: {
+          email,
+          name: name || existing.name,
+          passwordHash: hashedPassword,
+          roleId: teamMemberRole.id,
+          teamMemberId: id,
+          mustChangePassword: true,
+        },
+      });
+    }
+  }
+
   res.json(member);
 });
 
@@ -306,6 +340,9 @@ router.delete('/:id', async (req: Request, res: Response) => {
     const blobName = extractBlobName(existing.profilePictureUrl);
     await deleteFile(CONTAINERS.PROFILE_IMAGES, blobName).catch(console.error);
   }
+
+  // Delete the corresponding user credentials
+  await prisma.user.deleteMany({ where: { teamMemberId: id } });
 
   await prisma.teamMember.delete({ where: { id } });
 

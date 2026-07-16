@@ -18,8 +18,8 @@ router.get('/stats', async (req: Request, res: Response) => {
   const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
   const nextWeek = new Date(today); nextWeek.setDate(nextWeek.getDate() + 7);
 
-  const projectWhere = isAdmin ? {} : { members: { some: { memberId: teamMemberId } } };
-  const certWhere = isAdmin ? {} : { memberId: teamMemberId };
+  const projectWhere: any = isAdmin ? {} : { members: { some: { memberId: teamMemberId as string } } };
+  const certWhere: any = isAdmin ? {} : { memberId: teamMemberId as string };
 
   const [
     totalMembers,
@@ -64,7 +64,7 @@ router.get('/certification-status', async (req: Request, res: Response) => {
   const isAdmin = user?.permissions?.manageTeam;
   const teamMemberId = user?.teamMemberId;
 
-  const certWhere = isAdmin ? {} : { memberId: teamMemberId };
+  const certWhere = isAdmin ? {} : { memberId: teamMemberId as string };
 
   const statusCounts = await prisma.assignedCertification.groupBy({
     by: ['status'],
@@ -74,7 +74,7 @@ router.get('/certification-status', async (req: Request, res: Response) => {
 
   const data = statusCounts.map(item => ({
     status: item.status,
-    count: item._count.status,
+    count: (item._count as any)?.status || 0,
   }));
 
   res.json(data);
@@ -86,7 +86,7 @@ router.get('/project-progress', async (req: Request, res: Response) => {
   const isAdmin = user?.permissions?.manageTeam;
   const teamMemberId = user?.teamMemberId;
 
-  const projectWhere = isAdmin ? {} : { members: { some: { memberId: teamMemberId } } };
+  const projectWhere: any = isAdmin ? {} : { members: { some: { memberId: teamMemberId as string } } };
 
   const projects = await prisma.project.findMany({
     where: projectWhere,
@@ -103,7 +103,7 @@ router.get('/monthly-completions', async (req: Request, res: Response) => {
   const isAdmin = user?.permissions?.manageTeam;
   const teamMemberId = user?.teamMemberId;
 
-  const certWhere = isAdmin ? {} : { memberId: teamMemberId };
+  const certWhere = isAdmin ? {} : { memberId: teamMemberId as string };
 
   const sixMonthsAgo = new Date();
   sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
@@ -148,7 +148,7 @@ router.get('/recent-activities', async (req: Request, res: Response) => {
   // Activities don't have a direct member association in all cases except when memberId is set
   // For scoping, if not admin, show notifications for their own profile.
   // Actually Notification table has `memberId`.
-  const notificationWhere = isAdmin ? {} : { memberId: teamMemberId };
+  const notificationWhere = isAdmin ? {} : { memberId: teamMemberId as string };
 
   const notifications = await prisma.notification.findMany({
     where: notificationWhere,
@@ -167,8 +167,8 @@ router.get('/upcoming-deadlines', async (req: Request, res: Response) => {
   const isAdmin = user?.permissions?.manageTeam;
   const teamMemberId = user?.teamMemberId;
 
-  const certWhere = isAdmin ? {} : { memberId: teamMemberId };
-  const projectWhere = isAdmin ? {} : { members: { some: { memberId: teamMemberId } } };
+  const certWhere = isAdmin ? {} : { memberId: teamMemberId as string };
+  const projectWhere = isAdmin ? {} : { members: { some: { memberId: teamMemberId as string } } };
 
   const now = new Date();
   const nextMonth = new Date(now);
