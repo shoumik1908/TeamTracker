@@ -3,7 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Award, FolderKanban,
   Bell, FileBarChart, ChevronLeft, ChevronRight,
-  Zap, MessageSquareDiff, Target, Rocket, FolderOpen, History, ShieldCheck
+  MessageSquareDiff, Target, Rocket, FolderOpen, History, ShieldCheck
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
