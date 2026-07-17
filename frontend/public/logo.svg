@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8a3ffc" />
+      <stop offset="100%" stop-color="#2563eb" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="110" fill="url(#bg)" />
+  
+  <!-- Rings -->
+  <circle cx="256" cy="256" r="80" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="4" />
+  <circle cx="256" cy="256" r="140" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="4" />
+  <circle cx="256" cy="256" r="200" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="4" />
+  
+  <!-- Center Donut -->
+  <circle cx="256" cy="256" r="30" fill="none" stroke="#ffffff" stroke-width="20" />
+  
+  <!-- Radar Blip on outer ring (at 60 degrees from horizontal) -->
+  <circle cx="356" cy="83" r="18" fill="#ffffff" />
+</svg>

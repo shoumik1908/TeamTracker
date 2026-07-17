@@ -13,8 +13,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['Inter', 'sans-serif'],
-        display: ['Space Grotesk', 'sans-serif'],
+        sans: ['"Google Sans Text"', '"Google Sans"', 'Inter', 'sans-serif'],
+        display: ['"Google Sans"', 'Space Grotesk', 'sans-serif'],
         mono: ['IBM Plex Mono', 'monospace'],
       },
       colors: {
@@ -90,9 +90,6 @@ export default {
         "fade-in": "fade-in 0.3s ease-out",
         "slide-in": "slide-in 0.3s ease-out",
         shimmer: "shimmer 2s linear infinite",
-      },
-      fontFamily: {
-        sans: ["Inter", "system-ui", "sans-serif"],
       },
     },
   },

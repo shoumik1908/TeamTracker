@@ -226,7 +226,7 @@ export default function PresalesDocAnalyzerModal({ grouped, onClose, onToast }: 
               </p>
             </div>
           </div>
-          <button onClick={onClose} className="p-1.5 hover:bg-white/5 rounded-full transition-colors">
+          <button onClick={onClose} className="p-1.5 hover:bg-card/5 rounded-full transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>

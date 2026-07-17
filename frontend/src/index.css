@@ -4,26 +4,26 @@
 
 @layer base {
   :root {
-    --background: 240 10% 4%;
-    --foreground: 240 5% 90%;
-    --card: 240 6% 10%;
-    --card-foreground: 240 5% 90%;
-    --popover: 240 6% 10%;
-    --popover-foreground: 240 5% 90%;
-    --primary: 210 90% 50%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 240 5% 15%;
-    --secondary-foreground: 240 5% 90%;
-    --muted: 240 5% 15%;
-    --muted-foreground: 240 5% 65%;
-    --accent: 210 90% 50%;
+    --background: 230 11% 11%; /* #191a1f */
+    --foreground: 0 0% 100%; /* #ffffff */
+    --card: 225 9% 15%; /* #222328 */
+    --card-foreground: 0 0% 100%;
+    --popover: 225 9% 15%;
+    --popover-foreground: 0 0% 100%;
+    --primary: 217 89% 75%; /* Google Blue-ish */
+    --primary-foreground: 230 11% 11%;
+    --secondary: 225 9% 25%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 225 9% 20%;
+    --muted-foreground: 225 15% 70%;
+    --accent: 280 80% 70%; /* Purple AI accent */
     --accent-foreground: 0 0% 100%;
-    --destructive: 0 84% 60%;
+    --destructive: 4 90% 58%;
     --destructive-foreground: 0 0% 100%;
-    --border: 240 5% 18%;
-    --input: 240 5% 18%;
-    --ring: 210 90% 50%;
-    --radius: 14px;
+    --border: 225 9% 22%;
+    --input: 225 9% 18%;
+    --ring: 217 89% 75%;
+    --radius: 16px;
   }
 
   * {
@@ -43,7 +43,7 @@
   input[type="url"],
   select,
   textarea {
-    @apply bg-zinc-900 text-foreground border-border;
+    @apply bg-input text-foreground border-border focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all;
   }
 
   select option,
@@ -77,13 +77,13 @@
   /* Sidebar */
   .sidebar-link {
     @apply flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium
-           text-sidebar-text transition-all duration-200 cursor-pointer select-none;
+           text-muted-foreground transition-all duration-200 cursor-pointer select-none border border-transparent;
   }
   .sidebar-link:hover {
-    @apply bg-sidebar-hover text-sidebar-text-active;
+    @apply bg-white/5 text-foreground border-white/5;
   }
   .sidebar-link.active {
-    @apply bg-primary text-white shadow-lg shadow-primary/20;
+    @apply bg-gradient-to-r from-primary to-accent text-white shadow-lg shadow-primary/20 border-transparent;
   }
 
   /* Status badges */
@@ -103,12 +103,12 @@
 
   /* Card hover */
   .hover-card {
-    @apply transition-all duration-200 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5;
+    @apply transition-all duration-200 hover:shadow-lg hover:shadow-primary/20 hover:-translate-y-1;
   }
 
   /* Glass card */
-  .glass-card {
-    @apply bg-zinc-900/70 backdrop-blur-md border border-border shadow-md shadow-black/20;
+  .glass-card, .card, .app-page > .card {
+    @apply bg-card/40 backdrop-blur-xl border border-white/5 shadow-xl rounded-2xl;
   }
 
   /* Page header */
@@ -157,13 +157,13 @@
 .app-dashboard {
     background:hsl(var(--background));
     color:hsl(var(--foreground));
-    font-family:'Inter',sans-serif;
+    font-family:'Google Sans Text', 'Inter', sans-serif;
     -webkit-font-smoothing:antialiased;
     min-height:100%;
     border-radius: var(--radius);
   }
   .app-dashboard .mono{font-family:'IBM Plex Mono',monospace;}
-  .app-dashboard .display{font-family:'Space Grotesk',sans-serif;}
+  .app-dashboard .display{font-family:'Google Sans', 'Space Grotesk',sans-serif;}
 
   /* ---------- Layout ---------- */
   .app-page{max-width:1200px; margin:0 auto; padding:28px 32px 64px;}
@@ -173,7 +173,7 @@
     display:flex; justify-content:space-between; align-items:flex-end; gap:24px;
     margin-bottom:24px; flex-wrap:wrap;
   }
-  .app-dashboard .welcome h1{font-family:'Space Grotesk'; font-size:26px; font-weight:600; margin:0 0 6px; letter-spacing:-0.01em;}
+  .app-dashboard .welcome h1{font-family:'Google Sans', 'Space Grotesk', sans-serif; font-size:26px; font-weight:500; margin:0 0 6px; letter-spacing:-0.01em;}
   .app-dashboard .welcome .meta{display:flex; gap:18px; flex-wrap:wrap; color:hsl(var(--muted-foreground)); font-size:13.5px;}
   .app-dashboard .welcome .meta b{color:hsl(var(--foreground)); font-weight:600;}
   .app-dashboard .welcome .meta .sep{color:hsl(var(--muted-foreground));}
@@ -203,7 +203,7 @@
   }
   .app-dashboard .kpi:hover{background:hsl(var(--muted));}
   .app-dashboard .kpi .label{font-size:12px; color:hsl(var(--muted-foreground)); font-weight:600; text-transform:uppercase; letter-spacing:.04em;}
-  .app-dashboard .kpi .value{font-family:'Space Grotesk'; font-size:32px; font-weight:700; margin-top:6px;}
+  .app-dashboard .kpi .value{font-family:'Google Sans', 'Space Grotesk', sans-serif; font-size:32px; font-weight:500; margin-top:6px;}
   .app-dashboard .kpi .sub{font-family:'IBM Plex Mono'; font-size:11.5px; color:hsl(var(--muted-foreground)); margin-top:4px;}
 
   /* ---------- Section shells ---------- */
@@ -218,7 +218,7 @@
     padding:18px 18px 20px; box-shadow:var(--shadow);
   }
   .app-dashboard .card-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;}
-  .app-dashboard .card-head h2{font-family:'Space Grotesk'; font-size:15px; font-weight:600; margin:0; color: hsl(var(--foreground));}
+  .app-dashboard .card-head h2{font-family:'Google Sans', 'Space Grotesk', sans-serif; font-size:16px; font-weight:500; margin:0; color: hsl(var(--foreground));}
   .app-dashboard .card-head a{font-size:12.5px; color:hsl(var(--primary)); text-decoration:none; font-weight:600;}
   .app-dashboard .card-head a:hover{text-decoration:underline;}
 
@@ -300,7 +300,7 @@
   .app-dashboard .cal-date{
     width:42px; text-align:center; flex-shrink:0;
   }
-  .app-dashboard .cal-date .d{font-family:'Space Grotesk'; font-weight:700; font-size:16px; line-height:1; color: hsl(var(--foreground));}
+  .app-dashboard .cal-date .d{font-family:'Google Sans', 'Space Grotesk', sans-serif; font-weight:700; font-size:16px; line-height:1; color: hsl(var(--foreground));}
   .app-dashboard .cal-date .m{font-family:'IBM Plex Mono'; font-size:10px; color:hsl(var(--muted-foreground)); text-transform:uppercase;}
   .app-dashboard .cal-label{font-size:13px; font-weight:600; color: hsl(var(--foreground));}
 
@@ -331,4 +331,13 @@
   }
   .app-dashboard .file-name{font-weight:600; flex:1; color: hsl(var(--foreground));}
   .app-dashboard .file-meta{font-family:'IBM Plex Mono'; font-size:11px; color:hsl(var(--muted-foreground));}
+}
+
+/* Particle Network Animations */
+.node-pulse-slow { animation: nodePulse 4s ease-in-out infinite alternate; }
+.node-pulse-med { animation: nodePulse 2.5s ease-in-out infinite alternate; }
+.node-pulse-fast { animation: nodePulse 1.5s ease-in-out infinite alternate; }
+@keyframes nodePulse {
+    0% { opacity: 0.3; transform: scale(0.8); }
+    100% { opacity: 1; transform: scale(1.3); }
 }

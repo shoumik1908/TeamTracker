@@ -31,6 +31,8 @@ router.get('/stats', async (req: Request, res: Response) => {
     overdueCerts,
     expiredCerts,
     upcomingDeadlines,
+    pendingTasks,
+    completedTasks,
   ] = await Promise.all([
     prisma.teamMember.count(), // Open to all, just a count
     prisma.project.count({ where: { ...projectWhere, status: { in: ['PLANNING', 'IN_PROGRESS', 'ON_HOLD'] } } }),
@@ -43,6 +45,8 @@ router.get('/stats', async (req: Request, res: Response) => {
     prisma.assignedCertification.count({
       where: { ...certWhere, deadline: { gte: today, lt: nextWeek }, status: { not: 'COMPLETED' } },
     }),
+    prisma.task.count({ where: { ...(isAdmin ? {} : { assigneeId: teamMemberId as string }), status: { not: 'DONE' } } }),
+    prisma.task.count({ where: { ...(isAdmin ? {} : { assigneeId: teamMemberId as string }), status: 'DONE' } }),
   ]);
 
   res.json({
@@ -55,6 +59,8 @@ router.get('/stats', async (req: Request, res: Response) => {
     overdueCertifications: overdueCerts,
     expiredCertifications: expiredCerts,
     upcomingDeadlines,
+    pendingTasks,
+    completedTasks,
   });
 });
 
@@ -174,7 +180,7 @@ router.get('/upcoming-deadlines', async (req: Request, res: Response) => {
   const nextMonth = new Date(now);
   nextMonth.setDate(nextMonth.getDate() + 30);
 
-  const [certDeadlines, projectDeadlines] = await Promise.all([
+  const [certDeadlines, projectDeadlines, taskDeadlines] = await Promise.all([
     prisma.assignedCertification.findMany({
       where: {
         ...certWhere,
@@ -198,9 +204,21 @@ router.get('/upcoming-deadlines', async (req: Request, res: Response) => {
       take: 5,
       select: { id: true, name: true, endDate: true, status: true, progress: true, priority: true },
     }),
+    prisma.task.findMany({
+      where: {
+        ...(isAdmin ? {} : { assigneeId: teamMemberId as string }),
+        dueDate: { gte: now, lte: nextMonth },
+        status: { not: 'DONE' },
+      },
+      orderBy: { dueDate: 'asc' },
+      take: 5,
+      include: {
+        assignee: { select: { name: true } },
+      },
+    }),
   ]);
 
-  res.json({ certifications: certDeadlines, projects: projectDeadlines });
+  res.json({ certifications: certDeadlines, projects: projectDeadlines, tasks: taskDeadlines });
 });
 
 export default router;

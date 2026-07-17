@@ -58,26 +58,26 @@ export default function ReportsPage() {
       <div className="grid grid-cols-3 gap-6">
         {/* Report Builder */}
         <div className="col-span-2 space-y-5">
-          <div className="bg-card rounded-xl border border-border p-6">
+          <div className="bg-[#1c1926]/80 backdrop-blur-md rounded-xl border border-white/5 p-6">
             <h3 className="font-semibold mb-4">1. Select Report Type</h3>
             <div className="grid grid-cols-2 gap-3">
               {REPORT_TYPES.map(rt => (
                 <button key={rt.id} onClick={() => setSelectedType(rt.id)}
                   className={cn(
                     'flex items-start gap-3 p-4 rounded-xl border text-left transition-all',
-                    selectedType === rt.id ? 'border-azure-500 bg-azure-900/20 shadow-sm' : 'border-border hover:border-azure-500/50 hover:bg-muted/30'
+                    selectedType === rt.id ? 'border-azure-500 bg-azure-900/20 shadow-sm' : 'border-white/5 hover:border-azure-500/50 hover:bg-muted/30'
                   )}>
                   <span className="text-2xl flex-shrink-0">{rt.icon}</span>
                   <div>
                     <p className={cn('text-sm font-semibold', selectedType === rt.id ? 'text-azure-300' : 'text-foreground')}>{rt.label}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">{rt.description}</p>
+                    <p className="text-xs text-white/50 mt-0.5">{rt.description}</p>
                   </div>
                 </button>
               ))}
             </div>
           </div>
 
-          <div className="bg-card rounded-xl border border-border p-6">
+          <div className="bg-[#1c1926]/80 backdrop-blur-md rounded-xl border border-white/5 p-6">
             <h3 className="font-semibold mb-4">2. Select Format</h3>
             <div className="grid grid-cols-3 gap-3">
               {FORMATS.map(fmt => {
@@ -86,7 +86,7 @@ export default function ReportsPage() {
                   <button key={fmt.id} onClick={() => setSelectedFormat(fmt.id)}
                     className={cn(
                       'flex items-center gap-3 p-4 rounded-xl border transition-all',
-                      selectedFormat === fmt.id ? 'border-azure-500 bg-azure-900/20' : 'border-border hover:border-azure-500/50 hover:bg-muted/30',
+                      selectedFormat === fmt.id ? 'border-azure-500 bg-azure-900/20' : 'border-white/5 hover:border-azure-500/50 hover:bg-muted/30',
                     )}>
                     <div className={cn('w-9 h-9 rounded-lg border flex items-center justify-center flex-shrink-0', fmt.color)}>
                       <Icon className="w-4 h-4" />
@@ -112,14 +112,14 @@ export default function ReportsPage() {
         </div>
 
         {/* Quick Export */}
-        <div className="bg-card rounded-xl border border-border p-5 h-fit">
+        <div className="bg-[#1c1926]/80 backdrop-blur-md rounded-xl border border-white/5 p-5 h-fit">
           <h3 className="font-semibold mb-4 flex items-center gap-2">
             <FileBarChart className="w-4 h-4 text-azure-400" /> Quick Export
           </h3>
           <div className="space-y-4">
             {REPORT_TYPES.map(rt => (
               <div key={rt.id}>
-                <p className="text-xs font-semibold text-muted-foreground mb-2">{rt.icon} {rt.label}</p>
+                <p className="text-xs font-semibold text-white/50 mb-2">{rt.icon} {rt.label}</p>
                 <div className="flex gap-2">
                   {FORMATS.map(fmt => {
                     const Icon = fmt.icon;

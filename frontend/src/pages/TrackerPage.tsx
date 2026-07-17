@@ -32,26 +32,26 @@ function QuickUpdateMenu({
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen(o => !o)}
-        className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-white/5 rounded-lg transition-colors"
+        className="p-1.5 text-white/50 hover:text-foreground hover:bg-[#1c1926]/80 backdrop-blur-md/5 rounded-lg transition-colors"
         title="Quick Update"
       >
         <MoreVertical className="w-3.5 h-3.5" />
       </button>
       {open && (
-        <div className="absolute right-0 bottom-8 z-40 w-48 bg-popover border border-border rounded-xl shadow-2xl overflow-hidden animate-fade-in">
+        <div className="absolute right-0 bottom-8 z-40 w-48 bg-popover border border-white/5 rounded-xl shadow-2xl overflow-hidden animate-fade-in">
           {/* Actions Section */}
           <div className="py-1">
             <button
               onClick={() => { setOpen(false); onEdit(); }}
               className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-foreground hover:bg-muted/40 transition-colors text-left"
             >
-              <Pencil className="w-3 h-3 text-muted-foreground" /> Edit
+              <Pencil className="w-3 h-3 text-white/50" /> Edit
             </button>
 
             {onDeleteCertificate && (
               <button
                 onClick={() => { setOpen(false); onDeleteCertificate(); }}
-                className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-red-400 hover:bg-red-950/40 transition-colors text-left border-b border-border/30"
+                className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-red-400 hover:bg-red-950/40 transition-colors text-left border-b border-white/5/30"
               >
                 <Trash2 className="w-3 h-3 text-red-400" /> Delete Certificate
               </button>
@@ -84,51 +84,51 @@ function AssignModal({ onClose, onSave }: { onClose: () => void; onSave: (d: Rec
 
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-fade-in">
-      <div className="bg-card rounded-2xl shadow-2xl w-full max-w-md border border-border">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+      <div className="bg-[#1c1926]/80 backdrop-blur-md rounded-2xl shadow-2xl w-full max-w-md border border-white/5">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/5">
           <h2 className="font-semibold text-lg">Assign Certification</h2>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-white/50 hover:text-foreground"><X className="w-5 h-5" /></button>
         </div>
         <div className="p-6 space-y-4">
           <div>
-            <label className="block text-xs font-medium text-muted-foreground mb-1">Team Member *</label>
+            <label className="block text-xs font-medium text-white/50 mb-1">Team Member *</label>
             <select value={form.memberId} onChange={e => setForm(p => ({ ...p, memberId: e.target.value }))}
-              className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30">
+              className="w-full px-3 py-2 text-sm border border-white/5 rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30">
               <option value="">Select member...</option>
               {members?.data.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-xs font-medium text-muted-foreground mb-1">Certification *</label>
+            <label className="block text-xs font-medium text-white/50 mb-1">Certification *</label>
             <select value={form.certificationId} onChange={e => setForm(p => ({ ...p, certificationId: e.target.value }))}
-              className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30">
+              className="w-full px-3 py-2 text-sm border border-white/5 rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30">
               <option value="">Select certification...</option>
               {certs?.data.map(c => <option key={c.id} value={c.id}>{c.name} – {c.provider}</option>)}
             </select>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1">Deadline *</label>
+              <label className="block text-xs font-medium text-white/50 mb-1">Deadline *</label>
               <input type="date" value={form.deadline} onChange={e => setForm(p => ({ ...p, deadline: e.target.value }))}
-                className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30" />
+                className="w-full px-3 py-2 text-sm border border-white/5 rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1">Priority</label>
+              <label className="block text-xs font-medium text-white/50 mb-1">Priority</label>
               <select value={form.priority} onChange={e => setForm(p => ({ ...p, priority: e.target.value }))}
-                className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30">
+                className="w-full px-3 py-2 text-sm border border-white/5 rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30">
                 {PRIORITIES.map(p => <option key={p}>{p}</option>)}
               </select>
             </div>
           </div>
           <div>
-            <label className="block text-xs font-medium text-muted-foreground mb-1">Notes</label>
+            <label className="block text-xs font-medium text-white/50 mb-1">Notes</label>
             <textarea rows={2} value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
-              className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30 resize-none"
+              className="w-full px-3 py-2 text-sm border border-white/5 rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30 resize-none"
               placeholder="Optional notes..." />
           </div>
         </div>
-        <div className="flex gap-3 px-6 py-4 border-t border-border">
-          <button onClick={onClose} className="flex-1 px-4 py-2 text-sm border border-border rounded-lg hover:bg-muted">Cancel</button>
+        <div className="flex gap-3 px-6 py-4 border-t border-white/5">
+          <button onClick={onClose} className="flex-1 px-4 py-2 text-sm border border-white/5 rounded-lg hover:bg-muted">Cancel</button>
           <button onClick={() => { if (form.memberId && form.certificationId && form.deadline) onSave(form); }}
             className="flex-1 px-4 py-2 text-sm bg-azure-500 text-white rounded-lg hover:bg-azure-600">
             Assign
@@ -152,66 +152,66 @@ function EditProgressModal({ assignment, onClose, onSave }: {
   });
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-fade-in">
-      <div className="bg-card rounded-2xl shadow-2xl w-full max-w-md border border-border">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+      <div className="bg-[#1c1926]/80 backdrop-blur-md rounded-2xl shadow-2xl w-full max-w-md border border-white/5">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/5">
           <h2 className="font-semibold text-lg">Edit Assignment</h2>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-white/50 hover:text-foreground"><X className="w-5 h-5" /></button>
         </div>
         <div className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
           <div>
-            <label className="block text-xs font-medium text-muted-foreground mb-1">Progress ({form.progress}%)</label>
+            <label className="block text-xs font-medium text-white/50 mb-1">Progress ({form.progress}%)</label>
             <input type="range" min={0} max={100} value={form.progress}
               onChange={e => setForm(p => ({ ...p, progress: parseInt(e.target.value) }))}
               className="w-full accent-azure-500" />
-            <div className="flex justify-between text-xs text-muted-foreground mt-1"><span>0%</span><span>100%</span></div>
+            <div className="flex justify-between text-xs text-white/50 mt-1"><span>0%</span><span>100%</span></div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1">Status</label>
+              <label className="block text-xs font-medium text-white/50 mb-1">Status</label>
               <select value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value as any }))}
-                className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30">
+                className="w-full px-3 py-2 text-sm border border-white/5 rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30">
                 {STATUSES.map(s => <option key={s} value={s}>{formatStatus(s)}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1">Priority</label>
+              <label className="block text-xs font-medium text-white/50 mb-1">Priority</label>
               <select value={form.priority} onChange={e => setForm(p => ({ ...p, priority: e.target.value as any }))}
-                className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30">
+                className="w-full px-3 py-2 text-sm border border-white/5 rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30">
                 {PRIORITIES.map(p => <option key={p}>{p}</option>)}
               </select>
             </div>
           </div>
           <div>
-            <label className="block text-xs font-medium text-muted-foreground mb-1">Deadline</label>
+            <label className="block text-xs font-medium text-white/50 mb-1">Deadline</label>
             <input type="date" value={form.deadline} onChange={e => setForm(p => ({ ...p, deadline: e.target.value }))}
-              className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30" />
+              className="w-full px-3 py-2 text-sm border border-white/5 rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30" />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1">Completed On</label>
+              <label className="block text-xs font-medium text-white/50 mb-1">Completed On</label>
               <input type="date" value={form.completionDate} onChange={e => setForm(p => ({ ...p, completionDate: e.target.value }))}
-                className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30" />
+                className="w-full px-3 py-2 text-sm border border-white/5 rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1">Valid Till</label>
+              <label className="block text-xs font-medium text-white/50 mb-1">Valid Till</label>
               <input type="date" value={form.expiryDate} onChange={e => setForm(p => ({ ...p, expiryDate: e.target.value }))}
-                className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30" />
+                className="w-full px-3 py-2 text-sm border border-white/5 rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30" />
             </div>
           </div>
           <div>
-            <label className="block text-xs font-medium text-muted-foreground mb-1">Credential ID</label>
+            <label className="block text-xs font-medium text-white/50 mb-1">Credential ID</label>
             <input value={form.credentialId} onChange={e => setForm(p => ({ ...p, credentialId: e.target.value }))}
-              className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30"
+              className="w-full px-3 py-2 text-sm border border-white/5 rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30"
               placeholder="e.g. AZ-900-2024-123" />
           </div>
           <div>
-            <label className="block text-xs font-medium text-muted-foreground mb-1">Notes</label>
+            <label className="block text-xs font-medium text-white/50 mb-1">Notes</label>
             <textarea rows={2} value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
-              className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30 resize-none" />
+              className="w-full px-3 py-2 text-sm border border-white/5 rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30 resize-none" />
           </div>
         </div>
-        <div className="flex gap-3 px-6 py-4 border-t border-border">
-          <button onClick={onClose} className="flex-1 px-4 py-2 text-sm border border-border rounded-lg hover:bg-muted">Cancel</button>
+        <div className="flex gap-3 px-6 py-4 border-t border-white/5">
+          <button onClick={onClose} className="flex-1 px-4 py-2 text-sm border border-white/5 rounded-lg hover:bg-muted">Cancel</button>
           <button onClick={() => onSave(form)} className="flex-1 px-4 py-2 text-sm bg-azure-500 text-white rounded-lg hover:bg-azure-600">Save</button>
         </div>
       </div>
@@ -527,12 +527,12 @@ export default function TrackerPage() {
         </div>
         <div className="flex items-center gap-2">
           <button onClick={() => { resetUploadState(); setUploadId('__universal__'); }}
-            className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl border border-border hover:bg-muted/40 transition-colors">
+            className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl border border-white/10 hover:bg-white/5 text-white/90 hover:text-white transition-colors">
             <Upload className="w-4 h-4" /> Upload Certificate
           </button>
           {isAdmin && (
             <button onClick={() => setShowAssign(true)}
-              className="flex items-center gap-2 px-4 py-2.5 bg-azure-500 text-white text-sm font-medium rounded-xl hover:bg-azure-600 transition-colors shadow-lg shadow-azure-500/25">
+              className="flex items-center gap-2 px-4 py-2.5 bg-white/10 text-white text-sm font-medium rounded-xl border border-white/10 hover:bg-white/20 transition-colors shadow-sm">
               <Plus className="w-4 h-4" /> Assign Certification
             </button>
           )}
@@ -540,19 +540,19 @@ export default function TrackerPage() {
       </div>
 
       {/* Filters */}
-      <div className="bg-card rounded-xl border border-border p-4 flex flex-wrap gap-3">
+      <div className="bg-[#1c1926]/80 backdrop-blur-md rounded-xl border border-white/5 p-4 flex flex-wrap gap-3">
         <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
           <input type="text" placeholder="Search member or certification…" value={search}
             onChange={e => { setSearch(e.target.value); }}
-            className="w-full pl-9 pr-4 py-2 text-sm border border-border rounded-lg bg-muted/20 focus:outline-none focus:ring-2 focus:ring-azure-500/30 focus:border-azure-500" />
+            className="w-full pl-9 pr-4 py-2 text-sm border border-white/10 rounded-lg bg-black/30 text-white focus:outline-none focus:ring-2 focus:ring-white/20 focus:border-transparent placeholder:text-white/40" />
         </div>
         {[
           { label: 'Status', value: status, onChange: (v: string) => { setStatus(v); }, options: STATUSES, placeholder: 'All Statuses' },
           { label: 'Deadline', value: deadline, onChange: (v: string) => { setDeadline(v); }, options: ['overdue', 'today', 'week'], placeholder: 'All Deadlines' },
         ].map(({ value, onChange, options, placeholder }) => (
           <select key={placeholder} value={value} onChange={e => onChange(e.target.value)}
-            className="px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30 bg-card">
+            className="px-3 py-2 text-sm border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20 bg-[#1c1926] text-white/90">
             <option value="">{placeholder}</option>
             {options.map(o => <option key={o} value={o}>{typeof o === 'string' ? (o.includes('_') ? formatStatus(o) : o.charAt(0).toUpperCase() + o.slice(1)) : o}</option>)}
           </select>
@@ -562,51 +562,51 @@ export default function TrackerPage() {
       {/* Grouped Table */}
       <div className="space-y-4">
         {isLoading && Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="bg-card rounded-xl border border-border h-16 animate-pulse" />
+          <div key={i} className="bg-[#1c1926]/80 backdrop-blur-md rounded-xl border border-white/5 h-16 animate-pulse" />
         ))}
         {!isLoading && groupedAssignments.length === 0 && (
-          <div className="text-center py-12 text-muted-foreground bg-card rounded-xl border border-border">No assignments found</div>
+          <div className="text-center py-12 text-white/50 bg-[#1c1926]/80 backdrop-blur-md rounded-xl border border-white/5">No assignments found</div>
         )}
         {groupedAssignments.map(group => {
           const completedCount = group.assignments.filter(a => a.status === 'COMPLETED' || a.status === 'EXPIRED').length;
           const totalCount = group.assignments.length;
           const progress = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
           return (
-            <div key={group.member.id} id={`member-row-${group.member.id}`} className="bg-card rounded-xl border border-border shadow-sm overflow-visible transition-all duration-300">
+            <div key={group.member.id} id={`member-row-${group.member.id}`} className="bg-[#1c1926]/80 backdrop-blur-md rounded-xl border border-white/5 shadow-md overflow-visible transition-all duration-300">
               <div onClick={() => toggleMember(group.member.id)}
-                className="w-full flex items-center justify-between p-4 hover:bg-muted/10 transition-colors cursor-pointer select-none">
+                className="w-full flex items-center justify-between p-4 hover:bg-white/5 transition-colors cursor-pointer select-none">
                 <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-full bg-azure-900/40 flex items-center justify-center text-azure-300 text-xs font-bold flex-shrink-0 overflow-hidden border border-azure-800/40">
+                  <div className="w-10 h-10 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-300 text-xs font-bold flex-shrink-0 overflow-hidden border border-indigo-500/30">
                     {group.member.profilePictureUrl
                       ? <img src={group.member.profilePictureUrl} alt="" className="w-full h-full object-cover" />
                       : getInitials(group.member.name)}
                   </div>
-                  <div className="text-left">
+                  <div className="text-left text-white">
                     <p className="font-semibold text-sm">{group.member.name}</p>
-                    <p className="text-xs text-muted-foreground">{group.member.designation}</p>
+                    <p className="text-xs text-white/50">{group.member.designation}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-4">
-                  <div className="text-right hidden sm:block">
+                  <div className="text-right hidden sm:block text-white/90">
                     <p className="text-xs font-medium">{completedCount} / {totalCount} Completed</p>
-                    <div className="w-24 h-1.5 bg-muted rounded-full mt-1 overflow-hidden">
-                      <div className="h-full bg-azure-500 rounded-full transition-all" style={{ width: `${progress}%` }} />
+                    <div className="w-24 h-1.5 bg-black/40 rounded-full mt-1 overflow-hidden">
+                      <div className="h-full bg-indigo-500 rounded-full transition-all" style={{ width: `${progress}%` }} />
                     </div>
                   </div>
                   {isAdmin && (
                     <button
                       onClick={(e) => { e.stopPropagation(); setAddFor({ id: group.member.id, name: group.member.name }); }}
                       title={`Add certification for ${group.member.name}`}
-                      className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 bg-azure-500/10 text-azure-300 border border-azure-800/40 rounded-lg hover:bg-azure-500 hover:text-white transition-colors">
+                      className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 bg-white/5 text-white/70 border border-white/10 rounded-lg hover:bg-white/10 hover:text-white transition-colors">
                       <Plus className="w-3.5 h-3.5" /> Add
                     </button>
                   )}
-                  {expandedMembers.has(group.member.id) ? <ChevronUp className="w-5 h-5 text-muted-foreground" /> : <ChevronDown className="w-5 h-5 text-muted-foreground" />}
+                  {expandedMembers.has(group.member.id) ? <ChevronUp className="w-5 h-5 text-white/50" /> : <ChevronDown className="w-5 h-5 text-white/50" />}
                 </div>
               </div>
               
               {expandedMembers.has(group.member.id) && (
-                <div className="border-t border-border overflow-visible bg-muted/5">
+                <div className="border-t border-white/5 overflow-visible bg-muted/5">
                   <table className="w-full data-table">
                     <thead>
                       <tr>
@@ -655,12 +655,12 @@ export default function TrackerPage() {
                               </div>
                             </td>
                             <td>
-                              <span className="text-xs text-muted-foreground">
+                              <span className="text-xs text-white/50">
                                 {a.completionDate ? formatDate(a.completionDate, 'MMM d, yy') : '—'}
                               </span>
                             </td>
                             <td>
-                              <span className="text-xs text-muted-foreground">
+                              <span className="text-xs text-white/50">
                                 {a.expiryDate ? formatDate(a.expiryDate, 'MMM d, yy') : '—'}
                               </span>
                             </td>
@@ -674,9 +674,9 @@ export default function TrackerPage() {
                             </td>
                             <td>
                               {a.status === 'COMPLETED' ? (
-                                <span className="text-xs text-muted-foreground/40">—</span>
+                                <span className="text-xs text-white/50/40">—</span>
                               ) : (
-                                <span className={cn('text-xs font-medium', a.status === 'OVERDUE' ? 'text-red-400' : 'text-muted-foreground')}>
+                                <span className={cn('text-xs font-medium', a.status === 'OVERDUE' ? 'text-red-400' : 'text-white/50')}>
                                   {formatDate(a.deadline, 'MMM d, yy')}
                                 </span>
                               )}
@@ -763,19 +763,19 @@ export default function TrackerPage() {
       {/* Delete Certificate Confirmation Modal */}
       {deleteCertId && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-card rounded-2xl shadow-2xl w-full max-w-sm p-6 border border-border">
+          <div className="bg-[#1c1926]/80 backdrop-blur-md rounded-2xl shadow-2xl w-full max-w-sm p-6 border border-white/5">
             <div className="flex items-center gap-3 text-red-400 mb-3">
               <AlertTriangle className="w-6 h-6" />
               <h3 className="font-semibold text-lg text-foreground">Delete Certificate</h3>
             </div>
-            <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
+            <p className="text-sm text-white/50 mb-6 leading-relaxed">
               Are you sure you want to delete this certificate? This can't be undone.
             </p>
             <div className="flex gap-3">
               <button
                 disabled={deleteCert.isPending}
                 onClick={() => setDeleteCertId(null)}
-                className="flex-1 px-4 py-2 text-sm border border-border rounded-lg hover:bg-muted font-medium"
+                className="flex-1 px-4 py-2 text-sm border border-white/5 rounded-lg hover:bg-muted font-medium"
               >
                 Cancel
               </button>
@@ -799,11 +799,11 @@ export default function TrackerPage() {
 
         return (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-card rounded-2xl shadow-2xl w-full max-w-sm p-6 border border-border">
+          <div className="bg-[#1c1926]/80 backdrop-blur-md rounded-2xl shadow-2xl w-full max-w-sm p-6 border border-white/5">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-lg">Upload Certificate</h3>
               <button onClick={resetUploadState}
-                className="text-muted-foreground hover:text-foreground"><X className="w-5 h-5" /></button>
+                className="text-white/50 hover:text-foreground"><X className="w-5 h-5" /></button>
             </div>
 
             {/* Dropzone Area (Always at top, compact) */}
@@ -811,23 +811,23 @@ export default function TrackerPage() {
               {!uploadFile ? (
                 <div
                   onClick={() => fileInputRef.current?.click()}
-                  className="border-2 border-dashed rounded-xl p-6 text-center cursor-pointer hover:border-azure-500 hover:bg-azure-900/20 border-border transition-colors bg-muted/10"
+                  className="border-2 border-dashed rounded-xl p-6 text-center cursor-pointer hover:border-azure-500 hover:bg-azure-900/20 border-white/5 transition-colors bg-muted/10"
                 >
-                  <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                  <Upload className="w-8 h-8 text-white/50 mx-auto mb-2" />
                   <p className="text-xs text-foreground font-medium mb-0.5">Choose certificate file</p>
-                  <p className="text-[10px] text-muted-foreground">PDF, PNG, or JPG up to 4MB</p>
+                  <p className="text-[10px] text-white/50">PDF, PNG, or JPG up to 4MB</p>
                   <input ref={fileInputRef} type="file" accept=".pdf,.png,.jpg,.jpeg" className="hidden"
                     onChange={e => { const f = e.target.files?.[0]; if (f) handleFileSelected(f); }} />
                 </div>
               ) : isAnalyzing ? (
-                <div className="border border-border rounded-xl p-6 text-center bg-muted/10 flex flex-col items-center gap-2">
+                <div className="border border-white/5 rounded-xl p-6 text-center bg-muted/10 flex flex-col items-center gap-2">
                   <Loader2 className="w-6 h-6 text-azure-400 animate-spin" />
                   <p className="text-xs font-medium text-foreground">Reading certificate details…</p>
                 </div>
               ) : (
-                <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/10">
+                <div className="flex items-center justify-between p-3 rounded-lg border border-white/5 bg-muted/10">
                   <div className="min-w-0 flex-1 pr-3">
-                    <p className="text-[10px] text-muted-foreground truncate">Selected File</p>
+                    <p className="text-[10px] text-white/50 truncate">Selected File</p>
                     <p className="text-xs font-medium text-azure-300 truncate">{uploadFile.name}</p>
                   </div>
                   <button
@@ -841,7 +841,7 @@ export default function TrackerPage() {
                         setSelectedCertId('');
                       }
                     }}
-                    className="text-[10px] font-medium text-muted-foreground hover:text-foreground border border-border px-2 py-1 rounded hover:bg-muted"
+                    className="text-[10px] font-medium text-white/50 hover:text-foreground border border-white/5 px-2 py-1 rounded hover:bg-muted"
                   >
                     Change
                   </button>
@@ -882,12 +882,12 @@ export default function TrackerPage() {
             <div className="space-y-3 mb-4">
               {/* Team Member selection */}
               <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1">Team Member *</label>
+                <label className="block text-xs font-medium text-white/50 mb-1">Team Member *</label>
                 <select
                   value={isAdmin ? selectedMemberId : currentUser?.teamMemberId || ''}
                   disabled={!isUniversal || !isAdmin}
                   onChange={e => { setSelectedMemberId(e.target.value); }}
-                  className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-muted/20 focus:outline-none focus:ring-2 focus:ring-azure-500/30 disabled:opacity-75 disabled:cursor-not-allowed">
+                  className="w-full px-3 py-2 text-sm border border-white/5 rounded-lg bg-muted/20 focus:outline-none focus:ring-2 focus:ring-azure-500/30 disabled:opacity-75 disabled:cursor-not-allowed">
                   {!isAdmin ? (
                     <option value={currentUser?.teamMemberId || ''}>{currentUser?.name}</option>
                   ) : (
@@ -903,12 +903,12 @@ export default function TrackerPage() {
 
               {/* Certificate Name (Certification) selection */}
               <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1">Certificate Name *</label>
+                <label className="block text-xs font-medium text-white/50 mb-1">Certificate Name *</label>
                 <select
                   value={selectedCertId}
                   disabled={!isUniversal}
                   onChange={e => { setSelectedCertId(e.target.value); }}
-                  className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-muted/20 focus:outline-none focus:ring-2 focus:ring-azure-500/30 disabled:opacity-75 disabled:cursor-not-allowed">
+                  className="w-full px-3 py-2 text-sm border border-white/5 rounded-lg bg-muted/20 focus:outline-none focus:ring-2 focus:ring-azure-500/30 disabled:opacity-75 disabled:cursor-not-allowed">
                   <option value="">Select certification…</option>
                   {analyzedFields?.suggestions && analyzedFields.suggestions.length > 0 && (
                     <optgroup label="✨ Extracted Suggestions">
@@ -937,22 +937,22 @@ export default function TrackerPage() {
               {/* Dates */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1">Completed On</label>
+                  <label className="block text-xs font-medium text-white/50 mb-1">Completed On</label>
                   <input type="date" value={completionDateInput} onChange={e => setCompletionDateInput(e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-muted/20 focus:outline-none focus:ring-2 focus:ring-azure-500/30 focus:border-azure-500" />
+                    className="w-full px-3 py-2 text-sm border border-white/5 rounded-lg bg-muted/20 focus:outline-none focus:ring-2 focus:ring-azure-500/30 focus:border-azure-500" />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1">Valid Till</label>
+                  <label className="block text-xs font-medium text-white/50 mb-1">Valid Till</label>
                   <input type="date" value={expiryDateInput} onChange={e => setExpiryDateInput(e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-muted/20 focus:outline-none focus:ring-2 focus:ring-azure-500/30 focus:border-azure-500" />
+                    className="w-full px-3 py-2 text-sm border border-white/5 rounded-lg bg-muted/20 focus:outline-none focus:ring-2 focus:ring-azure-500/30 focus:border-azure-500" />
                 </div>
               </div>
             </div>
 
             {/* Modal Actions */}
-            <div className="flex gap-3 mt-4 border-t border-border pt-4">
+            <div className="flex gap-3 mt-4 border-t border-white/5 pt-4">
               <button onClick={resetUploadState}
-                className="flex-1 px-4 py-2 text-sm border border-border rounded-lg hover:bg-muted font-medium">Cancel</button>
+                className="flex-1 px-4 py-2 text-sm border border-white/5 rounded-lg hover:bg-muted font-medium">Cancel</button>
               <button
                 onClick={() => {
                   const missing = [];
@@ -1069,32 +1069,32 @@ function DuplicateCertificateModal({
 }) {
   return (
     <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4 animate-fade-in">
-      <div className="bg-card rounded-2xl shadow-2xl w-full max-w-sm border border-border overflow-hidden">
+      <div className="bg-[#1c1926]/80 backdrop-blur-md rounded-2xl shadow-2xl w-full max-w-sm border border-white/5 overflow-hidden">
         {/* Header */}
-        <div className="flex items-center gap-3 px-6 py-4 border-b border-border">
+        <div className="flex items-center gap-3 px-6 py-4 border-b border-white/5">
           <div className="w-9 h-9 rounded-xl bg-orange-500/10 flex items-center justify-center shrink-0">
             <AlertTriangle className="w-5 h-5 text-orange-400" />
           </div>
           <div>
             <h2 className="font-semibold text-base text-foreground">Certificate Already Exists</h2>
-            <p className="text-[11px] text-muted-foreground mt-0.5">Duplicate record detected</p>
+            <p className="text-[11px] text-white/50 mt-0.5">Duplicate record detected</p>
           </div>
         </div>
 
         {/* Body */}
         <div className="px-6 py-5">
           <p className="text-sm text-foreground leading-relaxed">{message}</p>
-          <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
+          <p className="text-xs text-white/50 mt-2 leading-relaxed">
             To update this certificate (e.g. renew with a new expiry date), use the
             <strong className="text-foreground"> Edit</strong> option from the three-dot menu on the existing row.
           </p>
         </div>
 
         {/* Actions */}
-        <div className="flex gap-3 px-6 py-4 bg-muted/10 border-t border-border">
+        <div className="flex gap-3 px-6 py-4 bg-muted/10 border-t border-white/5">
           <button
             onClick={onCancel}
-            className="flex-1 px-4 py-2 text-sm font-medium border border-border rounded-xl hover:bg-muted text-foreground transition-colors"
+            className="flex-1 px-4 py-2 text-sm font-medium border border-white/5 rounded-xl hover:bg-muted text-foreground transition-colors"
           >
             Cancel
           </button>
@@ -1134,13 +1134,13 @@ function RequestEditModal({ assignment, onClose, onSave }: {
 
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-fade-in">
-      <div className="bg-card rounded-2xl shadow-2xl w-full max-w-sm border border-border">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+      <div className="bg-[#1c1926]/80 backdrop-blur-md rounded-2xl shadow-2xl w-full max-w-sm border border-white/5">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/5">
           <div>
             <h3 className="font-semibold text-base">Request Edit</h3>
-            <p className="text-xs text-muted-foreground mt-0.5">{assignment.certification?.name}</p>
+            <p className="text-xs text-white/50 mt-0.5">{assignment.certification?.name}</p>
           </div>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-white/50 hover:text-foreground"><X className="w-5 h-5" /></button>
         </div>
         <div className="p-6 space-y-4">
           <div className="text-xs px-3 py-2 rounded-lg border bg-amber-950/30 border-amber-800/40 text-amber-300">
@@ -1148,31 +1148,31 @@ function RequestEditModal({ assignment, onClose, onSave }: {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1">Completed On</label>
+              <label className="block text-xs font-medium text-white/50 mb-1">Completed On</label>
               <input type="date" value={form.completionDate} onChange={e => setForm(p => ({ ...p, completionDate: e.target.value }))}
-                className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-muted/20 focus:outline-none focus:ring-2 focus:ring-azure-500/30" />
+                className="w-full px-3 py-2 text-sm border border-white/5 rounded-lg bg-muted/20 focus:outline-none focus:ring-2 focus:ring-azure-500/30" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1">Valid Till</label>
+              <label className="block text-xs font-medium text-white/50 mb-1">Valid Till</label>
               <input type="date" value={form.expiryDate} onChange={e => setForm(p => ({ ...p, expiryDate: e.target.value }))}
-                className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-muted/20 focus:outline-none focus:ring-2 focus:ring-azure-500/30" />
+                className="w-full px-3 py-2 text-sm border border-white/5 rounded-lg bg-muted/20 focus:outline-none focus:ring-2 focus:ring-azure-500/30" />
             </div>
           </div>
           <div>
-            <label className="block text-xs font-medium text-muted-foreground mb-1">Credential ID</label>
+            <label className="block text-xs font-medium text-white/50 mb-1">Credential ID</label>
             <input value={form.credentialId} onChange={e => setForm(p => ({ ...p, credentialId: e.target.value }))}
-              className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-muted/20 focus:outline-none focus:ring-2 focus:ring-azure-500/30"
+              className="w-full px-3 py-2 text-sm border border-white/5 rounded-lg bg-muted/20 focus:outline-none focus:ring-2 focus:ring-azure-500/30"
               placeholder="e.g. AZ-900-2024-ABC" />
           </div>
           <div>
-            <label className="block text-xs font-medium text-muted-foreground mb-1">Your Name *</label>
+            <label className="block text-xs font-medium text-white/50 mb-1">Your Name *</label>
             <input value={form.requestedBy} onChange={e => setForm(p => ({ ...p, requestedBy: e.target.value }))}
-              className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-muted/20 focus:outline-none focus:ring-2 focus:ring-azure-500/30"
+              className="w-full px-3 py-2 text-sm border border-white/5 rounded-lg bg-muted/20 focus:outline-none focus:ring-2 focus:ring-azure-500/30"
               placeholder="Who is requesting this change?" />
           </div>
         </div>
-        <div className="flex gap-3 px-6 py-4 border-t border-border">
-          <button onClick={onClose} className="flex-1 px-4 py-2 text-sm border border-border rounded-lg hover:bg-muted">Cancel</button>
+        <div className="flex gap-3 px-6 py-4 border-t border-white/5">
+          <button onClick={onClose} className="flex-1 px-4 py-2 text-sm border border-white/5 rounded-lg hover:bg-muted">Cancel</button>
           <button onClick={handleSubmit} disabled={!form.requestedBy.trim()}
             className="flex-1 px-4 py-2 text-sm bg-azure-500 text-white rounded-lg hover:bg-azure-600 disabled:opacity-60">
             Submit for Approval
@@ -1195,21 +1195,21 @@ function MissingFieldsModal({
 }) {
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-fade-in">
-      <div className="bg-card rounded-2xl shadow-2xl w-full max-w-sm border border-border overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+      <div className="bg-[#1c1926]/80 backdrop-blur-md rounded-2xl shadow-2xl w-full max-w-sm border border-white/5 overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/5">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-400">
               <AlertTriangle className="w-5 h-5" />
             </div>
             <h2 className="font-semibold text-lg text-foreground">Unresolved Details</h2>
           </div>
-          <button onClick={onCancel} className="text-muted-foreground hover:text-foreground">
+          <button onClick={onCancel} className="text-white/50 hover:text-foreground">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         <div className="p-6 space-y-4">
-          <p className="text-xs text-muted-foreground leading-relaxed">
+          <p className="text-xs text-white/50 leading-relaxed">
             Please resolve the following details before saving:
           </p>
 
@@ -1217,13 +1217,13 @@ function MissingFieldsModal({
             {missing.map((item) => (
               <li
                 key={item.field}
-                className="flex items-center justify-between p-3.5 rounded-xl border border-border bg-muted/10 gap-3"
+                className="flex items-center justify-between p-3.5 rounded-xl border border-white/5 bg-muted/10 gap-3"
               >
                 <div className="min-w-0 flex-1">
                   <span className="text-xs font-semibold text-foreground uppercase tracking-wider block mb-0.5">
                     {item.label}
                   </span>
-                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  <p className="text-[11px] text-white/50 leading-relaxed">
                     {item.message}
                   </p>
                 </div>
@@ -1242,10 +1242,10 @@ function MissingFieldsModal({
           </ul>
         </div>
 
-        <div className="flex gap-3 px-6 py-4 bg-muted/10 border-t border-border">
+        <div className="flex gap-3 px-6 py-4 bg-muted/10 border-t border-white/5">
           <button
             onClick={onCancel}
-            className="flex-1 px-4 py-2 text-sm font-medium border border-border rounded-xl hover:bg-muted text-foreground transition-all duration-150"
+            className="flex-1 px-4 py-2 text-sm font-medium border border-white/5 rounded-xl hover:bg-muted text-foreground transition-all duration-150"
           >
             Go Back & Resolve
           </button>
@@ -1292,10 +1292,10 @@ function AddNewTeamMemberInline({
 
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-fade-in">
-      <div className="bg-card rounded-2xl shadow-2xl w-full max-w-sm border border-border overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+      <div className="bg-[#1c1926]/80 backdrop-blur-md rounded-2xl shadow-2xl w-full max-w-sm border border-white/5 overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/5">
           <h2 className="font-semibold text-base">Add New Team Member</h2>
-          <button onClick={onCancel} className="text-muted-foreground hover:text-foreground">
+          <button onClick={onCancel} className="text-white/50 hover:text-foreground">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -1303,29 +1303,29 @@ function AddNewTeamMemberInline({
         <div className="p-6 space-y-4">
           {error && <div className="text-xs text-red-400 bg-red-950/20 p-2.5 rounded-lg border border-red-900/40">{error}</div>}
           <div>
-            <label className="block text-xs font-medium text-muted-foreground mb-1">Full Name *</label>
+            <label className="block text-xs font-medium text-white/50 mb-1">Full Name *</label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-muted/20 focus:outline-none focus:ring-2 focus:ring-azure-500/30"
+              className="w-full px-3 py-2 text-sm border border-white/5 rounded-lg bg-muted/20 focus:outline-none focus:ring-2 focus:ring-azure-500/30"
               placeholder="e.g. Suhani Jain"
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-muted-foreground mb-1">Designation</label>
+            <label className="block text-xs font-medium text-white/50 mb-1">Designation</label>
             <input
               type="text"
               value={designation}
               onChange={(e) => setDesignation(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-muted/20 focus:outline-none focus:ring-2 focus:ring-azure-500/30"
+              className="w-full px-3 py-2 text-sm border border-white/5 rounded-lg bg-muted/20 focus:outline-none focus:ring-2 focus:ring-azure-500/30"
               placeholder="e.g. Fabric Data Engineer"
             />
           </div>
         </div>
 
-        <div className="flex gap-3 px-6 py-4 bg-muted/10 border-t border-border">
-          <button onClick={onCancel} className="flex-1 px-4 py-2 text-sm border border-border rounded-lg hover:bg-muted">
+        <div className="flex gap-3 px-6 py-4 bg-muted/10 border-t border-white/5">
+          <button onClick={onCancel} className="flex-1 px-4 py-2 text-sm border border-white/5 rounded-lg hover:bg-muted">
             Cancel
           </button>
           <button
@@ -1376,10 +1376,10 @@ function AddNewCertificationInline({
 
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-fade-in">
-      <div className="bg-card rounded-2xl shadow-2xl w-full max-w-sm border border-border overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+      <div className="bg-[#1c1926]/80 backdrop-blur-md rounded-2xl shadow-2xl w-full max-w-sm border border-white/5 overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/5">
           <h2 className="font-semibold text-base">Add New Certification</h2>
-          <button onClick={onCancel} className="text-muted-foreground hover:text-foreground">
+          <button onClick={onCancel} className="text-white/50 hover:text-foreground">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -1387,29 +1387,29 @@ function AddNewCertificationInline({
         <div className="p-6 space-y-4">
           {error && <div className="text-xs text-red-400 bg-red-950/20 p-2.5 rounded-lg border border-red-900/40">{error}</div>}
           <div>
-            <label className="block text-xs font-medium text-muted-foreground mb-1">Certification Title *</label>
+            <label className="block text-xs font-medium text-white/50 mb-1">Certification Title *</label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-muted/20 focus:outline-none focus:ring-2 focus:ring-azure-500/30"
+              className="w-full px-3 py-2 text-sm border border-white/5 rounded-lg bg-muted/20 focus:outline-none focus:ring-2 focus:ring-azure-500/30"
               placeholder="e.g. Fabric Data Engineer Associate"
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-muted-foreground mb-1">Provider / Issuer *</label>
+            <label className="block text-xs font-medium text-white/50 mb-1">Provider / Issuer *</label>
             <input
               type="text"
               value={provider}
               onChange={(e) => setProvider(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-muted/20 focus:outline-none focus:ring-2 focus:ring-azure-500/30"
+              className="w-full px-3 py-2 text-sm border border-white/5 rounded-lg bg-muted/20 focus:outline-none focus:ring-2 focus:ring-azure-500/30"
               placeholder="e.g. Microsoft"
             />
           </div>
         </div>
 
-        <div className="flex gap-3 px-6 py-4 bg-muted/10 border-t border-border">
-          <button onClick={onCancel} className="flex-1 px-4 py-2 text-sm border border-border rounded-lg hover:bg-muted">
+        <div className="flex gap-3 px-6 py-4 bg-muted/10 border-t border-white/5">
+          <button onClick={onCancel} className="flex-1 px-4 py-2 text-sm border border-white/5 rounded-lg hover:bg-muted">
             Cancel
           </button>
           <button

@@ -69,10 +69,10 @@ router.post('/', async (req: Request, res: Response) => {
 
   const contextName = update.project ? update.project.name : (update.opportunity ? update.opportunity.name : 'Unknown');
 
-  // Fire a notification so the manager sees it in the Notifications feed too
+  // Fire a notification so admins see it in the Notifications feed
   await prisma.notification.create({
     data: {
-      memberId,
+      targetRole: 'Admin',
       type: 'PROJECT_UPDATED',
       title: `${updateType} Update: ${contextName}`,
       message: updateText.trim().slice(0, 120),
@@ -121,7 +121,7 @@ router.put('/:id', async (req: Request, res: Response) => {
 
     const match = await prisma.notification.findFirst({
       where: {
-        memberId: existing.memberId,
+        targetRole: 'Admin',
         type: 'PROJECT_UPDATED',
         title: `${existing.updateType} Update: ${contextName}`,
         message: existing.updateText.trim().slice(0, 120),

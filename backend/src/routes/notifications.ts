@@ -26,8 +26,7 @@ router.get('/', async (req: Request, res: Response) => {
     orConditions.push({ targetRole: 'Admin' });
   }
 
-  // Support legacy global notifications
-  orConditions.push({ memberId: null, targetRole: null });
+  // Only fetch targeted notifications
 
   where.OR = orConditions;
 

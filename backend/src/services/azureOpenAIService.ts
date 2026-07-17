@@ -651,12 +651,13 @@ export async function generateExecutiveSummary(periodData: string): Promise<stri
     const response = await aiProvider.chat(
       [{ role: 'user', content: prompt }],
       {
-        forceProvider: 'azure',
         temperature: 0.3,
         maxTokens: 500
       }
     );
     
+    console.log('[generateExecutiveSummary] Groq response content length:', response.content?.length);
+    console.log('[generateExecutiveSummary] Groq response content:', response.content);
     return response.content?.trim() || 'Unable to generate summary.';
   } catch (error) {
     console.error('[generateExecutiveSummary] Error:', error);

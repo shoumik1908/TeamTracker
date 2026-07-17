@@ -121,7 +121,7 @@ export default function EditGtmPlanModal({
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-white/5 rounded-full transition-colors"
+            className="p-2 hover:bg-card/5 rounded-full transition-colors"
             aria-label="Close"
           >
             <X className="w-5 h-5" />

@@ -80,7 +80,7 @@ export default function FilesPage() {
       case 'CV': return <FileType className="w-4 h-4 text-azure-400" />;
       case 'GTM Document': return <FileText className="w-4 h-4 text-purple-400" />;
       case 'Project Document': return <FolderOpen className="w-4 h-4 text-orange-400" />;
-      default: return <FileText className="w-4 h-4 text-muted-foreground" />;
+      default: return <FileText className="w-4 h-4 text-white/50" />;
     }
   };
 
@@ -134,7 +134,7 @@ export default function FilesPage() {
   return (
     <div className="flex-1 flex flex-col h-screen overflow-hidden bg-background">
       {/* Header */}
-      <header className="flex-shrink-0 px-8 py-6 border-b border-border bg-card/50 backdrop-blur-sm z-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
+      <header className="flex-shrink-0 px-8 py-6 border-b border-white/5 bg-[#1c1926]/80 backdrop-blur-md/50 backdrop-blur-sm z-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <div className="flex items-center gap-3 mb-2">
             <div className="p-2.5 bg-azure-500/10 rounded-xl border border-azure-500/20">
@@ -142,7 +142,7 @@ export default function FilesPage() {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-foreground tracking-tight">Files</h1>
-              <p className="text-sm text-muted-foreground">All documents across certifications, CVs, and GTM records in one place.</p>
+              <p className="text-sm text-white/50">All documents across certifications, CVs, and GTM records in one place.</p>
             </div>
           </div>
         </div>
@@ -155,7 +155,7 @@ export default function FilesPage() {
           {/* Controls */}
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             {/* Tabs */}
-            <div className="flex p-1 bg-muted/20 border border-border rounded-xl">
+            <div className="flex p-1 bg-black/30 border border-white/10 rounded-xl">
               {['All', 'Projects', 'Certificates', 'CVs', 'PreSales'].map(tab => (
                 <button
                   key={tab}
@@ -163,8 +163,8 @@ export default function FilesPage() {
                   className={cn(
                     "px-4 py-1.5 text-xs font-semibold rounded-lg transition-all duration-200",
                     activeTab === tab 
-                      ? "bg-card border-border shadow-sm text-foreground"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                      ? "bg-[#1c1926]/80 backdrop-blur-md border-white/5 shadow-sm text-foreground"
+                      : "text-white/50 hover:text-foreground hover:bg-muted/30"
                   )}
                 >
                   {tab}
@@ -174,13 +174,13 @@ export default function FilesPage() {
 
             {/* Search */}
             <div className="relative w-full md:w-80">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/50" />
               <input 
                 type="text" 
                 placeholder="Search by file name, person, or client..." 
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 bg-muted/10 border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-azure-500/50 transition-all placeholder:text-muted-foreground/50"
+                className="w-full pl-9 pr-4 py-2 bg-muted/10 border border-white/5 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-azure-500/50 transition-all placeholder:text-white/50/50"
               />
             </div>
           </div>
@@ -195,22 +195,22 @@ export default function FilesPage() {
             </div>
           ) : isSearching ? (
             /* FLAT SEARCH VIEW */
-            <div className="bg-card border border-border rounded-xl overflow-hidden animate-fade-in shadow-sm">
+            <div className="bg-[#1c1926] border border-white/10 rounded-xl overflow-hidden animate-fade-in shadow-sm">
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="bg-muted/30 border-b border-border">
-                      <th className="px-5 py-3 text-xs font-semibold text-muted-foreground">File Name</th>
-                      <th className="px-5 py-3 text-xs font-semibold text-muted-foreground">Category</th>
-                      <th className="px-5 py-3 text-xs font-semibold text-muted-foreground">Associated With</th>
-                      <th className="px-5 py-3 text-xs font-semibold text-muted-foreground">Upload Date</th>
-                      <th className="px-5 py-3 text-xs font-semibold text-muted-foreground text-right">Actions</th>
+                    <tr className="bg-muted/30 border-b border-white/5">
+                      <th className="px-5 py-3 text-xs font-semibold text-white/50">File Name</th>
+                      <th className="px-5 py-3 text-xs font-semibold text-white/50">Category</th>
+                      <th className="px-5 py-3 text-xs font-semibold text-white/50">Associated With</th>
+                      <th className="px-5 py-3 text-xs font-semibold text-white/50">Upload Date</th>
+                      <th className="px-5 py-3 text-xs font-semibold text-white/50 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
                     {filteredFlatFiles.length === 0 ? (
                       <tr>
-                        <td colSpan={5} className="px-5 py-8 text-center text-sm text-muted-foreground">
+                        <td colSpan={5} className="px-5 py-8 text-center text-sm text-white/50">
                           No files found matching your criteria.
                         </td>
                       </tr>
@@ -221,21 +221,21 @@ export default function FilesPage() {
                             {getFileIcon(file.category)}
                             {file.fileName}
                           </td>
-                          <td className="px-5 py-3 text-xs text-muted-foreground">{file.category}</td>
+                          <td className="px-5 py-3 text-xs text-white/50">{file.category}</td>
                           <td className="px-5 py-3 text-xs text-foreground/80">{file.entityName}</td>
-                          <td className="px-5 py-3 text-xs text-muted-foreground">{format(new Date(file.uploadDate), 'MMM d, yyyy')}</td>
+                          <td className="px-5 py-3 text-xs text-white/50">{format(new Date(file.uploadDate), 'MMM d, yyyy')}</td>
                           <td className="px-5 py-3">
                             <div className="flex items-center justify-end gap-2">
                               <button 
                                 onClick={() => handleAction(file, 'view')}
-                                className="p-1.5 text-muted-foreground hover:text-azure-400 hover:bg-azure-500/10 rounded-lg transition-colors"
+                                className="p-1.5 text-white/50 hover:text-azure-400 hover:bg-azure-500/10 rounded-lg transition-colors"
                                 title="View in new tab"
                               >
                                 <ExternalLink className="w-4 h-4" />
                               </button>
                               <button 
                                 onClick={() => handleAction(file, 'download')}
-                                className="p-1.5 text-muted-foreground hover:text-azure-400 hover:bg-azure-500/10 rounded-lg transition-colors"
+                                className="p-1.5 text-white/50 hover:text-azure-400 hover:bg-azure-500/10 rounded-lg transition-colors"
                                 title="Download file"
                               >
                                 <Download className="w-4 h-4" />
@@ -243,7 +243,7 @@ export default function FilesPage() {
                               <button 
                                 onClick={() => handleDelete(file.id)}
                                 disabled={deleteMutation.isPending}
-                                className="p-1.5 text-muted-foreground hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors disabled:opacity-40"
+                                className="p-1.5 text-white/50 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors disabled:opacity-40"
                                 title="Delete file"
                               >
                                 <Trash2 className="w-4 h-4" />
@@ -267,16 +267,16 @@ export default function FilesPage() {
                 const isGroupExpanded = expandedGroups[groupName];
 
                 return (
-                  <div key={groupName} className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
+                  <div key={groupName} className="bg-[#1c1926] border border-white/10 rounded-2xl overflow-hidden shadow-sm">
                     {/* Top level group header */}
                     <button 
                       onClick={() => toggleGroup(groupName)}
-                      className="w-full flex items-center justify-between px-6 py-4 bg-muted/10 hover:bg-muted/20 transition-colors border-b border-border"
+                      className="w-full flex items-center justify-between px-6 py-4 bg-muted/10 hover:bg-muted/20 transition-colors border-b border-white/5"
                     >
                       <div className="flex items-center gap-2">
-                        {isGroupExpanded ? <ChevronDown className="w-5 h-5 text-muted-foreground" /> : <ChevronRight className="w-5 h-5 text-muted-foreground" />}
+                        {isGroupExpanded ? <ChevronDown className="w-5 h-5 text-white/50" /> : <ChevronRight className="w-5 h-5 text-white/50" />}
                         <h2 className="text-sm font-bold text-foreground">{groupName}</h2>
-                        <span className="px-2 py-0.5 rounded-full bg-border text-[10px] font-semibold text-muted-foreground">
+                        <span className="px-2 py-0.5 rounded-full bg-border text-[10px] font-semibold text-white/50">
                           {Object.keys(groupData).length} folders
                         </span>
                       </div>
@@ -290,7 +290,7 @@ export default function FilesPage() {
                           const isEntityExpanded = expandedEntities[entityId];
 
                           return (
-                            <div key={entityId} className="bg-card">
+                            <div key={entityId} className="bg-[#1c1926]/80 backdrop-blur-md">
                               {/* Entity Header (Folder) */}
                               <button 
                                 onClick={() => toggleEntity(entityId)}
@@ -300,31 +300,31 @@ export default function FilesPage() {
                                   {isEntityExpanded ? (
                                     <FolderOpen className="w-4 h-4 text-azure-400" />
                                   ) : (
-                                    <FolderOpen className="w-4 h-4 text-muted-foreground group-hover:text-azure-400 transition-colors" />
+                                    <FolderOpen className="w-4 h-4 text-white/50 group-hover:text-azure-400 transition-colors" />
                                   )}
                                   <span className="text-sm font-semibold text-foreground/90">{entityName}</span>
                                 </div>
-                                <span className="text-xs text-muted-foreground">{entityFiles.length} files</span>
+                                <span className="text-xs text-white/50">{entityFiles.length} files</span>
                               </button>
 
                               {/* Files inside Entity */}
                               {isEntityExpanded && (
-                                <div className="bg-muted/5 border-t border-border px-8 py-2">
+                                <div className="bg-muted/5 border-t border-white/5 px-8 py-2">
                                   <ul className="divide-y divide-border/50">
                                     {entityFiles.map((file) => (
                                       <li key={file.id} className="py-2.5 flex items-center justify-between group/file">
                                         <div className="flex items-center gap-3">
-                                          <div className="w-8 h-8 rounded-lg bg-card border border-border flex items-center justify-center">
+                                          <div className="w-8 h-8 rounded-lg bg-[#1c1926] border border-white/10 flex items-center justify-center">
                                             {getFileIcon(file.category)}
                                           </div>
                                           <div>
                                             <p className="text-sm font-medium text-foreground">{file.fileName}</p>
                                             <div className="flex items-center gap-2 mt-0.5">
-                                              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                                              <span className="text-[10px] font-semibold uppercase tracking-wider text-white/50">
                                                 {file.category}
                                               </span>
                                               <span className="w-1 h-1 rounded-full bg-border"></span>
-                                              <span className="text-[10px] text-muted-foreground">
+                                              <span className="text-[10px] text-white/50">
                                                 {format(new Date(file.uploadDate), 'MMM d, yyyy')}
                                               </span>
                                             </div>
@@ -333,13 +333,13 @@ export default function FilesPage() {
                                         <div className="flex items-center gap-1 opacity-0 group-hover/file:opacity-100 transition-opacity">
                                           <button 
                                             onClick={() => handleAction(file, 'view')}
-                                            className="px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted/50 border border-transparent hover:border-border rounded-lg transition-all"
+                                            className="px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted/50 border border-transparent hover:border-white/5 rounded-lg transition-all"
                                           >
                                             View
                                           </button>
                                           <button 
                                             onClick={() => handleAction(file, 'download')}
-                                            className="px-3 py-1.5 text-xs font-semibold bg-azure-500 hover:bg-azure-600 text-white rounded-lg shadow-sm transition-all flex items-center gap-1.5"
+                                            className="px-3 py-1.5 text-xs font-semibold bg-white/10 hover:bg-white/20 text-white border border-white/10 transition-colors rounded-lg shadow-sm transition-all flex items-center gap-1.5"
                                           >
                                             <Download className="w-3.5 h-3.5" />
                                             Download
@@ -347,7 +347,7 @@ export default function FilesPage() {
                                           <button 
                                             onClick={() => handleDelete(file.id)}
                                             disabled={deleteMutation.isPending}
-                                            className="p-1.5 text-muted-foreground hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all disabled:opacity-40"
+                                            className="p-1.5 text-white/50 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all disabled:opacity-40"
                                             title="Delete file"
                                           >
                                             <Trash2 className="w-3.5 h-3.5" />

@@ -65,19 +65,19 @@ function UpdateMenu({ onEdit, onDelete, isDeleting }: {
     <div ref={ref} className="relative flex-shrink-0">
       <button
         onClick={() => setOpen(o => !o)}
-        className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-white/5 rounded-lg transition-colors"
+        className="p-1.5 text-white/50 hover:text-foreground hover:bg-[#1c1926]/80 backdrop-blur-md/5 rounded-lg transition-colors"
         title="Options"
       >
         <MoreVertical className="w-4 h-4" />
       </button>
 
       {open && (
-        <div className="absolute right-0 top-8 z-30 w-36 bg-popover border border-border rounded-xl shadow-xl overflow-hidden animate-fade-in">
+        <div className="absolute right-0 top-8 z-30 w-36 bg-popover border border-white/5 rounded-xl shadow-xl overflow-hidden animate-fade-in">
           <button
             onClick={() => { setOpen(false); onEdit(); }}
             className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-foreground hover:bg-muted/40 transition-colors"
           >
-            <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
+            <Pencil className="w-3.5 h-3.5 text-white/50" />
             Edit
           </button>
           <button
@@ -145,12 +145,12 @@ function UpdateForm({
       {/* Project — only shown when adding */}
       {!isEdit && (
         <div>
-          <label className="block text-xs font-medium text-muted-foreground mb-1.5">Project *</label>
+          <label className="block text-xs font-medium text-white/50 mb-1.5">Project *</label>
           <select
             id="modal-project-select"
             value={formProjectId}
             onChange={e => setFormProjectId(e.target.value)}
-            className="w-full bg-background border border-border rounded-xl px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-azure-500/40 transition-all"
+            className="w-full bg-background border border-white/5 rounded-xl px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-azure-500/40 transition-all"
           >
             <option value="">Select project…</option>
             {projects.filter(p => p.status !== 'COMPLETED').map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -161,9 +161,9 @@ function UpdateForm({
       {/* Member — only shown when adding */}
       {!isEdit && (
         <div>
-          <label className="block text-xs font-medium text-muted-foreground mb-1.5">Posted by *</label>
+          <label className="block text-xs font-medium text-white/50 mb-1.5">Posted by *</label>
           {currentUser?.teamMemberId ? (
-            <div className="w-full bg-muted/50 border border-border rounded-xl px-3 py-2.5 text-sm text-muted-foreground flex items-center">
+            <div className="w-full bg-muted/50 border border-white/5 rounded-xl px-3 py-2.5 text-sm text-white/50 flex items-center">
               Posting as: {members.find(m => m.id === currentUser.teamMemberId)?.name || currentUser.name}
             </div>
           ) : (
@@ -171,7 +171,7 @@ function UpdateForm({
               id="modal-member-select"
               value={formMemberId}
               onChange={e => setFormMemberId(e.target.value)}
-              className="w-full bg-background border border-border rounded-xl px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-azure-500/40 transition-all"
+              className="w-full bg-background border border-white/5 rounded-xl px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-azure-500/40 transition-all"
             >
               <option value="">Select member…</option>
               {members.map(m => <option key={m.id} value={m.id}>{m.name}{m.designation ? ` — ${m.designation}` : ''}</option>)}
@@ -182,7 +182,7 @@ function UpdateForm({
 
       {/* Update type */}
       <div>
-        <label className="block text-xs font-medium text-muted-foreground mb-1.5">Update Type *</label>
+        <label className="block text-xs font-medium text-white/50 mb-1.5">Update Type *</label>
         <div className="grid grid-cols-2 gap-2">
           {UPDATE_TYPES.map(t => {
             const Icon = t.icon;
@@ -195,7 +195,7 @@ function UpdateForm({
                 onClick={() => setFormType(t.value)}
                 className={cn(
                   'flex items-center gap-2 px-3 py-2.5 rounded-xl border text-xs font-medium transition-all',
-                  active ? `${t.bg} ${t.color} shadow-sm` : 'border-border text-muted-foreground hover:bg-muted/30'
+                  active ? `${t.bg} ${t.color} shadow-sm` : 'border-white/5 text-white/50 hover:bg-muted/30'
                 )}
               >
                 <Icon className="w-3.5 h-3.5 flex-shrink-0" />
@@ -208,7 +208,7 @@ function UpdateForm({
 
       {/* Text */}
       <div>
-        <label className="block text-xs font-medium text-muted-foreground mb-1.5">Update *</label>
+        <label className="block text-xs font-medium text-white/50 mb-1.5">Update *</label>
         <textarea
           id="modal-update-text"
           value={formText}
@@ -220,9 +220,9 @@ function UpdateForm({
             'Share any update with the team…'
           }
           rows={4}
-          className="w-full bg-background border border-border rounded-xl px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-azure-500/40 transition-all resize-none"
+          className="w-full bg-background border border-white/5 rounded-xl px-3 py-2.5 text-sm text-foreground placeholder:text-white/50/50 focus:outline-none focus:ring-2 focus:ring-azure-500/40 transition-all resize-none"
         />
-        <p className="text-right text-xs text-muted-foreground/50 mt-1">{formText.length}/500</p>
+        <p className="text-right text-xs text-white/50/50 mt-1">{formText.length}/500</p>
       </div>
 
       {formError && (
@@ -231,11 +231,11 @@ function UpdateForm({
 
       <div className="flex gap-3 pt-1">
         <button type="button" onClick={onClose}
-          className="flex-1 px-4 py-2.5 text-sm font-medium border border-border rounded-xl hover:bg-muted/30 transition-colors text-muted-foreground">
+          className="flex-1 px-4 py-2.5 text-sm font-medium border border-white/5 rounded-xl hover:bg-muted/30 transition-colors text-white/50">
           Cancel
         </button>
         <button id="modal-save-btn" type="submit" disabled={isSaving}
-          className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold bg-azure-500 hover:bg-azure-600 text-white shadow-lg shadow-azure-500/20 disabled:opacity-60 disabled:cursor-not-allowed transition-all">
+          className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold bg-white/10 hover:bg-white/20 text-white border border-white/10 transition-colors shadow-lg shadow-azure-500/20 disabled:opacity-60 disabled:cursor-not-allowed transition-all">
           {isSaving ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</> : <><Send className="w-4 h-4" /> {isEdit ? 'Save Changes' : 'Post Update'}</>}
         </button>
       </div>
@@ -248,15 +248,15 @@ function UpdateForm({
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-fade-in">
-      <div className="bg-card rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-border">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+      <div className="bg-[#1c1926]/80 backdrop-blur-md rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-white/5">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/5">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-azure-500/10 border border-azure-500/30 flex items-center justify-center">
               <MessageSquareDiff className="w-4 h-4 text-azure-400" />
             </div>
             <h2 className="font-semibold text-base">{title}</h2>
           </div>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
+          <button onClick={onClose} className="text-white/50 hover:text-foreground transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -363,12 +363,12 @@ export default function ProjectUpdatesPage() {
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+            <Filter className="w-4 h-4 text-white/50 flex-shrink-0" />
             <select
               id="feed-project-filter"
               value={filterProjectId}
               onChange={e => setFilterProjectId(e.target.value)}
-              className="bg-card border border-border rounded-xl px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-azure-500/40 transition-all"
+              className="bg-[#1c1926] border border-white/10 rounded-xl px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-azure-500/40 transition-all"
             >
               <option value="">All projects</option>
               {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -377,7 +377,7 @@ export default function ProjectUpdatesPage() {
           <button
             id="add-update-btn"
             onClick={() => setShowAdd(true)}
-            className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-xl bg-azure-500 hover:bg-azure-600 text-white shadow-lg shadow-azure-500/20 transition-all"
+            className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/10 transition-colors shadow-lg shadow-azure-500/20 transition-all"
           >
             <Plus className="w-4 h-4" />
             Add Update
@@ -389,21 +389,21 @@ export default function ProjectUpdatesPage() {
       {isLoading && (
         <div className="space-y-3">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="bg-card rounded-xl border border-border p-4 h-24 animate-pulse" />
+            <div key={i} className="bg-[#1c1926]/80 backdrop-blur-md rounded-xl border border-white/5 p-4 h-24 animate-pulse" />
           ))}
         </div>
       )}
 
       {/* Empty */}
       {!isLoading && updates.length === 0 && (
-        <div className="bg-card rounded-xl border border-border py-24 text-center">
-          <MessageSquareDiff className="w-12 h-12 text-muted-foreground/20 mx-auto mb-3" />
-          <p className="text-muted-foreground font-medium">No updates yet</p>
-          <p className="text-sm text-muted-foreground/60 mt-1 mb-5">
+        <div className="bg-[#1c1926]/80 backdrop-blur-md rounded-xl border border-white/5 py-24 text-center">
+          <MessageSquareDiff className="w-12 h-12 text-white/50/20 mx-auto mb-3" />
+          <p className="text-white/50 font-medium">No updates yet</p>
+          <p className="text-sm text-white/50/60 mt-1 mb-5">
             {filterProjectId ? 'No updates for this project' : 'Be the first to post an update'}
           </p>
           <button onClick={() => setShowAdd(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-xl bg-azure-500 hover:bg-azure-600 text-white transition-all">
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/10 transition-colors transition-all">
             <Plus className="w-4 h-4" /> Post first update
           </button>
         </div>
@@ -412,12 +412,12 @@ export default function ProjectUpdatesPage() {
       {/* Feed */}
       <div className="space-y-4">
         {groupedProjects.map(p => (
-          <div key={p.projectId} className="bg-card rounded-xl border border-border shadow-sm">
+          <div key={p.projectId} className="bg-[#1c1926]/80 backdrop-blur-md rounded-xl border border-white/5 shadow-sm">
             {/* Project Header */}
-            <div className="bg-muted/10 border-b border-border px-5 py-3 rounded-t-xl flex items-center justify-between">
+            <div className="bg-muted/10 border-b border-white/5 px-5 py-3 rounded-t-xl flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-semibold text-azure-400">📁 {p.projectName}</span>
-                <span className="text-[11px] text-muted-foreground bg-muted/40 px-2 py-0.5 rounded-full font-medium">
+                <span className="text-[11px] text-white/50 bg-muted/40 px-2 py-0.5 rounded-full font-medium">
                   {p.updates.length} {p.updates.length === 1 ? 'update' : 'updates'}
                 </span>
               </div>
@@ -434,7 +434,7 @@ export default function ProjectUpdatesPage() {
                     <div className="flex-shrink-0">
                       {u.member.profilePictureUrl ? (
                         <img src={u.member.profilePictureUrl} alt={u.member.name}
-                          className="w-10 h-10 rounded-full object-cover border border-border" />
+                          className="w-10 h-10 rounded-full object-cover border border-white/5" />
                       ) : (
                         <div className="w-10 h-10 rounded-full bg-azure-500/10 border border-azure-500/30 flex items-center justify-center">
                           <span className="text-azure-400 text-xs font-bold">{getInitials(u.member.name)}</span>
@@ -448,7 +448,7 @@ export default function ProjectUpdatesPage() {
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-sm font-semibold text-foreground">{u.member.name}</span>
                           {u.member.designation && (
-                            <span className="text-xs text-muted-foreground">· {u.member.designation}</span>
+                            <span className="text-xs text-white/50">· {u.member.designation}</span>
                           )}
                           <span className={cn(
                             'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold border',
@@ -459,7 +459,7 @@ export default function ProjectUpdatesPage() {
                           </span>
                         </div>
                         <div className="flex items-center gap-1.5 flex-shrink-0">
-                          <span className="text-xs text-muted-foreground/60">{formatRelative(u.createdAt)}</span>
+                          <span className="text-xs text-white/50/60">{formatRelative(u.createdAt)}</span>
                           {/* ⋮ Three-dot menu */}
                           <UpdateMenu
                             onEdit={() => setEditTarget(u)}

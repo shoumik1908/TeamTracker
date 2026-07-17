@@ -71,7 +71,7 @@ export default function Header({
   };
 
   return (
-    <header className="h-14 bg-card border-b border-border flex items-center justify-between px-4 md:px-6 flex-shrink-0 z-10 w-full">
+    <header className="h-14 bg-background/40 backdrop-blur-xl border-b border-white/5 flex items-center justify-between px-4 md:px-6 flex-shrink-0 z-50 w-full relative">
       <div className="flex items-center gap-3">
         <button
           onClick={() => setIsMobileMenuOpen(true)}
@@ -94,9 +94,9 @@ export default function Header({
               value={searchQuery}
               onFocus={() => setShowSearch(true)}
               onChange={e => { setSearchQuery(e.target.value); setShowSearch(true); }}
-              className="w-32 sm:w-48 md:w-72 pl-9 pr-8 py-2 text-sm bg-muted/30 border border-border rounded-lg
-                         focus:outline-none focus:ring-2 focus:ring-azure-500/30 focus:border-azure-500
-                         placeholder:text-muted-foreground/60 transition-all"
+              className="w-32 sm:w-48 md:w-72 pl-9 pr-8 py-2 text-sm bg-card/5 border border-white/5 rounded-lg
+                         focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
+                         placeholder:text-muted-foreground/60 transition-all text-white"
             />
             {searchQuery && (
               <button onClick={() => { setSearchQuery(''); setShowSearch(false); }} className="absolute right-2 top-1/2 -translate-y-1/2">

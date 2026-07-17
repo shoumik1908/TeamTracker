@@ -540,10 +540,10 @@ export default function ProjectDetailPage() {
 
   if (isError || !project) {
     return (
-      <div className="p-8 text-center bg-card rounded-2xl border border-border">
+      <div className="p-8 text-center bg-[#1c1926]/80 backdrop-blur-md rounded-2xl border border-white/5">
         <AlertCircle className="w-12 h-12 mx-auto text-red-400 mb-3" />
         <h2 className="text-lg font-bold text-foreground">Failed to load Project Details</h2>
-        <p className="text-xs text-muted-foreground mt-1">Make sure the project exists or try reloading.</p>
+        <p className="text-xs text-white/50 mt-1">Make sure the project exists or try reloading.</p>
         <Link to="/projects" className="mt-4 inline-block text-xs font-semibold bg-azure-500 text-white px-4 py-2 rounded-xl">
           Back to Projects
         </Link>
@@ -556,7 +556,7 @@ export default function ProjectDetailPage() {
   return (
     <div className="space-y-6">
       {/* Breadcrumb Navigation */}
-      <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+      <div className="flex items-center gap-1.5 text-xs font-medium text-white/50">
         <Link to="/projects" className="hover:text-foreground transition-colors">Projects</Link>
         <ChevronRight className="w-3.5 h-3.5" />
         <span className="text-foreground font-semibold">{project.name}</span>
@@ -565,14 +565,14 @@ export default function ProjectDetailPage() {
       </div>
 
       {/* Project Banner Header */}
-      <div className="bg-card rounded-2xl border border-border p-6 shadow-2xl relative overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+      <div className="bg-[#1c1926]/80 backdrop-blur-md rounded-2xl border border-white/5 p-6 shadow-2xl relative overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
         <div className="space-y-2">
           <div className="flex items-center gap-3">
             <span className={cn(
               "px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase border tracking-wider",
               project.status === 'COMPLETED' ? "bg-emerald-950/40 text-emerald-400 border-emerald-800/40" :
               project.status === 'IN_PROGRESS' ? "bg-azure-950/40 text-azure-400 border-azure-800/40" :
-              "bg-zinc-800/80 text-muted-foreground border-border/50"
+              "bg-zinc-800/80 text-white/50 border-white/5/50"
             )}>
               {project.status.replace('_', ' ')}
             </span>
@@ -600,7 +600,7 @@ export default function ProjectDetailPage() {
               <div className="flex justify-end gap-2">
                 <button
                   onClick={() => setIsEditingDescription(false)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:bg-muted/50 rounded-lg transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white/50 hover:bg-muted/50 rounded-lg transition-colors"
                 >
                   <X className="w-3.5 h-3.5" /> Cancel
                 </button>
@@ -617,7 +617,7 @@ export default function ProjectDetailPage() {
           ) : (
             <div className="group flex items-start gap-3 mt-2 max-w-xl">
               <div className="flex-1">
-                <p className="text-sm text-muted-foreground leading-relaxed">
+                <p className="text-sm text-white/50 leading-relaxed">
                   {project.description ? (
                     isDescriptionExpanded || project.description.length <= 200 
                       ? project.description 
@@ -641,7 +641,7 @@ export default function ProjectDetailPage() {
                   setIsEditingDescription(true);
                   setIsDescriptionExpanded(true);
                 }}
-                className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 text-muted-foreground hover:text-azure-400 hover:bg-azure-500/10 rounded-md shrink-0 mt-0.5"
+                className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 text-white/50 hover:text-azure-400 hover:bg-azure-500/10 rounded-md shrink-0 mt-0.5"
                 title="Edit description"
               >
                 <Pencil className="w-3.5 h-3.5" />
@@ -651,13 +651,13 @@ export default function ProjectDetailPage() {
         </div>
 
         {/* Mini stats */}
-        <div className="flex flex-wrap items-center gap-6 border-t md:border-t-0 md:border-l border-border/50 pt-4 md:pt-0 md:pl-6">
+        <div className="flex flex-wrap items-center gap-6 border-t md:border-t-0 md:border-l border-white/5/50 pt-4 md:pt-0 md:pl-6">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-zinc-800 flex items-center justify-center text-muted-foreground">
+            <div className="w-8 h-8 rounded-lg bg-zinc-800 flex items-center justify-center text-white/50">
               <Calendar className="w-4 h-4" />
             </div>
             <div>
-              <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Start Date</p>
+              <p className="text-[10px] text-white/50 font-semibold uppercase tracking-wider">Start Date</p>
               <p className="text-xs font-bold text-foreground">
                 {new Date(project.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
               </p>
@@ -665,11 +665,11 @@ export default function ProjectDetailPage() {
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-zinc-800 flex items-center justify-center text-muted-foreground">
+            <div className="w-8 h-8 rounded-lg bg-zinc-800 flex items-center justify-center text-white/50">
               <TrendingUp className="w-4 h-4" />
             </div>
             <div>
-              <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Progress</p>
+              <p className="text-[10px] text-white/50 font-semibold uppercase tracking-wider">Progress</p>
               <div className="flex items-center gap-2">
                 <div className="w-20 bg-zinc-800 h-1.5 rounded-full overflow-hidden">
                   <div className="bg-azure-500 h-full transition-all" style={{ width: `${project.progress}%` }}></div>
@@ -682,7 +682,7 @@ export default function ProjectDetailPage() {
       </div>
 
       {/* Assigned Members Section (At-a-glance) */}
-      <div className="bg-card rounded-2xl border border-border p-5 shadow-sm">
+      <div className="bg-[#1c1926]/80 backdrop-blur-md rounded-2xl border border-white/5 p-5 shadow-sm">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
             <Users className="w-4 h-4 text-azure-400" />
@@ -692,7 +692,7 @@ export default function ProjectDetailPage() {
         {assignedMembers.length > 0 ? (
           <div className="flex flex-wrap gap-3">
             {assignedMembers.map((m: any) => (
-              <div key={m.member.id} className="flex items-center gap-2.5 bg-muted/20 border border-border/50 rounded-full pr-4 pl-1.5 py-1.5 hover:bg-muted/40 transition-colors">
+              <div key={m.member.id} className="flex items-center gap-2.5 bg-black/30 border border-white/10/50 rounded-full pr-4 pl-1.5 py-1.5 hover:bg-muted/40 transition-colors">
                 {m.member.profilePictureUrl ? (
                   <img src={m.member.profilePictureUrl} alt={m.member.name} className="w-6 h-6 rounded-full object-cover" />
                 ) : (
@@ -702,7 +702,7 @@ export default function ProjectDetailPage() {
                 )}
                 <div className="flex flex-col">
                   <span className="text-xs font-semibold text-foreground leading-none">{m.member.name}</span>
-                  <span className="text-[10px] text-muted-foreground mt-0.5">{m.role || 'Member'}</span>
+                  <span className="text-[10px] text-white/50 mt-0.5">{m.role || 'Member'}</span>
                 </div>
                 {m.role !== 'Project Manager' && (
                   <button
@@ -712,7 +712,7 @@ export default function ProjectDetailPage() {
                       }
                     }}
                     disabled={removeMemberMutation.isPending}
-                    className="ml-1 p-1 hover:bg-red-500/20 hover:text-red-400 text-muted-foreground rounded-full transition-colors disabled:opacity-50"
+                    className="ml-1 p-1 hover:bg-red-500/20 hover:text-red-400 text-white/50 rounded-full transition-colors disabled:opacity-50"
                     title="Remove member"
                   >
                     <X className="w-3 h-3" />
@@ -722,7 +722,7 @@ export default function ProjectDetailPage() {
             ))}
           </div>
         ) : (
-          <p className="text-xs text-muted-foreground">No members assigned to this project yet.</p>
+          <p className="text-xs text-white/50">No members assigned to this project yet.</p>
         )}
       </div>
 
@@ -730,12 +730,12 @@ export default function ProjectDetailPage() {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
         
         {/* Navigation Sidebar Tabs */}
-        <div className="bg-card border border-border rounded-2xl p-3 space-y-1.5">
+        <div className="bg-[#1c1926] border border-white/10 rounded-2xl p-3 space-y-1.5">
           <button
             onClick={() => setActiveSection('pulse')}
             className={cn(
               "w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all",
-              activeSection === 'pulse' ? "bg-azure-500/10 text-azure-400 border-l-2 border-azure-500 pl-3" : "text-muted-foreground hover:bg-zinc-800/40 hover:text-foreground"
+              activeSection === 'pulse' ? "bg-azure-500/10 text-azure-400 border-l-2 border-azure-500 pl-3" : "text-white/50 hover:bg-zinc-800/40 hover:text-foreground"
             )}
           >
             <div className="flex items-center gap-2.5">
@@ -748,7 +748,7 @@ export default function ProjectDetailPage() {
             onClick={() => setActiveSection('assign')}
             className={cn(
               "w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all",
-              activeSection === 'assign' ? "bg-azure-500/10 text-azure-400 border-l-2 border-azure-500 pl-3" : "text-muted-foreground hover:bg-zinc-800/40 hover:text-foreground"
+              activeSection === 'assign' ? "bg-azure-500/10 text-azure-400 border-l-2 border-azure-500 pl-3" : "text-white/50 hover:bg-zinc-800/40 hover:text-foreground"
             )}
           >
             <div className="flex items-center gap-2.5">
@@ -760,7 +760,7 @@ export default function ProjectDetailPage() {
             onClick={() => setActiveSection('updates')}
             className={cn(
               "w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all",
-              activeSection === 'updates' ? "bg-azure-500/10 text-azure-400 border-l-2 border-azure-500 pl-3" : "text-muted-foreground hover:bg-zinc-800/40 hover:text-foreground"
+              activeSection === 'updates' ? "bg-azure-500/10 text-azure-400 border-l-2 border-azure-500 pl-3" : "text-white/50 hover:bg-zinc-800/40 hover:text-foreground"
             )}
           >
             <div className="flex items-center gap-2.5">
@@ -773,7 +773,7 @@ export default function ProjectDetailPage() {
             onClick={() => setActiveSection('records')}
             className={cn(
               "w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all",
-              activeSection === 'records' ? "bg-azure-500/10 text-azure-400 border-l-2 border-azure-500 pl-3" : "text-muted-foreground hover:bg-zinc-800/40 hover:text-foreground"
+              activeSection === 'records' ? "bg-azure-500/10 text-azure-400 border-l-2 border-azure-500 pl-3" : "text-white/50 hover:bg-zinc-800/40 hover:text-foreground"
             )}
           >
             <div className="flex items-center gap-2.5">
@@ -786,7 +786,7 @@ export default function ProjectDetailPage() {
             onClick={() => setActiveSection('report')}
             className={cn(
               "w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all",
-              activeSection === 'report' ? "bg-azure-500/10 text-azure-400 border-l-2 border-azure-500 pl-3" : "text-muted-foreground hover:bg-zinc-800/40 hover:text-foreground"
+              activeSection === 'report' ? "bg-azure-500/10 text-azure-400 border-l-2 border-azure-500 pl-3" : "text-white/50 hover:bg-zinc-800/40 hover:text-foreground"
             )}
           >
             <div className="flex items-center gap-2.5">
@@ -796,14 +796,14 @@ export default function ProjectDetailPage() {
           </button>
 
           <div className="pt-2 pb-1 px-3">
-            <span className="text-[10px] font-extrabold text-muted-foreground/60 uppercase tracking-wider">Docs</span>
+            <span className="text-[10px] font-extrabold text-white/50/60 uppercase tracking-wider">Docs</span>
           </div>
 
           <button
             onClick={() => setActiveSection('files')}
             className={cn(
               "w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all",
-              activeSection === 'files' ? "bg-azure-500/10 text-azure-400 border-l-2 border-azure-500 pl-3" : "text-muted-foreground hover:bg-zinc-800/40 hover:text-foreground"
+              activeSection === 'files' ? "bg-azure-500/10 text-azure-400 border-l-2 border-azure-500 pl-3" : "text-white/50 hover:bg-zinc-800/40 hover:text-foreground"
             )}
           >
             <div className="flex items-center gap-2.5">
@@ -817,7 +817,7 @@ export default function ProjectDetailPage() {
             onClick={() => setActiveSection('links')}
             className={cn(
               "w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all",
-              activeSection === 'links' ? "bg-azure-500/10 text-azure-400 border-l-2 border-azure-500 pl-3" : "text-muted-foreground hover:bg-zinc-800/40 hover:text-foreground"
+              activeSection === 'links' ? "bg-azure-500/10 text-azure-400 border-l-2 border-azure-500 pl-3" : "text-white/50 hover:bg-zinc-800/40 hover:text-foreground"
             )}
           >
             <div className="flex items-center gap-2.5">
@@ -831,7 +831,7 @@ export default function ProjectDetailPage() {
             onClick={() => setActiveSection('notes')}
             className={cn(
               "w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all",
-              activeSection === 'notes' ? "bg-azure-500/10 text-azure-400 border-l-2 border-azure-500 pl-3" : "text-muted-foreground hover:bg-zinc-800/40 hover:text-foreground"
+              activeSection === 'notes' ? "bg-azure-500/10 text-azure-400 border-l-2 border-azure-500 pl-3" : "text-white/50 hover:bg-zinc-800/40 hover:text-foreground"
             )}
           >
             <div className="flex items-center gap-2.5">
@@ -851,7 +851,7 @@ export default function ProjectDetailPage() {
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Action Items Panel */}
-                <div className="bg-card border border-border rounded-2xl p-5 shadow-sm transition-all duration-200">
+                <div className="bg-[#1c1926] border border-white/10 rounded-2xl p-5 shadow-sm transition-all duration-200">
                   <button
                     type="button"
                     onClick={() => setIsActionItemsExpanded(!isActionItemsExpanded)}
@@ -861,21 +861,21 @@ export default function ProjectDetailPage() {
                       <CheckSquare className="w-4 h-4 text-emerald-400" />
                       Open Action Items
                     </h3>
-                    <ChevronRight className={cn("w-4 h-4 text-muted-foreground transition-transform duration-200", isActionItemsExpanded && "rotate-90")} />
+                    <ChevronRight className={cn("w-4 h-4 text-white/50 transition-transform duration-200", isActionItemsExpanded && "rotate-90")} />
                   </button>
                   {isActionItemsExpanded && (
                     <div className="mt-4">
                       {isLoadingPulse ? (
-                        <div className="py-4 text-center text-muted-foreground"><Loader2 className="w-5 h-5 animate-spin mx-auto" /></div>
+                        <div className="py-4 text-center text-white/50"><Loader2 className="w-5 h-5 animate-spin mx-auto" /></div>
                       ) : pulseData?.openActionItems?.length > 0 ? (
                         <div className="space-y-3">
                           {pulseData.openActionItems.map((item: any) => (
-                            <div key={item.id} className="p-3 bg-zinc-900/50 border border-border/50 rounded-xl flex items-start gap-3">
+                            <div key={item.id} className="p-3 bg-zinc-900/50 border border-white/5/50 rounded-xl flex items-start gap-3">
                               <button 
                                 onClick={() => {
                                   toggleActionItemMutation.mutate({ itemId: item.id, completed: true });
                                 }}
-                                className="mt-0.5 text-muted-foreground hover:text-emerald-400 transition-colors"
+                                className="mt-0.5 text-white/50 hover:text-emerald-400 transition-colors"
                                 title="Mark as completed"
                               >
                                 <Square className="w-4 h-4" />
@@ -883,7 +883,7 @@ export default function ProjectDetailPage() {
                               <div className="flex-1 min-w-0">
                                 <p className="text-xs text-foreground leading-relaxed">{item.task}</p>
                                 <div className="flex flex-wrap items-center gap-3 mt-2">
-                                  <div className="flex items-center gap-1.5 bg-zinc-800/80 px-2 py-0.5 rounded text-[10px] text-muted-foreground">
+                                  <div className="flex items-center gap-1.5 bg-zinc-800/80 px-2 py-0.5 rounded text-[10px] text-white/50">
                                     {item.assignedTo?.profilePictureUrl ? (
                                       <img src={item.assignedTo.profilePictureUrl} alt="" className="w-3.5 h-3.5 rounded-full" />
                                     ) : <Users className="w-3 h-3" />}
@@ -898,7 +898,7 @@ export default function ProjectDetailPage() {
                                       {item.priority}
                                     </span>
                                   )}
-                                  <span className="text-[10px] text-muted-foreground/60 flex items-center gap-1">
+                                  <span className="text-[10px] text-white/50/60 flex items-center gap-1">
                                     <Calendar className="w-3 h-3" />
                                     {item.meetingRecord?.meetingTitle || 'Meeting'}
                                   </span>
@@ -908,14 +908,14 @@ export default function ProjectDetailPage() {
                           ))}
                         </div>
                       ) : (
-                        <p className="text-xs text-muted-foreground italic">No open action items.</p>
+                        <p className="text-xs text-white/50 italic">No open action items.</p>
                       )}
                     </div>
                   )}
                 </div>
 
                 {/* Blockers & Risks Panel */}
-                <div className="bg-card border border-border rounded-2xl p-5 shadow-sm transition-all duration-200">
+                <div className="bg-[#1c1926] border border-white/10 rounded-2xl p-5 shadow-sm transition-all duration-200">
                   <button
                     type="button"
                     onClick={() => setIsBlockersExpanded(!isBlockersExpanded)}
@@ -925,12 +925,12 @@ export default function ProjectDetailPage() {
                       <AlertTriangle className="w-4 h-4 text-red-400" />
                       Active Blockers & Risks
                     </h3>
-                    <ChevronRight className={cn("w-4 h-4 text-muted-foreground transition-transform duration-200", isBlockersExpanded && "rotate-90")} />
+                    <ChevronRight className={cn("w-4 h-4 text-white/50 transition-transform duration-200", isBlockersExpanded && "rotate-90")} />
                   </button>
                   {isBlockersExpanded && (
                     <div className="mt-4">
                       {isLoadingPulse ? (
-                        <div className="py-4 text-center text-muted-foreground"><Loader2 className="w-5 h-5 animate-spin mx-auto" /></div>
+                        <div className="py-4 text-center text-white/50"><Loader2 className="w-5 h-5 animate-spin mx-auto" /></div>
                       ) : pulseData?.openBlockers?.length > 0 ? (
                         <div className="space-y-3">
                           {pulseData.openBlockers.map((blocker: any) => (
@@ -939,7 +939,7 @@ export default function ProjectDetailPage() {
                               <div className="flex-1 min-w-0">
                                 <p className="text-xs text-foreground leading-relaxed">{blocker.description}</p>
                                 <div className="flex items-center justify-between mt-2">
-                                  <span className="text-[10px] text-muted-foreground/60">
+                                  <span className="text-[10px] text-white/50/60">
                                     First raised: {formatDate(blocker.firstRaisedMeeting?.meetingDate || blocker.createdAt)}
                                   </span>
                                   <button
@@ -958,7 +958,7 @@ export default function ProjectDetailPage() {
                           ))}
                         </div>
                       ) : (
-                        <p className="text-xs text-muted-foreground italic">No active blockers.</p>
+                        <p className="text-xs text-white/50 italic">No active blockers.</p>
                       )}
                     </div>
                   )}
@@ -966,7 +966,7 @@ export default function ProjectDetailPage() {
               </div>
 
               {/* Key Decisions Panel */}
-              <div className="bg-card border border-border rounded-2xl p-5 shadow-sm">
+              <div className="bg-[#1c1926] border border-white/10 rounded-2xl p-5 shadow-sm">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
                     <Sparkles className="w-4 h-4 text-purple-400" />
@@ -974,7 +974,7 @@ export default function ProjectDetailPage() {
                   </h3>
                 </div>
                 {isLoadingPulse ? (
-                  <div className="py-4 text-center text-muted-foreground"><Loader2 className="w-5 h-5 animate-spin mx-auto" /></div>
+                  <div className="py-4 text-center text-white/50"><Loader2 className="w-5 h-5 animate-spin mx-auto" /></div>
                 ) : pulseData?.recentDecisions?.length > 0 ? (
                   <div className="space-y-3 relative before:absolute before:inset-0 before:ml-4 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-zinc-800 before:to-transparent">
                     {pulseData.recentDecisions.map((decision: any) => (
@@ -982,17 +982,17 @@ export default function ProjectDetailPage() {
                         <div className="flex items-center justify-center w-8 h-8 rounded-full border border-zinc-700 bg-zinc-900 text-purple-400 shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 shadow">
                           <Check className="w-3.5 h-3.5" />
                         </div>
-                        <div className="w-[calc(100%-3rem)] md:w-[calc(50%-2rem)] p-4 rounded-xl border border-border/50 bg-zinc-900/30">
+                        <div className="w-[calc(100%-3rem)] md:w-[calc(50%-2rem)] p-4 rounded-xl border border-white/5/50 bg-zinc-900/30">
                           <p className="text-xs text-foreground font-medium mb-1.5 leading-relaxed">{decision.decisionText}</p>
                           {decision.context && (
-                            <p className="text-[10px] text-muted-foreground/80 mb-2 border-l-2 border-zinc-700 pl-2 py-0.5">{decision.context}</p>
+                            <p className="text-[10px] text-white/50/80 mb-2 border-l-2 border-zinc-700 pl-2 py-0.5">{decision.context}</p>
                           )}
                           <div className="flex items-center justify-between">
-                            <span className="text-[9px] text-muted-foreground/60">
+                            <span className="text-[9px] text-white/50/60">
                               {formatDate(decision.createdAt)}
                             </span>
                             {decision.decidedBy && (
-                              <span className="text-[9px] font-bold bg-zinc-800 text-muted-foreground px-1.5 py-0.5 rounded">
+                              <span className="text-[9px] font-bold bg-zinc-800 text-white/50 px-1.5 py-0.5 rounded">
                                 By {decision.decidedBy.name}
                               </span>
                             )}
@@ -1002,7 +1002,7 @@ export default function ProjectDetailPage() {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-xs text-muted-foreground italic">No decisions recorded yet.</p>
+                  <p className="text-xs text-white/50 italic">No decisions recorded yet.</p>
                 )}
               </div>
 
@@ -1011,28 +1011,28 @@ export default function ProjectDetailPage() {
 
           {/* 0. ASSIGN MEMBERS */}
           {activeSection === 'assign' && (
-            <div className="bg-card border border-border rounded-2xl p-6 space-y-5">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border/50">
+            <div className="bg-[#1c1926] border border-white/10 rounded-2xl p-6 space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/5/50">
                 <div>
                   <h2 className="text-md font-bold text-foreground">Assign Members</h2>
-                  <p className="text-[10px] text-muted-foreground">Select team members to assign to this project.</p>
+                  <p className="text-[10px] text-white/50">Select team members to assign to this project.</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="relative">
-                    <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                    <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-white/50" />
                     <input
                       type="text"
                       placeholder="Search members..."
                       value={assignSearchQuery}
                       onChange={(e) => setAssignSearchQuery(e.target.value)}
-                      className="pl-9 pr-3 py-1.5 text-xs bg-zinc-900 border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-azure-500/30 w-48"
+                      className="pl-9 pr-3 py-1.5 text-xs bg-zinc-900 border border-white/5 rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-azure-500/30 w-48"
                     />
                   </div>
                   {selectedMembersToAssign.size > 0 && (
                     <button
                       onClick={handleBulkAssign}
                       disabled={bulkAssignMutation.isPending}
-                      className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-bold bg-azure-500 hover:bg-azure-600 text-white transition-all shadow-md shadow-azure-500/10 disabled:opacity-50"
+                      className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-bold bg-white/10 hover:bg-white/20 text-white border border-white/10 transition-colors transition-all shadow-md shadow-azure-500/10 disabled:opacity-50"
                     >
                       {bulkAssignMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Users className="w-3.5 h-3.5" />}
                       Assign Selected ({selectedMembersToAssign.size})
@@ -1043,9 +1043,9 @@ export default function ProjectDetailPage() {
 
               <div className="space-y-2">
                 {isLoadingMembers ? (
-                  <div className="py-8 text-center text-muted-foreground"><Loader2 className="w-6 h-6 animate-spin mx-auto" /></div>
+                  <div className="py-8 text-center text-white/50"><Loader2 className="w-6 h-6 animate-spin mx-auto" /></div>
                 ) : sortedMembers.length === 0 ? (
-                  <div className="py-8 text-center text-muted-foreground text-xs">No members found.</div>
+                  <div className="py-8 text-center text-white/50 text-xs">No members found.</div>
                 ) : (
                   sortedMembers.map((m: any) => {
                     const isSelected = selectedMembersToAssign.has(m.id);
@@ -1057,8 +1057,8 @@ export default function ProjectDetailPage() {
                         onClick={() => !isCurrentlyAssigned && toggleMemberSelection(m.id)}
                         className={cn(
                           "flex items-center justify-between p-3 rounded-xl border transition-all",
-                          isCurrentlyAssigned ? "bg-muted/10 border-border/40 opacity-80" :
-                          isSelected ? "bg-azure-500/10 border-azure-500/30 cursor-pointer" : "bg-card border-border hover:border-border/80 cursor-pointer"
+                          isCurrentlyAssigned ? "bg-muted/10 border-white/5/40 opacity-80" :
+                          isSelected ? "bg-azure-500/10 border-azure-500/30 cursor-pointer" : "bg-[#1c1926]/80 backdrop-blur-md border-white/5 hover:border-white/5/80 cursor-pointer"
                         )}
                       >
                         <div className="flex items-center gap-3">
@@ -1078,7 +1078,7 @@ export default function ProjectDetailPage() {
                             disabled={isProjectManager}
                             className={cn(
                               "w-4 h-4 flex items-center justify-center rounded transition-colors",
-                              (isSelected || isCurrentlyAssigned) ? "text-azure-400" : "text-muted-foreground",
+                              (isSelected || isCurrentlyAssigned) ? "text-azure-400" : "text-white/50",
                               (isCurrentlyAssigned && !isProjectManager) ? "hover:text-red-400 cursor-pointer" : "",
                               isProjectManager ? "opacity-50 cursor-not-allowed" : ""
                             )}
@@ -1095,29 +1095,29 @@ export default function ProjectDetailPage() {
                           <div className="flex flex-col">
                             <span className="text-sm font-semibold text-foreground flex items-center gap-2">
                               {m.name}
-                              {isCurrentlyAssigned && <span className="text-[10px] bg-zinc-800 text-muted-foreground px-1.5 py-0.5 rounded uppercase">Assigned</span>}
+                              {isCurrentlyAssigned && <span className="text-[10px] bg-zinc-800 text-white/50 px-1.5 py-0.5 rounded uppercase">Assigned</span>}
                             </span>
-                            <span className="text-xs text-muted-foreground">{m.designation || 'No designation'}</span>
+                            <span className="text-xs text-white/50">{m.designation || 'No designation'}</span>
                           </div>
                         </div>
 
                         <div className="flex items-center gap-6">
                           <div className="flex flex-col items-end">
-                            <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider mb-0.5">Status</span>
+                            <span className="text-[10px] text-white/50 font-semibold uppercase tracking-wider mb-0.5">Status</span>
                             <span className={cn(
                               "text-[10px] font-extrabold px-2 py-0.5 rounded-full border",
                               m.allocationStatus === 'ALLOCATED' ? "bg-emerald-950/30 text-emerald-400 border-emerald-800/30" :
                               m.allocationStatus === 'BENCHED' ? "bg-amber-950/30 text-amber-400 border-amber-800/30" :
-                              "bg-zinc-800 text-muted-foreground border-border"
+                              "bg-zinc-800 text-white/50 border-white/5"
                             )}>
                               {m.allocationStatus || 'Unknown'}
                             </span>
                           </div>
 
                           <div className="flex flex-col items-end w-16">
-                            <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider mb-0.5">ATS</span>
+                            <span className="text-[10px] text-white/50 font-semibold uppercase tracking-wider mb-0.5">ATS</span>
                             <span className="text-xs font-bold text-foreground">
-                              {m.atsScore != null ? <span className={cn((m.atsScore || 0) >= 90 ? "text-emerald-400" : (m.atsScore || 0) >= 80 ? "text-teal-400" : (m.atsScore || 0) >= 70 ? "text-azure-400" : (m.atsScore || 0) >= 60 ? "text-amber-400" : "text-red-400")}>{m.atsScore}</span> : <span className="text-muted-foreground">No CV</span>}
+                              {m.atsScore != null ? <span className={cn((m.atsScore || 0) >= 90 ? "text-emerald-400" : (m.atsScore || 0) >= 80 ? "text-teal-400" : (m.atsScore || 0) >= 70 ? "text-azure-400" : (m.atsScore || 0) >= 60 ? "text-amber-400" : "text-red-400")}>{m.atsScore}</span> : <span className="text-white/50">No CV</span>}
                             </span>
                           </div>
                         </div>
@@ -1131,22 +1131,22 @@ export default function ProjectDetailPage() {
 
           {/* 1. PROJECT UPDATES */}
           {activeSection === 'updates' && (
-            <div className="bg-card border border-border rounded-2xl p-6 space-y-5">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border/50">
+            <div className="bg-[#1c1926] border border-white/10 rounded-2xl p-6 space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/5/50">
                 <div>
                   <h2 className="text-md font-bold text-foreground">Project Updates</h2>
-                  <p className="text-[10px] text-muted-foreground">Recent progress, blockers, and milestones for this project.</p>
+                  <p className="text-[10px] text-white/50">Recent progress, blockers, and milestones for this project.</p>
                 </div>
-                <Link to="/project-updates" className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-bold bg-azure-500 hover:bg-azure-600 text-white transition-all shadow-md shadow-azure-500/10">
+                <Link to="/project-updates" className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-bold bg-white/10 hover:bg-white/20 text-white border border-white/10 transition-colors transition-all shadow-md shadow-azure-500/10">
                   <Plus className="w-3.5 h-3.5" /> Post Update
                 </Link>
               </div>
 
               <div className="space-y-4">
                 {isLoadingUpdates ? (
-                  <div className="py-8 text-center text-muted-foreground"><Loader2 className="w-6 h-6 animate-spin mx-auto" /></div>
+                  <div className="py-8 text-center text-white/50"><Loader2 className="w-6 h-6 animate-spin mx-auto" /></div>
                 ) : projectUpdates.length === 0 ? (
-                  <div className="py-8 text-center text-muted-foreground text-xs">No updates posted yet.</div>
+                  <div className="py-8 text-center text-white/50 text-xs">No updates posted yet.</div>
                 ) : (
                   <div className="divide-y divide-border/40">
                     {projectUpdates.map((u: any) => {
@@ -1156,7 +1156,7 @@ export default function ProjectDetailPage() {
                         <div key={u.id} className="py-4 flex gap-4 hover:bg-muted/5 transition-colors">
                           <div className="flex-shrink-0">
                             {u.member.profilePictureUrl ? (
-                              <img src={u.member.profilePictureUrl} alt={u.member.name} className="w-10 h-10 rounded-full object-cover border border-border" />
+                              <img src={u.member.profilePictureUrl} alt={u.member.name} className="w-10 h-10 rounded-full object-cover border border-white/5" />
                             ) : (
                               <div className="w-10 h-10 rounded-full bg-azure-500/10 border border-azure-500/30 flex items-center justify-center">
                                 <span className="text-azure-400 text-xs font-bold">{getInitials(u.member.name)}</span>
@@ -1167,7 +1167,7 @@ export default function ProjectDetailPage() {
                             <div className="flex items-start justify-between gap-2">
                               <div className="flex items-center gap-2 flex-wrap">
                                 <span className="text-sm font-semibold text-foreground">{u.member.name}</span>
-                                {u.member.designation && <span className="text-xs text-muted-foreground">┬╖ {u.member.designation}</span>}
+                                {u.member.designation && <span className="text-xs text-white/50">┬╖ {u.member.designation}</span>}
                                 <span className={cn('inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold border', meta.badge)}>
                                   <Icon className="w-3 h-3" />
                                   {u.updateType}
@@ -1178,7 +1178,7 @@ export default function ProjectDetailPage() {
                               {u.updateText}
                             </div>
                             {u.updateType === 'Progress' && typeof u.progressValue === 'number' && (
-                              <div className="flex items-center gap-3 mt-2 bg-muted/20 p-2.5 rounded-lg border border-border/50 max-w-sm">
+                              <div className="flex items-center gap-3 mt-2 bg-muted/20 p-2.5 rounded-lg border border-white/5/50 max-w-sm">
                                 <div className="flex-1">
                                   <div className="flex justify-between text-xs mb-1">
                                     <span className="font-semibold">Project Progress</span>
@@ -1190,7 +1190,7 @@ export default function ProjectDetailPage() {
                                 </div>
                               </div>
                             )}
-                            <div className="text-[10px] text-muted-foreground mt-2">
+                            <div className="text-[10px] text-white/50 mt-2">
                               {new Date(u.createdAt).toLocaleString()}
                             </div>
                           </div>
@@ -1205,16 +1205,16 @@ export default function ProjectDetailPage() {
 
           {/* 2. FILES SECTION */}
           {activeSection === 'files' && (
-            <div className="bg-card border border-border rounded-2xl p-6 space-y-5">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border/50">
+            <div className="bg-[#1c1926] border border-white/10 rounded-2xl p-6 space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/5/50">
                 <div>
                   <h2 className="text-md font-bold text-foreground">Project Files & Attachments</h2>
-                  <p className="text-[10px] text-muted-foreground">Store requirements, diagrams, credentials, or specification files.</p>
+                  <p className="text-[10px] text-white/50">Store requirements, diagrams, credentials, or specification files.</p>
                 </div>
                 
                 <div>
                   <label className={cn(
-                    "cursor-pointer inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-azure-500 hover:bg-azure-600 text-white transition-all shadow-md shadow-azure-500/10",
+                    "cursor-pointer inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/20 text-white border border-white/10 transition-colors transition-all shadow-md shadow-azure-500/10",
                     (!actingMemberId || uploadFileMutation.isPending) && "opacity-50 pointer-events-none"
                   )}>
                     {uploadFileMutation.isPending ? (
@@ -1243,10 +1243,10 @@ export default function ProjectDetailPage() {
               {/* Files Table List */}
               <div className="space-y-3">
                 {files.length === 0 ? (
-                  <div className="p-12 text-center border-2 border-dashed border-border rounded-2xl space-y-2">
-                    <FileText className="w-10 h-10 mx-auto text-muted-foreground/55" />
+                  <div className="p-12 text-center border-2 border-dashed border-white/5 rounded-2xl space-y-2">
+                    <FileText className="w-10 h-10 mx-auto text-white/50/55" />
                     <h3 className="text-xs font-bold text-foreground">No files attached yet</h3>
-                    <p className="text-[10px] text-muted-foreground">Attach functional guides or technical requirements docs for the team.</p>
+                    <p className="text-[10px] text-white/50">Attach functional guides or technical requirements docs for the team.</p>
                   </div>
                 ) : (
                   files.map((file: any) => {
@@ -1255,15 +1255,15 @@ export default function ProjectDetailPage() {
                     return (
                       <div
                         key={file.id}
-                        className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 border border-border/80 hover:border-border rounded-xl bg-zinc-950/10 hover:bg-zinc-950/30 transition-all group"
+                        className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 border border-white/5/80 hover:border-white/5 rounded-xl bg-zinc-950/10 hover:bg-zinc-950/30 transition-all group"
                       >
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-lg bg-zinc-900 border border-border flex items-center justify-center text-azure-400 group-hover:scale-105 transition-transform">
+                          <div className="w-9 h-9 rounded-lg bg-zinc-900 border border-white/5 flex items-center justify-center text-azure-400 group-hover:scale-105 transition-transform">
                             <FileText className="w-5 h-5" />
                           </div>
                           <div>
                             <p className="text-xs font-bold text-foreground leading-snug break-all">{file.name}</p>
-                            <div className="flex items-center gap-2 text-[10px] text-muted-foreground mt-0.5">
+                            <div className="flex items-center gap-2 text-[10px] text-white/50 mt-0.5">
                               <span>{formatBytes(file.size)}</span>
                               <span>&bull;</span>
                               <span>{file.type.split('/')[1]?.toUpperCase() || 'FILE'}</span>
@@ -1282,19 +1282,19 @@ export default function ProjectDetailPage() {
                                     {getInitials(uploader.name)}
                                   </div>
                                 )}
-                                <span className="text-[10px] text-muted-foreground/80 font-medium max-w-[80px] truncate">{uploader.name}</span>
+                                <span className="text-[10px] text-white/50/80 font-medium max-w-[80px] truncate">{uploader.name}</span>
                               </div>
                             ) : (
-                              <span className="text-[10px] text-muted-foreground/75">Unknown</span>
+                              <span className="text-[10px] text-white/50/75">Unknown</span>
                             )}
-                            <span className="text-[10px] text-muted-foreground/60">{formatDate(file.uploadedAt)}</span>
+                            <span className="text-[10px] text-white/50/60">{formatDate(file.uploadedAt)}</span>
                           </div>
 
                           <div className="flex items-center gap-1">
                             <button
                               onClick={() => handleDownload(file.id)}
                               disabled={!actingMemberId}
-                              className="p-1.5 hover:bg-zinc-800 text-muted-foreground hover:text-foreground rounded-lg transition-all disabled:opacity-40"
+                              className="p-1.5 hover:bg-zinc-800 text-white/50 hover:text-foreground rounded-lg transition-all disabled:opacity-40"
                               title="Download/Open file"
                             >
                               <FileDown className="w-3.5 h-3.5" />
@@ -1306,7 +1306,7 @@ export default function ProjectDetailPage() {
                                 }
                               }}
                               disabled={!actingMemberId || deleteFileMutation.isPending}
-                              className="p-1.5 hover:bg-red-950/20 text-muted-foreground hover:text-red-400 rounded-lg transition-all disabled:opacity-40"
+                              className="p-1.5 hover:bg-red-950/20 text-white/50 hover:text-red-400 rounded-lg transition-all disabled:opacity-40"
                               title="Delete file"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -1323,17 +1323,17 @@ export default function ProjectDetailPage() {
 
           {/* 2. LINKS SECTION */}
           {activeSection === 'links' && (
-            <div className="bg-card border border-border rounded-2xl p-6 space-y-5">
-              <div className="flex items-center justify-between pb-4 border-b border-border/50">
+            <div className="bg-[#1c1926] border border-white/10 rounded-2xl p-6 space-y-5">
+              <div className="flex items-center justify-between pb-4 border-b border-white/5/50">
                 <div>
                   <h2 className="text-md font-bold text-foreground">External Document Links</h2>
-                  <p className="text-[10px] text-muted-foreground">Link Figma mockups, Google Drive folders, Notion wikis, or project workspaces.</p>
+                  <p className="text-[10px] text-white/50">Link Figma mockups, Google Drive folders, Notion wikis, or project workspaces.</p>
                 </div>
                 
                 <button
                   onClick={openAddLink}
                   disabled={!actingMemberId}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-azure-500 hover:bg-azure-600 text-white transition-all shadow-md shadow-azure-500/10 disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/20 text-white border border-white/10 transition-colors transition-all shadow-md shadow-azure-500/10 disabled:opacity-50"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   Add Link
@@ -1342,42 +1342,42 @@ export default function ProjectDetailPage() {
 
               {/* Link Creation / Editing Form Inline */}
               {showLinkForm && (
-                <form onSubmit={handleLinkSubmit} className="p-4 bg-zinc-950/20 border border-border/80 rounded-2xl space-y-4">
+                <form onSubmit={handleLinkSubmit} className="p-4 bg-zinc-950/20 border border-white/5/80 rounded-2xl space-y-4">
                   <h3 className="text-xs font-bold text-foreground">
                     {editingLink ? 'Edit External Link' : 'Add External Link'}
                   </h3>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-[10px] font-semibold text-muted-foreground mb-1.5">Link Title *</label>
+                      <label className="block text-[10px] font-semibold text-white/50 mb-1.5">Link Title *</label>
                       <input
                         type="text"
                         value={linkTitle}
                         onChange={(e) => setLinkTitle(e.target.value)}
                         placeholder="e.g. Figma UI Mockups"
-                        className="w-full px-3 py-2 text-xs border border-border rounded-xl bg-zinc-900 text-foreground focus:outline-none focus:ring-2 focus:ring-azure-500/30"
+                        className="w-full px-3 py-2 text-xs border border-white/5 rounded-xl bg-zinc-900 text-foreground focus:outline-none focus:ring-2 focus:ring-azure-500/30"
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-semibold text-muted-foreground mb-1.5">URL *</label>
+                      <label className="block text-[10px] font-semibold text-white/50 mb-1.5">URL *</label>
                       <input
                         type="url"
                         value={linkUrl}
                         onChange={(e) => setLinkUrl(e.target.value)}
                         placeholder="https://figma.com/..."
-                        className="w-full px-3 py-2 text-xs border border-border rounded-xl bg-zinc-900 text-foreground focus:outline-none focus:ring-2 focus:ring-azure-500/30"
+                        className="w-full px-3 py-2 text-xs border border-white/5 rounded-xl bg-zinc-900 text-foreground focus:outline-none focus:ring-2 focus:ring-azure-500/30"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-[10px] font-semibold text-muted-foreground mb-1.5">Short Description</label>
+                    <label className="block text-[10px] font-semibold text-white/50 mb-1.5">Short Description</label>
                     <input
                       type="text"
                       value={linkDesc}
                       onChange={(e) => setLinkDesc(e.target.value)}
                       placeholder="e.g. Current design mockups reviewed by client"
-                      className="w-full px-3 py-2 text-xs border border-border rounded-xl bg-zinc-900 text-foreground focus:outline-none focus:ring-2 focus:ring-azure-500/30"
+                      className="w-full px-3 py-2 text-xs border border-white/5 rounded-xl bg-zinc-900 text-foreground focus:outline-none focus:ring-2 focus:ring-azure-500/30"
                     />
                   </div>
 
@@ -1389,14 +1389,14 @@ export default function ProjectDetailPage() {
                     <button
                       type="button"
                       onClick={closeLinkForm}
-                      className="px-3 py-1.5 text-[10px] font-bold border border-border rounded-lg text-foreground hover:bg-muted/40"
+                      className="px-3 py-1.5 text-[10px] font-bold border border-white/5 rounded-lg text-foreground hover:bg-muted/40"
                     >
                       Cancel
                     </button>
                     <button
                       type="submit"
                       disabled={saveLinkMutation.isPending}
-                      className="px-4.5 py-1.5 text-[10px] font-bold bg-azure-500 hover:bg-azure-600 text-white rounded-lg flex items-center gap-1.5"
+                      className="px-4.5 py-1.5 text-[10px] font-bold bg-white/10 hover:bg-white/20 text-white border border-white/10 transition-colors rounded-lg flex items-center gap-1.5"
                     >
                       {saveLinkMutation.isPending && <Loader2 className="w-3 h-3 animate-spin" />}
                       Save Link
@@ -1408,10 +1408,10 @@ export default function ProjectDetailPage() {
               {/* Links List */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {links.length === 0 ? (
-                  <div className="md:col-span-2 p-12 text-center border-2 border-dashed border-border rounded-2xl space-y-2">
-                    <Link2 className="w-10 h-10 mx-auto text-muted-foreground/55" />
+                  <div className="md:col-span-2 p-12 text-center border-2 border-dashed border-white/5 rounded-2xl space-y-2">
+                    <Link2 className="w-10 h-10 mx-auto text-white/50/55" />
                     <h3 className="text-xs font-bold text-foreground">No links added yet</h3>
-                    <p className="text-[10px] text-muted-foreground">Attach external Figma projects or shared drives.</p>
+                    <p className="text-[10px] text-white/50">Attach external Figma projects or shared drives.</p>
                   </div>
                 ) : (
                   links.map((lnk: any) => {
@@ -1420,7 +1420,7 @@ export default function ProjectDetailPage() {
                     return (
                       <div
                         key={lnk.id}
-                        className="p-4 border border-border/80 hover:border-border rounded-xl bg-zinc-950/10 hover:bg-zinc-950/30 transition-all flex flex-col justify-between gap-3 group"
+                        className="p-4 border border-white/5/80 hover:border-white/5 rounded-xl bg-zinc-950/10 hover:bg-zinc-950/30 transition-all flex flex-col justify-between gap-3 group"
                       >
                         <div className="space-y-1.5">
                           <div className="flex items-center justify-between">
@@ -1435,12 +1435,12 @@ export default function ProjectDetailPage() {
                             </a>
                           </div>
                           {lnk.description && (
-                            <p className="text-[10px] text-muted-foreground leading-relaxed line-clamp-2">{lnk.description}</p>
+                            <p className="text-[10px] text-white/50 leading-relaxed line-clamp-2">{lnk.description}</p>
                           )}
                           <p className="text-[9px] text-azure-500/80 font-mono truncate">{lnk.url}</p>
                         </div>
 
-                        <div className="flex items-center justify-between border-t border-border/40 pt-2.5">
+                        <div className="flex items-center justify-between border-t border-white/5/40 pt-2.5">
                           <div className="flex items-center gap-1.5">
                             {adder && (
                               <div className="flex items-center gap-1">
@@ -1451,17 +1451,17 @@ export default function ProjectDetailPage() {
                                     {getInitials(adder.name)}
                                   </div>
                                 )}
-                                <span className="text-[9px] text-muted-foreground font-semibold max-w-[80px] truncate">{adder.name}</span>
+                                <span className="text-[9px] text-white/50 font-semibold max-w-[80px] truncate">{adder.name}</span>
                               </div>
                             )}
-                            <span className="text-[9px] text-muted-foreground/60">{formatDate(lnk.addedAt).split(',')[0]}</span>
+                            <span className="text-[9px] text-white/50/60">{formatDate(lnk.addedAt).split(',')[0]}</span>
                           </div>
 
                           <div className="flex items-center gap-0.5">
                             <button
                               onClick={() => openEditLink(lnk)}
                               disabled={!actingMemberId}
-                              className="p-1 hover:bg-zinc-800 hover:text-foreground text-muted-foreground rounded-lg transition-all"
+                              className="p-1 hover:bg-zinc-800 hover:text-foreground text-white/50 rounded-lg transition-all"
                             >
                               <Pencil className="w-3 h-3" />
                             </button>
@@ -1472,7 +1472,7 @@ export default function ProjectDetailPage() {
                                 }
                               }}
                               disabled={!actingMemberId || deleteLinkMutation.isPending}
-                              className="p-1 hover:bg-red-950/20 hover:text-red-400 text-muted-foreground rounded-lg transition-all"
+                              className="p-1 hover:bg-red-950/20 hover:text-red-400 text-white/50 rounded-lg transition-all"
                             >
                               <Trash2 className="w-3 h-3" />
                             </button>
@@ -1488,17 +1488,17 @@ export default function ProjectDetailPage() {
 
           {/* 3. NOTES SECTION */}
           {activeSection === 'notes' && (
-            <div className="bg-card border border-border rounded-2xl p-6 space-y-5">
-              <div className="flex items-center justify-between pb-4 border-b border-border/50">
+            <div className="bg-[#1c1926] border border-white/10 rounded-2xl p-6 space-y-5">
+              <div className="flex items-center justify-between pb-4 border-b border-white/5/50">
                 <div>
                   <h2 className="text-md font-bold text-foreground">Project Notes & SOPs</h2>
-                  <p className="text-[10px] text-muted-foreground">Write standard operating procedures, guidelines, or specs inline.</p>
+                  <p className="text-[10px] text-white/50">Write standard operating procedures, guidelines, or specs inline.</p>
                 </div>
                 
                 <button
                   onClick={openAddNote}
                   disabled={!actingMemberId}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-azure-500 hover:bg-azure-600 text-white transition-all shadow-md shadow-azure-500/10 disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/20 text-white border border-white/10 transition-colors transition-all shadow-md shadow-azure-500/10 disabled:opacity-50"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   Add Note
@@ -1507,30 +1507,30 @@ export default function ProjectDetailPage() {
 
               {/* Note Editor Inline */}
               {showNoteForm && (
-                <form onSubmit={handleNoteSubmit} className="p-4 bg-zinc-950/20 border border-border/80 rounded-2xl space-y-4">
+                <form onSubmit={handleNoteSubmit} className="p-4 bg-zinc-950/20 border border-white/5/80 rounded-2xl space-y-4">
                   <h3 className="text-xs font-bold text-foreground">
                     {editingNote ? 'Edit Note details' : 'Create Project Note'}
                   </h3>
                   
                   <div>
-                    <label className="block text-[10px] font-semibold text-muted-foreground mb-1.5">Note Title *</label>
+                    <label className="block text-[10px] font-semibold text-white/50 mb-1.5">Note Title *</label>
                     <input
                       type="text"
                       value={noteTitle}
                       onChange={(e) => setNoteTitle(e.target.value)}
                       placeholder="e.g. Deployment instructions"
-                      className="w-full px-3 py-2 text-xs border border-border rounded-xl bg-zinc-900 text-foreground focus:outline-none focus:ring-2 focus:ring-azure-500/30"
+                      className="w-full px-3 py-2 text-xs border border-white/5 rounded-xl bg-zinc-900 text-foreground focus:outline-none focus:ring-2 focus:ring-azure-500/30"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[10px] font-semibold text-muted-foreground mb-1.5">Note Content (Markdown supported) *</label>
+                    <label className="block text-[10px] font-semibold text-white/50 mb-1.5">Note Content (Markdown supported) *</label>
                     <textarea
                       value={noteContent}
                       onChange={(e) => setNoteContent(e.target.value)}
                       placeholder="Write documentation steps here..."
                       rows={8}
-                      className="w-full px-3 py-2 text-xs border border-border rounded-xl bg-zinc-900 text-foreground focus:outline-none focus:ring-2 focus:ring-azure-500/30 font-mono"
+                      className="w-full px-3 py-2 text-xs border border-white/5 rounded-xl bg-zinc-900 text-foreground focus:outline-none focus:ring-2 focus:ring-azure-500/30 font-mono"
                     />
                   </div>
 
@@ -1542,14 +1542,14 @@ export default function ProjectDetailPage() {
                     <button
                       type="button"
                       onClick={closeNoteForm}
-                      className="px-3 py-1.5 text-[10px] font-bold border border-border rounded-lg text-foreground hover:bg-muted/40"
+                      className="px-3 py-1.5 text-[10px] font-bold border border-white/5 rounded-lg text-foreground hover:bg-muted/40"
                     >
                       Cancel
                     </button>
                     <button
                       type="submit"
                       disabled={saveNoteMutation.isPending}
-                      className="px-4.5 py-1.5 text-[10px] font-bold bg-azure-500 hover:bg-azure-600 text-white rounded-lg flex items-center gap-1.5"
+                      className="px-4.5 py-1.5 text-[10px] font-bold bg-white/10 hover:bg-white/20 text-white border border-white/10 transition-colors rounded-lg flex items-center gap-1.5"
                     >
                       {saveNoteMutation.isPending && <Loader2 className="w-3 h-3 animate-spin" />}
                       Save Note
@@ -1561,10 +1561,10 @@ export default function ProjectDetailPage() {
               {/* Notes list */}
               <div className="space-y-4">
                 {notes.length === 0 ? (
-                  <div className="p-12 text-center border-2 border-dashed border-border rounded-2xl space-y-2">
-                    <Notebook className="w-10 h-10 mx-auto text-muted-foreground/55" />
+                  <div className="p-12 text-center border-2 border-dashed border-white/5 rounded-2xl space-y-2">
+                    <Notebook className="w-10 h-10 mx-auto text-white/50/55" />
                     <h3 className="text-xs font-bold text-foreground">No notes created yet</h3>
-                    <p className="text-[10px] text-muted-foreground">Document coding instructions, checklist releases, or environment properties.</p>
+                    <p className="text-[10px] text-white/50">Document coding instructions, checklist releases, or environment properties.</p>
                   </div>
                 ) : (
                   notes.map((note: any) => {
@@ -1573,14 +1573,14 @@ export default function ProjectDetailPage() {
                     return (
                       <div
                         key={note.id}
-                        className="p-5 border border-border/80 rounded-2xl bg-zinc-950/10 hover:bg-zinc-950/20 transition-all space-y-4"
+                        className="p-5 border border-white/5/80 rounded-2xl bg-zinc-950/10 hover:bg-zinc-950/20 transition-all space-y-4"
                       >
-                        <div className="flex items-center justify-between border-b border-border/30 pb-3">
+                        <div className="flex items-center justify-between border-b border-white/5/30 pb-3">
                           <div>
                             <h3 className="text-sm font-extrabold text-foreground tracking-wide leading-snug">{note.title}</h3>
-                            <div className="flex items-center gap-2 text-[9px] text-muted-foreground mt-0.5">
+                            <div className="flex items-center gap-2 text-[9px] text-white/50 mt-0.5">
                               {updater && (
-                                <span className="font-semibold text-muted-foreground/80">Updated by {updater.name}</span>
+                                <span className="font-semibold text-white/50/80">Updated by {updater.name}</span>
                               )}
                               <span>&bull;</span>
                               <span>{formatDate(note.updatedAt)}</span>
@@ -1591,7 +1591,7 @@ export default function ProjectDetailPage() {
                             <button
                               onClick={() => openEditNote(note)}
                               disabled={!actingMemberId}
-                              className="p-1.5 hover:bg-zinc-800 hover:text-foreground text-muted-foreground rounded-lg transition-all"
+                              className="p-1.5 hover:bg-zinc-800 hover:text-foreground text-white/50 rounded-lg transition-all"
                               title="Edit note"
                             >
                               <Pencil className="w-3.5 h-3.5" />
@@ -1603,7 +1603,7 @@ export default function ProjectDetailPage() {
                                 }
                               }}
                               disabled={!actingMemberId || deleteNoteMutation.isPending}
-                              className="p-1.5 hover:bg-red-950/20 hover:text-red-400 text-muted-foreground rounded-lg transition-all"
+                              className="p-1.5 hover:bg-red-950/20 hover:text-red-400 text-white/50 rounded-lg transition-all"
                               title="Delete note"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -1612,7 +1612,7 @@ export default function ProjectDetailPage() {
                         </div>
 
                         {/* Rendering content raw with simple pre-wrap for ease of viewing */}
-                        <div className="text-xs text-foreground/90 whitespace-pre-wrap font-sans leading-relaxed bg-zinc-950/40 p-4 rounded-xl border border-border/30">
+                        <div className="text-xs text-foreground/90 whitespace-pre-wrap font-sans leading-relaxed bg-zinc-950/40 p-4 rounded-xl border border-white/5/30">
                           {note.content}
                         </div>
                       </div>
@@ -1632,16 +1632,16 @@ export default function ProjectDetailPage() {
 
           {activeSection === 'records' && (
             <ErrorBoundary>
-              <div className="bg-card border border-border rounded-2xl p-6 space-y-6">
-                <div className="flex items-center justify-between pb-4 border-b border-border/50">
+              <div className="bg-[#1c1926] border border-white/10 rounded-2xl p-6 space-y-6">
+                <div className="flex items-center justify-between pb-4 border-b border-white/5/50">
                   <div>
                     <h2 className="text-md font-bold text-foreground">Transcripts & Recordings</h2>
-                    <p className="text-[10px] text-muted-foreground">Manage meeting recordings and their transcripts.</p>
+                    <p className="text-[10px] text-white/50">Manage meeting recordings and their transcripts.</p>
                   </div>
                   <button
                     onClick={() => setShowRecordForm(true)}
                     disabled={!actingMemberId}
-                    className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-bold bg-azure-500 hover:bg-azure-600 text-white transition-all shadow-md shadow-azure-500/10 disabled:opacity-50"
+                    className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-bold bg-white/10 hover:bg-white/20 text-white border border-white/10 transition-colors transition-all shadow-md shadow-azure-500/10 disabled:opacity-50"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     Add Meeting Record
@@ -1652,67 +1652,67 @@ export default function ProjectDetailPage() {
                   <div className="bg-zinc-900/50 p-5 rounded-xl border border-azure-500/20 space-y-4">
                     <div className="flex items-center justify-between mb-2">
                       <h3 className="text-sm font-bold text-azure-400">Add New Record</h3>
-                      <button onClick={() => setShowRecordForm(false)} className="text-muted-foreground hover:text-foreground">
+                      <button onClick={() => setShowRecordForm(false)} className="text-white/50 hover:text-foreground">
                         <X className="w-4 h-4" />
                       </button>
                     </div>
                     
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1.5">Meeting Title</label>
+                        <label className="block text-[10px] font-bold text-white/50 uppercase mb-1.5">Meeting Title</label>
                         <input
                           type="text"
                           value={recordTitle}
                           onChange={e => setRecordTitle(e.target.value)}
                           placeholder="e.g. Sprint Planning - July 10"
-                          className="w-full bg-zinc-950 border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-azure-500/50"
+                          className="w-full bg-zinc-950 border border-white/5 rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-azure-500/50"
                         />
                       </div>
                       <div>
-                        <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1.5">Meeting Date</label>
+                        <label className="block text-[10px] font-bold text-white/50 uppercase mb-1.5">Meeting Date</label>
                         <input
                           type="date"
                           value={recordDate}
                           onChange={e => setRecordDate(e.target.value)}
-                          className="w-full bg-zinc-950 border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-azure-500/50"
+                          className="w-full bg-zinc-950 border border-white/5 rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-azure-500/50"
                         />
                       </div>
                     </div>
 
-                    <div className="space-y-3 pt-2 border-t border-border/50">
-                      <label className="block text-[10px] font-bold text-muted-foreground uppercase">Recording</label>
+                    <div className="space-y-3 pt-2 border-t border-white/5/50">
+                      <label className="block text-[10px] font-bold text-white/50 uppercase">Recording</label>
                       <div className="flex gap-2">
-                        <button onClick={() => setRecordingType('none')} className={cn("px-3 py-1.5 text-xs rounded-lg border", recordingType === 'none' ? "bg-azure-500/10 border-azure-500 text-azure-400" : "bg-card border-border text-muted-foreground")}>None</button>
-                        <button onClick={() => setRecordingType('link')} className={cn("px-3 py-1.5 text-xs rounded-lg border", recordingType === 'link' ? "bg-azure-500/10 border-azure-500 text-azure-400" : "bg-card border-border text-muted-foreground")}>Paste Link</button>
-                        <button onClick={() => setRecordingType('file')} className={cn("px-3 py-1.5 text-xs rounded-lg border", recordingType === 'file' ? "bg-azure-500/10 border-azure-500 text-azure-400" : "bg-card border-border text-muted-foreground")}>Upload File</button>
+                        <button onClick={() => setRecordingType('none')} className={cn("px-3 py-1.5 text-xs rounded-lg border", recordingType === 'none' ? "bg-azure-500/10 border-azure-500 text-azure-400" : "bg-[#1c1926]/80 backdrop-blur-md border-white/5 text-white/50")}>None</button>
+                        <button onClick={() => setRecordingType('link')} className={cn("px-3 py-1.5 text-xs rounded-lg border", recordingType === 'link' ? "bg-azure-500/10 border-azure-500 text-azure-400" : "bg-[#1c1926]/80 backdrop-blur-md border-white/5 text-white/50")}>Paste Link</button>
+                        <button onClick={() => setRecordingType('file')} className={cn("px-3 py-1.5 text-xs rounded-lg border", recordingType === 'file' ? "bg-azure-500/10 border-azure-500 text-azure-400" : "bg-[#1c1926]/80 backdrop-blur-md border-white/5 text-white/50")}>Upload File</button>
                       </div>
                       {recordingType === 'link' && (
-                        <input type="text" placeholder="https://zoom.us/..." value={recordingLink} onChange={e => setRecordingLink(e.target.value)} className="w-full bg-zinc-950 border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-azure-500/50" />
+                        <input type="text" placeholder="https://zoom.us/..." value={recordingLink} onChange={e => setRecordingLink(e.target.value)} className="w-full bg-zinc-950 border border-white/5 rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-azure-500/50" />
                       )}
                       {recordingType === 'file' && (
-                        <input type="file" accept="video/mp4,video/webm,video/quicktime" onChange={e => setRecordingFile(e.target.files?.[0] || null)} className="w-full bg-zinc-950 border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-azure-500/50" />
+                        <input type="file" accept="video/mp4,video/webm,video/quicktime" onChange={e => setRecordingFile(e.target.files?.[0] || null)} className="w-full bg-zinc-950 border border-white/5 rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-azure-500/50" />
                       )}
                     </div>
 
-                    <div className="space-y-3 pt-2 border-t border-border/50">
-                      <label className="block text-[10px] font-bold text-muted-foreground uppercase">Transcript</label>
+                    <div className="space-y-3 pt-2 border-t border-white/5/50">
+                      <label className="block text-[10px] font-bold text-white/50 uppercase">Transcript</label>
                       <div className="flex gap-2">
-                        <button onClick={() => setTranscriptSource('none')} className={cn("px-3 py-1.5 text-xs rounded-lg border", transcriptSource === 'none' ? "bg-azure-500/10 border-azure-500 text-azure-400" : "bg-card border-border text-muted-foreground")}>None</button>
-                        <button onClick={() => setTranscriptSource('pasted')} className={cn("px-3 py-1.5 text-xs rounded-lg border", transcriptSource === 'pasted' ? "bg-azure-500/10 border-azure-500 text-azure-400" : "bg-card border-border text-muted-foreground")}>Paste Text</button>
-                        <button onClick={() => setTranscriptSource('uploaded_file')} className={cn("px-3 py-1.5 text-xs rounded-lg border", transcriptSource === 'uploaded_file' ? "bg-azure-500/10 border-azure-500 text-azure-400" : "bg-card border-border text-muted-foreground")}>Upload File</button>
+                        <button onClick={() => setTranscriptSource('none')} className={cn("px-3 py-1.5 text-xs rounded-lg border", transcriptSource === 'none' ? "bg-azure-500/10 border-azure-500 text-azure-400" : "bg-[#1c1926]/80 backdrop-blur-md border-white/5 text-white/50")}>None</button>
+                        <button onClick={() => setTranscriptSource('pasted')} className={cn("px-3 py-1.5 text-xs rounded-lg border", transcriptSource === 'pasted' ? "bg-azure-500/10 border-azure-500 text-azure-400" : "bg-[#1c1926]/80 backdrop-blur-md border-white/5 text-white/50")}>Paste Text</button>
+                        <button onClick={() => setTranscriptSource('uploaded_file')} className={cn("px-3 py-1.5 text-xs rounded-lg border", transcriptSource === 'uploaded_file' ? "bg-azure-500/10 border-azure-500 text-azure-400" : "bg-[#1c1926]/80 backdrop-blur-md border-white/5 text-white/50")}>Upload File</button>
                       </div>
                       {transcriptSource === 'pasted' && (
-                        <textarea placeholder="Paste transcript text here..." value={transcriptPasted} onChange={e => setTranscriptPasted(e.target.value)} rows={4} className="w-full bg-zinc-950 border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-azure-500/50 resize-none" />
+                        <textarea placeholder="Paste transcript text here..." value={transcriptPasted} onChange={e => setTranscriptPasted(e.target.value)} rows={4} className="w-full bg-zinc-950 border border-white/5 rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-azure-500/50 resize-none" />
                       )}
                       {transcriptSource === 'uploaded_file' && (
-                        <input type="file" accept=".txt,.docx,.doc,.pdf" onChange={e => setTranscriptFile(e.target.files?.[0] || null)} className="w-full bg-zinc-950 border border-border rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-azure-500/50" />
+                        <input type="file" accept=".txt,.docx,.doc,.pdf" onChange={e => setTranscriptFile(e.target.files?.[0] || null)} className="w-full bg-zinc-950 border border-white/5 rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-azure-500/50" />
                       )}
                       {transcriptSource !== 'none' && (
-                        <div className="p-3 bg-zinc-950 border border-border/40 rounded-lg flex items-start gap-2.5 mt-2">
+                        <div className="p-3 bg-zinc-950 border border-white/5/40 rounded-lg flex items-start gap-2.5 mt-2">
                           <BrainCircuit className="w-4 h-4 text-azure-400 shrink-0 mt-0.5" />
                           <div className="space-y-1">
                             <p className="text-[10px] font-bold text-foreground uppercase tracking-wider">AI Attribution Tip</p>
-                            <p className="text-[10px] text-muted-foreground leading-normal">
+                            <p className="text-[10px] text-white/50 leading-normal">
                               Diarized transcripts (e.g. containing speaker labels like <code className="text-azure-400 font-mono">"Speaker 1: ..."</code> or <code className="text-azure-400 font-mono">"Naved: ..."</code>) are highly recommended. Unstructured plain text transcripts may lead to lower ownership attribution accuracy.
                             </p>
                           </div>
@@ -1737,7 +1737,7 @@ export default function ProjectDetailPage() {
                           createRecordMutation.mutate(fd);
                         }}
                         disabled={createRecordMutation.isPending || !recordTitle || !recordDate || (recordingType === 'none' && transcriptSource === 'none')}
-                        className="px-4 py-2 bg-azure-500 hover:bg-azure-600 text-white rounded-lg text-xs font-bold disabled:opacity-50 flex items-center gap-2"
+                        className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white border border-white/10 transition-colors rounded-lg text-xs font-bold disabled:opacity-50 flex items-center gap-2"
                       >
                         {createRecordMutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                         Save Record
@@ -1748,18 +1748,18 @@ export default function ProjectDetailPage() {
 
                 <div className="space-y-4">
                   {isLoadingRecords ? (
-                    <div className="py-12 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
+                    <div className="py-12 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-white/50" /></div>
                   ) : meetingRecords.length === 0 ? (
-                    <div className="py-12 flex flex-col items-center justify-center border-2 border-dashed border-border/50 rounded-2xl">
+                    <div className="py-12 flex flex-col items-center justify-center border-2 border-dashed border-white/5/50 rounded-2xl">
                       <div className="w-12 h-12 bg-zinc-900 rounded-full flex items-center justify-center mb-3">
-                        <Video className="w-5 h-5 text-muted-foreground" />
+                        <Video className="w-5 h-5 text-white/50" />
                       </div>
                       <p className="text-sm font-semibold text-foreground">No records yet</p>
-                      <p className="text-xs text-muted-foreground mt-1 text-center max-w-sm">Keep track of your meeting recordings and transcripts here.</p>
+                      <p className="text-xs text-white/50 mt-1 text-center max-w-sm">Keep track of your meeting recordings and transcripts here.</p>
                     </div>
                   ) : (
                     meetingRecords.map((r: any) => (
-                      <div key={r.id} className="group bg-card border border-border hover:border-azure-500/30 rounded-2xl p-4 transition-all">
+                      <div key={r.id} className="group bg-[#1c1926] border border-white/10 hover:border-azure-500/30 rounded-2xl p-4 transition-all">
                         <div className="flex items-start justify-between">
                           <div className="flex items-start gap-3">
                             <div className="mt-1 w-8 h-8 rounded-full bg-azure-500/10 flex items-center justify-center text-azure-400">
@@ -1767,7 +1767,7 @@ export default function ProjectDetailPage() {
                             </div>
                             <div>
                               <h4 className="text-sm font-bold text-foreground">{r.meetingTitle}</h4>
-                              <div className="flex items-center gap-3 mt-1.5 text-[10px] text-muted-foreground font-medium">
+                              <div className="flex items-center gap-3 mt-1.5 text-[10px] text-white/50 font-medium">
                                 <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" />{formatDate(r.meetingDate)}</span>
                               </div>
                             </div>
@@ -1775,7 +1775,7 @@ export default function ProjectDetailPage() {
 
                           <div className="relative">
                             <details className="group/menu">
-                              <summary className="p-1.5 hover:bg-zinc-800 text-muted-foreground hover:text-foreground rounded-lg transition-all cursor-pointer list-none">
+                              <summary className="p-1.5 hover:bg-zinc-800 text-white/50 hover:text-foreground rounded-lg transition-all cursor-pointer list-none">
                                 <MoreVertical className="w-4 h-4" />
                               </summary>
                               <div className="absolute right-0 top-full mt-1 w-40 bg-zinc-900 border border-zinc-800 rounded-lg shadow-xl z-10 overflow-hidden hidden group-open/menu:block">
@@ -1810,7 +1810,7 @@ export default function ProjectDetailPage() {
                         <div className="mt-4 flex flex-col gap-3 ml-11">
                           <div className="flex flex-wrap gap-3">
                             {r.recordingUrl && (
-                              <a href={r.recordingSasUrl || r.recordingUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-azure-500/10 hover:bg-azure-500/20 text-azure-400 text-xs font-bold transition-colors">
+                              <a href={r.recordingSasUrl || r.recordingUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-colors text-xs font-bold transition-colors">
                                 <PlayCircle className="w-4 h-4" />
                                 View Recording {r.recordingType === 'link' ? '(External)' : '(File)'}
                               </a>
@@ -1828,7 +1828,7 @@ export default function ProjectDetailPage() {
                             <div className="bg-zinc-950 border border-indigo-500/20 rounded-xl mt-2 p-6 flex flex-col items-center justify-center">
                               <Loader2 className="w-6 h-6 text-indigo-400 animate-spin mb-3" />
                               <p className="text-xs font-semibold text-indigo-300 uppercase tracking-wider">Analyzing transcript...</p>
-                              <p className="text-[10px] text-muted-foreground mt-1 text-center max-w-sm">Generating new meeting minutes. This may take a few seconds.</p>
+                              <p className="text-[10px] text-white/50 mt-1 text-center max-w-sm">Generating new meeting minutes. This may take a few seconds.</p>
                             </div>
                           )}
 
@@ -1872,23 +1872,23 @@ export default function ProjectDetailPage() {
                           )}
 
                           {r.transcriptText && (
-                            <details className="group/details bg-zinc-950 border border-border/50 rounded-xl overflow-hidden cursor-pointer mt-3">
+                            <details className="group/details bg-zinc-950 border border-white/5/50 rounded-xl overflow-hidden cursor-pointer mt-3">
                               <summary className="px-4 py-2.5 text-xs font-bold text-foreground flex items-center justify-between hover:bg-zinc-900/50">
-                                <span className="flex items-center gap-2"><FileTextIcon className="w-4 h-4 text-muted-foreground" /> View Transcript</span>
-                                <ChevronRight className="w-4 h-4 text-muted-foreground transition-transform group-open/details:rotate-90" />
+                                <span className="flex items-center gap-2"><FileTextIcon className="w-4 h-4 text-white/50" /> View Transcript</span>
+                                <ChevronRight className="w-4 h-4 text-white/50 transition-transform group-open/details:rotate-90" />
                               </summary>
-                              <div className="p-4 border-t border-border/50 bg-zinc-950 text-xs text-foreground/80 whitespace-pre-wrap leading-relaxed max-h-96 overflow-y-auto cursor-auto">
+                              <div className="p-4 border-t border-white/5/50 bg-zinc-950 text-xs text-foreground/80 whitespace-pre-wrap leading-relaxed max-h-96 overflow-y-auto cursor-auto">
                                 {editingTranscriptId === r.id ? (
                                   <div className="space-y-3">
                                     <textarea
-                                      className="w-full bg-zinc-900/50 border border-border/50 rounded-lg p-3 text-xs focus:outline-none focus:border-azure-500/50 min-h-[200px]"
+                                      className="w-full bg-zinc-900/50 border border-white/5/50 rounded-lg p-3 text-xs focus:outline-none focus:border-azure-500/50 min-h-[200px]"
                                       value={editingTranscriptText}
                                       onChange={(e) => setEditingTranscriptText(e.target.value)}
                                     />
                                     <div className="flex items-center justify-end gap-2">
                                       <button 
                                         onClick={(e) => { e.preventDefault(); setEditingTranscriptId(null); }}
-                                        className="px-3 py-1.5 text-xs font-medium bg-muted text-muted-foreground hover:bg-muted/80 rounded-md transition-colors"
+                                        className="px-3 py-1.5 text-xs font-medium bg-muted text-white/50 hover:bg-muted/80 rounded-md transition-colors"
                                       >
                                         Cancel
                                       </button>

@@ -1,3 +1,5 @@
+import api from './api';
+
 export interface ActivityLog {
   id: string;
   category: string;
@@ -23,19 +25,16 @@ export const fetchLogs = async (
   category: string = 'All',
   search: string = ''
 ): Promise<LogsResponse> => {
-  const query = new URLSearchParams({
-    page: page.toString(),
-    limit: limit.toString(),
+  const params: Record<string, string | number> = {
+    page,
+    limit,
     category,
-  });
+  };
   
   if (search) {
-    query.append('search', search);
+    params.search = search;
   }
 
-  const response = await fetch(`/api/logs?${query.toString()}`);
-  if (!response.ok) {
-    throw new Error('Failed to fetch logs');
-  }
-  return response.json();
+  const response = await api.get('/logs', { params });
+  return response.data;
 };

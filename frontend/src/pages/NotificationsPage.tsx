@@ -60,7 +60,7 @@ export default function NotificationsPage() {
         </div>
         {(data?.unreadCount || 0) > 0 && (
           <button onClick={() => markAllRead.mutate()} disabled={markAllRead.isPending}
-            className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium border border-border rounded-xl hover:bg-card hover:text-foreground bg-card transition-colors">
+            className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium border border-white/5 rounded-xl hover:bg-[#1c1926]/80 backdrop-blur-md hover:text-foreground bg-[#1c1926]/80 backdrop-blur-md transition-colors">
             {markAllRead.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCheck className="w-4 h-4" />}
             Mark all read
           </button>
@@ -70,16 +70,16 @@ export default function NotificationsPage() {
       {isLoading && (
         <div className="space-y-3">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="bg-card rounded-xl border border-border p-4 h-20 animate-pulse" />
+            <div key={i} className="bg-[#1c1926]/80 backdrop-blur-md rounded-xl border border-white/5 p-4 h-20 animate-pulse" />
           ))}
         </div>
       )}
 
       {!isLoading && data?.data.length === 0 && (
-        <div className="bg-card rounded-xl border border-border py-16 text-center">
-          <Bell className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
-          <p className="text-muted-foreground font-medium">No notifications yet</p>
-          <p className="text-sm text-muted-foreground/60 mt-1">Activity will appear here as your team works</p>
+        <div className="bg-[#1c1926]/80 backdrop-blur-md rounded-xl border border-white/5 py-16 text-center">
+          <Bell className="w-12 h-12 text-white/50/30 mx-auto mb-3" />
+          <p className="text-white/50 font-medium">No notifications yet</p>
+          <p className="text-sm text-white/50/60 mt-1">Activity will appear here as your team works</p>
         </div>
       )}
 
@@ -88,19 +88,19 @@ export default function NotificationsPage() {
           <div key={n.id}
             className={cn(
               'group flex items-start gap-4 p-4 rounded-xl border transition-all cursor-pointer hover:shadow-sm',
-              !n.read ? 'bg-azure-500/10 border-azure-500/40 shadow-sm' : 'bg-card border-border',
+              !n.read ? 'bg-azure-500/10 border-azure-500/40 shadow-sm' : 'bg-[#1c1926]/80 backdrop-blur-md border-white/5',
             )}
             onClick={() => !n.read && markRead.mutate(n.id)}
           >
-            <div className={cn('w-10 h-10 rounded-xl border flex items-center justify-center flex-shrink-0 text-lg', TYPE_COLORS[n.type] || 'bg-muted border-border')}>
+            <div className={cn('w-10 h-10 rounded-xl border flex items-center justify-center flex-shrink-0 text-lg', TYPE_COLORS[n.type] || 'bg-muted border-white/5')}>
               {TYPE_ICONS[n.type] || '📢'}
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-start justify-between gap-2">
                 <p className={cn('text-sm font-semibold', !n.read && 'text-foreground')}>{n.title}</p>
-                <p className="text-xs text-muted-foreground/60 flex-shrink-0 mt-0.5">{formatRelative(n.createdAt)}</p>
+                <p className="text-xs text-white/50/60 flex-shrink-0 mt-0.5">{formatRelative(n.createdAt)}</p>
               </div>
-              <p className="text-sm text-muted-foreground mt-0.5">{n.message}</p>
+              <p className="text-sm text-white/50 mt-0.5">{n.message}</p>
               {n.member && (
                 <p className="text-xs text-azure-400 mt-1 font-medium">👤 {n.member.name}</p>
               )}
@@ -109,7 +109,7 @@ export default function NotificationsPage() {
               {!n.read && <div className="w-2 h-2 bg-azure-500 rounded-full" />}
               {(isAdmin || n.memberId) && (
                 <button onClick={e => { e.stopPropagation(); del.mutate(n.id); }}
-                  className="p-1.5 text-muted-foreground hover:text-red-400 hover:bg-red-950/40 rounded-lg transition-colors opacity-0 group-hover:opacity-100">
+                  className="p-1.5 text-white/50 hover:text-red-400 hover:bg-red-950/40 rounded-lg transition-colors opacity-0 group-hover:opacity-100">
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
               )}

@@ -56,7 +56,7 @@ export default function AdminCredentialsPage() {
     );
   }, [users, searchQuery]);
 
-  if (isLoading) return <div className="p-8 text-center text-muted-foreground">Loading users...</div>;
+  if (isLoading) return <div className="p-8 text-center text-white/50">Loading users...</div>;
   
   if (isError) return (
     <div className="p-8 text-center text-red-500">
@@ -73,31 +73,31 @@ export default function AdminCredentialsPage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-foreground">Access Management</h1>
-            <p className="text-muted-foreground">Manage team credentials, roles, and system access</p>
+            <p className="text-white/50">Manage team credentials, roles, and system access</p>
           </div>
         </div>
       </div>
 
       <div className="flex items-center justify-between">
         <div className="relative w-72">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-white/50" />
           <input 
             type="text" 
             placeholder="Search by name or email..." 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 text-sm bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+            className="w-full pl-9 pr-4 py-2 text-sm bg-background border border-white/5 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
           />
         </div>
-        <div className="text-sm text-muted-foreground">
+        <div className="text-sm text-white/50">
           Showing {filteredUsers.length} user{filteredUsers.length !== 1 ? 's' : ''}
         </div>
       </div>
 
-      <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+      <div className="bg-[#1c1926] border border-white/10 rounded-xl shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">
-            <thead className="bg-muted/50 text-muted-foreground uppercase text-[11px] font-semibold">
+            <thead className="bg-muted/50 text-white/50 uppercase text-[11px] font-semibold">
               <tr>
                 <th className="px-6 py-4">User</th>
                 <th className="px-6 py-4">Role</th>
@@ -116,7 +116,7 @@ export default function AdminCredentialsPage() {
                         </div>
                         <div>
                           <div className="font-medium text-foreground">{u.name}</div>
-                          <div className="text-muted-foreground text-xs">{u.email}</div>
+                          <div className="text-white/50 text-xs">{u.email}</div>
                         </div>
                       </div>
                     </td>
@@ -147,7 +147,7 @@ export default function AdminCredentialsPage() {
                     <td className="px-6 py-4 text-right">
                       <button
                         onClick={() => setSelectedUser(u)}
-                        className="p-2 text-muted-foreground hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors"
+                        className="p-2 text-white/50 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors"
                         title="Reset Password"
                       >
                         <KeyRound className="w-4 h-4" />
@@ -157,7 +157,7 @@ export default function AdminCredentialsPage() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={4} className="px-6 py-8 text-center text-muted-foreground">
+                  <td colSpan={4} className="px-6 py-8 text-center text-white/50">
                     No users found matching your search.
                   </td>
                 </tr>
@@ -170,19 +170,19 @@ export default function AdminCredentialsPage() {
       {/* Reset Password Modal */}
       {selectedUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-card rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200 p-6">
+          <div className="bg-[#1c1926]/80 backdrop-blur-md rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200 p-6">
             <div className="flex items-center gap-3 mb-4 text-amber-600 dark:text-amber-500">
               <AlertTriangle className="w-6 h-6" />
               <h3 className="text-lg font-semibold text-foreground">Confirm Password Reset</h3>
             </div>
-            <p className="text-muted-foreground text-sm mb-6">
+            <p className="text-white/50 text-sm mb-6">
               Are you sure you want to reset the password for <strong>{selectedUser.name}</strong>? 
               This will set their password to the default format and force them to change it on their next login.
             </p>
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setSelectedUser(null)}
-                className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground bg-muted hover:bg-muted/80 rounded-lg transition-colors"
+                className="px-4 py-2 text-sm font-medium text-white/50 hover:text-foreground bg-muted hover:bg-muted/80 rounded-lg transition-colors"
               >
                 Cancel
               </button>

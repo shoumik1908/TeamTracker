@@ -1,0 +1,362 @@
+<!DOCTYPE html><html class="dark" lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Team Tracker - Secure Access Portal</title>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&amp;family=Public+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface": "#14121b",
+                    "tertiary-container": "#913b00",
+                    "on-background": "#e6e0ee",
+                    "on-secondary-container": "#bfadfe",
+                    "on-primary-fixed-variant": "#4f0eca",
+                    "inverse-primary": "#6738e2",
+                    "surface-container-lowest": "#0f0d16",
+                    "inverse-surface": "#e6e0ee",
+                    "surface-container-highest": "#36333e",
+                    "on-primary-fixed": "#20005f",
+                    "error-container": "#93000a",
+                    "tertiary": "#ffb692",
+                    "primary-container": "#5e2cd9",
+                    "surface-bright": "#3b3842",
+                    "on-tertiary-container": "#ffbc9b",
+                    "on-primary": "#360096",
+                    "primary-fixed": "#e7deff",
+                    "on-surface-variant": "#cac3d8",
+                    "tertiary-fixed": "#ffdbcb",
+                    "primary-fixed-dim": "#cdbdff",
+                    "error": "#ffb4ab",
+                    "secondary-fixed": "#e7deff",
+                    "on-secondary-fixed-variant": "#4b3b83",
+                    "inverse-on-surface": "#322f39",
+                    "on-error": "#690005",
+                    "tertiary-fixed-dim": "#ffb692",
+                    "surface-container-low": "#1d1a24",
+                    "on-surface": "#e6e0ee",
+                    "surface-variant": "#36333e",
+                    "surface-tint": "#cdbdff",
+                    "background": "#14121b",
+                    "on-primary-container": "#d1c2ff",
+                    "on-tertiary-fixed-variant": "#7a3000",
+                    "on-error-container": "#ffdad6",
+                    "primary": "#cdbdff",
+                    "on-secondary": "#35236b",
+                    "surface-container": "#211e28",
+                    "secondary": "#cdbdff",
+                    "on-tertiary": "#562000",
+                    "on-secondary-fixed": "#1f0756",
+                    "surface-container-high": "#2b2833",
+                    "secondary-fixed-dim": "#cdbdff",
+                    "surface-dim": "#14121b",
+                    "secondary-container": "#4e3d86",
+                    "outline": "#948ea1",
+                    "outline-variant": "#494455",
+                    "on-tertiary-fixed": "#341100"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "fontFamily": {
+                    "headline": ["Inter"],
+                    "display": ["Inter"],
+                    "body": ["Inter"],
+                    "label": ["Public Sans"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .glass-card {
+            background: rgba(20, 18, 27, 0.35);
+            backdrop-filter: blur(32px);
+            -webkit-backdrop-filter: blur(32px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+        .glow-bg {
+            background: radial-gradient(circle at 50% 50%, rgba(94, 44, 217, 0.15) 0%, rgba(20, 18, 27, 0) 70%);
+        }
+        .animate-float {
+            animation: float 6s ease-in-out infinite;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        input:focus {
+            box-shadow: 0 0 15px -3px rgba(103, 56, 226, 0.4);
+        }
+        
+        /* Particle Network Animations */
+        .node-pulse-slow {
+            animation: nodePulse 4s ease-in-out infinite alternate;
+        }
+        .node-pulse-med {
+            animation: nodePulse 2.5s ease-in-out infinite alternate;
+        }
+        .node-pulse-fast {
+            animation: nodePulse 1.5s ease-in-out infinite alternate;
+        }
+        @keyframes nodePulse {
+            0% { opacity: 0.3; transform: scale(0.8); }
+            100% { opacity: 1; transform: scale(1.3); }
+        }
+    </style>
+</head>
+<body class="bg-[#05030a] text-on-surface font-body min-h-screen flex flex-col relative overflow-hidden">
+<!-- Background Atmospheric Elements -->
+<div class="fixed inset-0 z-0 pointer-events-none">
+<!-- Base Gradient: Deep royal purple to electric blue on near black -->
+<div class="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-blue-900/30 via-[#0a0514] to-[#020106]"></div>
+<div class="absolute inset-0 bg-[radial-gradient(circle_at_30%_70%,_var(--tw-gradient-stops))] from-purple-900/20 via-transparent to-transparent"></div>
+<div class="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,_var(--tw-gradient-stops))] from-blue-600/15 via-transparent to-transparent"></div>
+<!-- High-fidelity Dot & Line Particle Network -->
+<div class="absolute inset-0 overflow-hidden opacity-70">
+<svg class="w-full h-full" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<radialGradient cx="50%" cy="50%" id="glow-purple" r="50%">
+<stop offset="0%" stop-color="#a855f7" stop-opacity="0.8"></stop>
+<stop offset="100%" stop-color="#a855f7" stop-opacity="0"></stop>
+</radialGradient>
+<radialGradient cx="50%" cy="50%" id="glow-blue" r="50%">
+<stop offset="0%" stop-color="#3b82f6" stop-opacity="0.8"></stop>
+<stop offset="100%" stop-color="#3b82f6" stop-opacity="0"></stop>
+</radialGradient>
+</defs>
+<!-- Lines Network -->
+<g fill="none" stroke="rgba(255, 255, 255, 0.08)" stroke-width="0.75">
+<!-- Left Web -->
+<path d="M 5% 15% L 18% 28% L 10% 45% L 22% 58% L 18% 28%"></path>
+<path d="M 10% 45% L -5% 55%"></path>
+<path d="M 22% 58% L 15% 75% L 28% 85% L 35% 70% L 15% 75%"></path>
+<path d="M 28% 85% L 12% 95%"></path>
+<!-- Center Web -->
+<path d="M 35% 20% L 48% 32% L 42% 50% L 55% 65% L 48% 32%"></path>
+<path d="M 42% 50% L 32% 55% L 22% 58%"></path>
+<path d="M 55% 65% L 45% 82% L 62% 88% L 68% 72% L 45% 82%"></path>
+<path d="M 48% 32% L 65% 25% L 75% 42% L 68% 58% L 65% 25%"></path>
+<path d="M 68% 58% L 55% 65%"></path>
+<!-- Right Web -->
+<path d="M 85% 12% L 75% 28% L 88% 42% L 78% 60% L 75% 28%"></path>
+<path d="M 88% 42% L 98% 35%"></path>
+<path d="M 78% 60% L 85% 78% L 72% 88% L 62% 75% L 85% 78%"></path>
+<path d="M 85% 78% L 95% 85%"></path>
+<path d="M 68% 58% L 78% 60%"></path>
+</g>
+<!-- Nodes (Dots with glow and pulse) -->
+<!-- Left Nodes -->
+<g class="node-pulse-slow" style="transform-origin: 5% 15%"><circle cx="5%" cy="15%" fill="url(#glow-blue)" r="3"></circle><circle cx="5%" cy="15%" fill="#fff" r="1"></circle></g>
+<g class="node-pulse-med" style="transform-origin: 18% 28%"><circle cx="18%" cy="28%" fill="url(#glow-purple)" r="4"></circle><circle cx="18%" cy="28%" fill="#fff" r="1.5"></circle></g>
+<g class="node-pulse-fast" style="transform-origin: 10% 45%"><circle cx="10%" cy="45%" fill="url(#glow-blue)" r="2.5"></circle><circle cx="10%" cy="45%" fill="#fff" r="1"></circle></g>
+<g class="node-pulse-slow" style="transform-origin: 22% 58%"><circle cx="22%" cy="58%" fill="url(#glow-purple)" r="3.5"></circle><circle cx="22%" cy="58%" fill="#fff" r="1"></circle></g>
+<g class="node-pulse-med" style="transform-origin: 15% 75%"><circle cx="15%" cy="75%" fill="url(#glow-blue)" r="3"></circle><circle cx="15%" cy="75%" fill="#fff" r="1"></circle></g>
+<g class="node-pulse-fast" style="transform-origin: 28% 85%"><circle cx="28%" cy="85%" fill="url(#glow-purple)" r="4"></circle><circle cx="28%" cy="85%" fill="#fff" r="1.5"></circle></g>
+<g class="node-pulse-slow" style="transform-origin: 35% 70%"><circle cx="35%" cy="70%" fill="url(#glow-blue)" r="2.5"></circle><circle cx="35%" cy="70%" fill="#fff" r="1"></circle></g>
+<!-- Center Nodes -->
+<g class="node-pulse-med" style="transform-origin: 35% 20%"><circle cx="35%" cy="20%" fill="url(#glow-purple)" r="3"></circle><circle cx="35%" cy="20%" fill="#fff" r="1"></circle></g>
+<g class="node-pulse-fast" style="transform-origin: 48% 32%"><circle cx="48%" cy="32%" fill="url(#glow-blue)" r="4.5"></circle><circle cx="48%" cy="32%" fill="#fff" r="1.5"></circle></g>
+<g class="node-pulse-slow" style="transform-origin: 42% 50%"><circle cx="42%" cy="50%" fill="url(#glow-purple)" r="3"></circle><circle cx="42%" cy="50%" fill="#fff" r="1"></circle></g>
+<g class="node-pulse-med" style="transform-origin: 55% 65%"><circle cx="55%" cy="65%" fill="url(#glow-blue)" r="4"></circle><circle cx="55%" cy="65%" fill="#fff" r="1.5"></circle></g>
+<g class="node-pulse-fast" style="transform-origin: 45% 82%"><circle cx="45%" cy="82%" fill="url(#glow-purple)" r="2.5"></circle><circle cx="45%" cy="82%" fill="#fff" r="1"></circle></g>
+<g class="node-pulse-slow" style="transform-origin: 62% 88%"><circle cx="62%" cy="88%" fill="url(#glow-blue)" r="3.5"></circle><circle cx="62%" cy="88%" fill="#fff" r="1"></circle></g>
+<g class="node-pulse-med" style="transform-origin: 68% 72%"><circle cx="68%" cy="72%" fill="url(#glow-purple)" r="3"></circle><circle cx="68%" cy="72%" fill="#fff" r="1"></circle></g>
+<!-- Right Nodes -->
+<g class="node-pulse-fast" style="transform-origin: 65% 25%"><circle cx="65%" cy="25%" fill="url(#glow-blue)" r="3.5"></circle><circle cx="65%" cy="25%" fill="#fff" r="1"></circle></g>
+<g class="node-pulse-slow" style="transform-origin: 75% 42%"><circle cx="75%" cy="42%" fill="url(#glow-purple)" r="4"></circle><circle cx="75%" cy="42%" fill="#fff" r="1.5"></circle></g>
+<g class="node-pulse-med" style="transform-origin: 68% 58%"><circle cx="68%" cy="58%" fill="url(#glow-blue)" r="3"></circle><circle cx="68%" cy="58%" fill="#fff" r="1"></circle></g>
+<g class="node-pulse-fast" style="transform-origin: 85% 12%"><circle cx="85%" cy="12%" fill="url(#glow-purple)" r="2.5"></circle><circle cx="85%" cy="12%" fill="#fff" r="1"></circle></g>
+<g class="node-pulse-slow" style="transform-origin: 75% 28%"><circle cx="75%" cy="28%" fill="url(#glow-blue)" r="4"></circle><circle cx="75%" cy="28%" fill="#fff" r="1.5"></circle></g>
+<g class="node-pulse-med" style="transform-origin: 88% 42%"><circle cx="88%" cy="42%" fill="url(#glow-purple)" r="3"></circle><circle cx="88%" cy="42%" fill="#fff" r="1"></circle></g>
+<g class="node-pulse-fast" style="transform-origin: 78% 60%"><circle cx="78%" cy="60%" fill="url(#glow-blue)" r="3.5"></circle><circle cx="78%" cy="60%" fill="#fff" r="1"></circle></g>
+<g class="node-pulse-slow" style="transform-origin: 85% 78%"><circle cx="85%" cy="78%" fill="url(#glow-purple)" r="4"></circle><circle cx="85%" cy="78%" fill="#fff" r="1.5"></circle></g>
+<g class="node-pulse-med" style="transform-origin: 72% 88%"><circle cx="72%" cy="88%" fill="url(#glow-blue)" r="2.5"></circle><circle cx="72%" cy="88%" fill="#fff" r="1"></circle></g>
+<!-- Loose Nodes -->
+<g class="node-pulse-fast" style="transform-origin: 32% 55%"><circle cx="32%" cy="55%" fill="url(#glow-purple)" r="2"></circle><circle cx="32%" cy="55%" fill="#fff" r="0.8"></circle></g>
+<g class="node-pulse-slow" style="transform-origin: 62% 75%"><circle cx="62%" cy="75%" fill="url(#glow-blue)" r="2"></circle><circle cx="62%" cy="75%" fill="#fff" r="0.8"></circle></g>
+</svg>
+</div>
+</div>
+<!-- Navigation Shell (Suppressed context: Login screen typically hides Global Nav, but JSON provided TopNavBar for Team Tracker) -->
+<!-- According to "The Destination Rule": Transactional screens (Login/Signup) MUST exclude the navigation shell. -->
+<main class="flex-grow flex items-center justify-center p-6 relative z-10">
+<div class="w-full max-w-md animate-float" id="auth-container">
+<!-- Branding Header -->
+<div class="text-center mb-8">
+<div class="inline-flex items-center justify-center w-16 h-16 rounded-xl bg-primary-container/30 border border-primary/20 mb-4 backdrop-blur-md">
+<span class="material-symbols-outlined text-primary text-4xl" data-icon="shield_lock" style="font-variation-settings: 'FILL' 1;">shield_lock</span>
+</div>
+<h1 class="text-3xl font-headline font-black tracking-tight text-white mb-2">Team Tracker</h1>
+<p class="text-on-surface-variant font-label text-sm uppercase tracking-widest">Secure Access Portal</p>
+</div>
+<!-- Glass Card -->
+<div class="glass-card rounded-2xl p-8">
+<!-- Tabs -->
+<div class="flex border-b border-outline-variant/30 mb-8">
+<button class="flex-1 pb-4 text-sm font-bold transition-all duration-300 border-b-2 border-primary text-primary" id="tab-signin" onclick="switchTab('signin')">
+                        Sign In
+                    </button>
+<button class="flex-1 pb-4 text-sm font-bold transition-all duration-300 border-b-2 border-transparent text-on-surface-variant hover:text-on-surface" id="tab-signup" onclick="switchTab('signup')">
+                        Sign Up
+                    </button>
+</div>
+<!-- Error Message Box (Hidden by default, shown for feedback) -->
+<div class="mb-6 p-4 rounded-lg bg-error-container/80 backdrop-blur-sm text-on-error-container text-sm flex items-start gap-3 border border-error/20 animate-pulse" id="error-box">
+<span class="material-symbols-outlined text-lg" data-icon="warning">warning</span>
+<span class="">Invalid credentials. Please verify your access tokens and try again.</span>
+</div>
+<!-- Form Content -->
+<form class="space-y-5" id="auth-form">
+<!-- Full Name (Only for Sign Up) -->
+<div class="hidden transition-all duration-300" id="field-fullname">
+<label class="block text-xs font-label text-on-surface-variant mb-1.5 ml-1">Full Name</label>
+<div class="relative group">
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-on-surface-variant group-focus-within:text-primary transition-colors" data-icon="person">person</span>
+</div>
+<input class="w-full bg-surface-container-lowest/50 backdrop-blur-sm border border-outline-variant/30 rounded-xl py-3 pl-10 pr-4 text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none focus:border-primary/50 transition-all" placeholder="Alex Rivera" type="text">
+</div>
+</div>
+<!-- Email -->
+<div>
+<label class="block text-xs font-label text-on-surface-variant mb-1.5 ml-1">Email Address</label>
+<div class="relative group">
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-on-surface-variant group-focus-within:text-primary transition-colors" data-icon="mail">mail</span>
+</div>
+<input class="w-full bg-surface-container-lowest/50 backdrop-blur-sm border border-outline-variant/30 rounded-xl py-3 pl-10 pr-4 text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none focus:border-primary/50 transition-all" placeholder="name@teamtracker.com" type="email">
+</div>
+</div>
+<!-- Password -->
+<div>
+<label class="block text-xs font-label text-on-surface-variant mb-1.5 ml-1">Password</label>
+<div class="relative group">
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-on-surface-variant group-focus-within:text-primary transition-colors" data-icon="lock">lock</span>
+</div>
+<input class="w-full bg-surface-container-lowest/50 backdrop-blur-sm border border-outline-variant/30 rounded-xl py-3 pl-10 pr-12 text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none focus:border-primary/50 transition-all" placeholder="••••••••••••" type="password">
+<button class="absolute inset-y-0 right-0 pr-3 flex items-center text-on-surface-variant hover:text-primary transition-colors" type="button">
+<span class="material-symbols-outlined" data-icon="visibility">visibility</span>
+</button>
+</div>
+</div>
+<!-- Forgot Password (Signin only) -->
+<div class="flex justify-end" id="forgot-pass">
+<a class="text-xs text-primary hover:text-primary-fixed transition-colors" href="#">Recovery key?</a>
+</div>
+<!-- CTA Button -->
+<button class="w-full py-4 mt-4 bg-gradient-to-r from-primary-container to-secondary-container text-white font-bold rounded-xl shadow-lg shadow-primary-container/20 hover:scale-[1.02] active:scale-95 transition-all duration-200 flex items-center justify-center gap-2" type="submit">
+<span class="">Secure Access</span>
+<span class="material-symbols-outlined text-xl" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</form>
+<!-- SSO Options -->
+<div class="mt-8">
+<div class="relative mb-6">
+<div class="absolute inset-0 flex items-center"><div class="w-full border-t border-outline-variant/20"></div></div>
+<div class="relative flex justify-center text-xs uppercase"><span class="bg-surface/50 backdrop-blur-md px-3 text-on-surface-variant rounded-full border border-outline-variant/20">Enterprise Federated ID</span></div>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<button class="flex items-center justify-center gap-2 py-3 border border-outline-variant/30 rounded-xl hover:bg-surface-variant/40 transition-all bg-surface-container-lowest/30 backdrop-blur-sm">
+<img alt="Google" class="w-5 h-5" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDD2t-2EmauKkuAk4J-Yg4VOAUE-_cqZiTZ7Guv3LMUPvUORlNCubhKmX-NLhyhzQU9OFl2p_Z2slbw3tHMJHpkm7QFdvym6EqCOekZS6KLkZfT0wgUvgobEFWTA2GP9YqscdJ2iUbiG0vvClKg459V6jv6Y_Ke4_ghrFQhYHIphKT-W5b3DFZRgcSMIcXQwe6gTxbo5ZudQIDNBazPOTWbtN5Ss3PDgixni8i55dmogLeRulJGHSh4NIcPnz6DFXdK2yjH1Bg4ozE">
+<span class="text-sm font-medium">Google</span>
+</button>
+<button class="flex items-center justify-center gap-2 py-3 border border-outline-variant/30 rounded-xl hover:bg-surface-variant/40 transition-all bg-surface-container-lowest/30 backdrop-blur-sm">
+<img alt="Microsoft" class="w-5 h-5" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBiBzAUzAmdrH7OTL2rmaBRd7YA-SLV39SzQM02pBa2sgn2ZIgWCUKHVgNqmwTkTZUItX9mU9m-7TpMK2h99bKdeGvcHxfAYYh0sr9Et0kJ3QkzaVc7e5CEGZ9OmMbjXUuDyc55K9G2fY6CtG--gwce2Fe0JZdUGX2FeP4FTdfh8wCYpES-x25EleAl0-31wIU2mqLoljDQRDO0R4EcMrO95c3U9LeQ86aMrQfj87YsN1H2W2dPoLGaPGLlqVPDRLYktXoD22o4t08">
+<span class="text-sm font-medium">Microsoft</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Supporting Text -->
+<p class="text-center mt-8 text-on-surface-variant text-sm font-label">
+                Protected by end-to-end hardware encryption protocols.
+            </p>
+</div>
+</main>
+<!-- Footer (Using JSON Blueprint) -->
+<footer class="w-full py-8 flex flex-col md:flex-row justify-between items-center px-8 border-t border-outline-variant/20 bg-surface/40 backdrop-blur-xl z-10 relative">
+<div class="mb-4 md:mb-0">
+<span class="font-headline font-bold text-on-surface opacity-80">Team Tracker</span>
+<span class="mx-2 text-outline-variant">|</span>
+<span class="font-label text-label-sm text-on-surface-variant">© 2024 Team Tracker Secure Systems</span>
+</div>
+<div class="flex gap-6">
+<a class="font-label text-label-sm text-on-surface-variant hover:text-primary transition-colors opacity-80 hover:opacity-100" href="#">Privacy Policy</a>
+<a class="font-label text-label-sm text-on-surface-variant hover:text-primary transition-colors opacity-80 hover:opacity-100" href="#">Terms of Service</a>
+<a class="font-label text-label-sm text-on-surface-variant hover:text-primary transition-colors opacity-80 hover:opacity-100" href="#">Security Audit</a>
+</div>
+</footer>
+<script>
+        function switchTab(mode) {
+            const tabSignin = document.getElementById('tab-signin');
+            const tabSignup = document.getElementById('tab-signup');
+            const fieldFullName = document.getElementById('field-fullname');
+            const forgotPass = document.getElementById('forgot-pass');
+            const errorBox = document.getElementById('error-box');
+
+            // Reset error on tab switch
+            errorBox.classList.add('hidden');
+
+            if (mode === 'signup') {
+                tabSignup.classList.add('border-primary', 'text-primary');
+                tabSignup.classList.remove('border-transparent', 'text-on-surface-variant');
+                tabSignin.classList.remove('border-primary', 'text-primary');
+                tabSignin.classList.add('border-transparent', 'text-on-surface-variant');
+                
+                fieldFullName.classList.remove('hidden');
+                forgotPass.classList.add('hidden');
+            } else {
+                tabSignin.classList.add('border-primary', 'text-primary');
+                tabSignin.classList.remove('border-transparent', 'text-on-surface-variant');
+                tabSignup.classList.remove('border-primary', 'text-primary');
+                tabSignup.classList.add('border-transparent', 'text-on-surface-variant');
+                
+                fieldFullName.classList.add('hidden');
+                forgotPass.classList.remove('hidden');
+            }
+        }
+
+        // Form Interactivity
+        document.getElementById('auth-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            // Simulate processing
+            const btn = e.target.querySelector('button[type="submit"]');
+            const originalContent = btn.innerHTML;
+            btn.innerHTML = '<span class="material-symbols-outlined animate-spin" data-icon="progress_activity">progress_activity</span> Validating...';
+            btn.disabled = true;
+
+            setTimeout(() => {
+                btn.innerHTML = originalContent;
+                btn.disabled = false;
+                document.getElementById('error-box').classList.remove('hidden');
+            }, 1500);
+        });
+
+        // Micro-interaction for inputs
+        document.querySelectorAll('input').forEach(input => {
+            input.addEventListener('focus', () => {
+                input.parentElement.classList.add('scale-[1.01]');
+            });
+            input.addEventListener('blur', () => {
+                input.parentElement.classList.remove('scale-[1.01]');
+            });
+        });
+    </script>
+</body></html>

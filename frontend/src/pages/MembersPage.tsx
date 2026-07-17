@@ -40,19 +40,19 @@ function MemberMenu({ onEdit, onDelete, onUploadCv }: {
     <div ref={ref} className="relative flex justify-end">
       <button
         onClick={() => setOpen(o => !o)}
-        className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-white/5 rounded-lg transition-colors"
+        className="p-1.5 text-white/50 hover:text-foreground hover:bg-[#1c1926]/80 backdrop-blur-md/5 rounded-lg transition-colors"
         title="Options"
       >
         <MoreVertical className="w-4 h-4" />
       </button>
 
       {open && (
-        <div className="absolute right-0 top-8 z-30 w-44 bg-popover border border-border rounded-xl shadow-xl overflow-hidden animate-fade-in">
+        <div className="absolute right-0 top-8 z-30 w-44 bg-popover border border-white/5 rounded-xl shadow-xl overflow-hidden animate-fade-in">
           <button
             onClick={() => { setOpen(false); onEdit(); }}
             className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-foreground hover:bg-muted/40 transition-colors text-left"
           >
-            <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
+            <Pencil className="w-3.5 h-3.5 text-white/50" />
             Edit
           </button>
           <button
@@ -122,10 +122,10 @@ function MemberFormModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fade-in">
-      <div className="bg-card rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-border">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+      <div className="bg-[#1c1926]/80 backdrop-blur-md rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-white/5">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/5">
           <h2 className="font-semibold text-lg">{member ? 'Edit Member' : 'Add Team Member'}</h2>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-white/50 hover:text-foreground"><X className="w-5 h-5" /></button>
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
           {/* Avatar Upload */}
@@ -142,7 +142,7 @@ function MemberFormModal({
             </label>
           </div>
 
-          <div className="flex items-center gap-4 border border-border p-3 rounded-lg bg-muted/20">
+          <div className="flex items-center gap-4 border border-white/5 p-3 rounded-lg bg-muted/20">
             <label className="flex items-center gap-2 text-sm text-azure-300 cursor-pointer hover:text-azure-400 border border-azure-800/40 rounded-lg px-3 py-2 hover:bg-azure-900/20 transition-colors">
               <FileText className="w-4 h-4" /> {cvFile ? 'Change CV' : 'Upload CV'}
               <input type="file" accept=".pdf,.docx" className="hidden" onChange={e => {
@@ -151,7 +151,7 @@ function MemberFormModal({
                 e.target.value = '';
               }} />
             </label>
-            {cvFile && <span className="text-xs text-muted-foreground truncate flex-1" title={cvFile.name}>{cvFile.name}</span>}
+            {cvFile && <span className="text-xs text-white/50 truncate flex-1" title={cvFile.name}>{cvFile.name}</span>}
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -162,23 +162,23 @@ function MemberFormModal({
               { label: 'Designation', key: 'designation', placeholder: 'Senior Engineer', type: 'text' },
             ].map(({ label, key, placeholder, required, type }) => (
               <div key={key}>
-                <label className="block text-xs font-medium text-muted-foreground mb-1">{label}</label>
+                <label className="block text-xs font-medium text-white/50 mb-1">{label}</label>
                 <input
                   type={type}
                   required={required}
                   placeholder={placeholder}
                   value={form[key as keyof MemberFormData]}
                   onChange={e => setForm(prev => ({ ...prev, [key]: e.target.value }))}
-                  className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30 focus:border-azure-400"
+                  className="w-full px-3 py-2 text-sm border border-white/5 rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30 focus:border-azure-400"
                 />
               </div>
             ))}
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-muted-foreground mb-1">Reporting Manager / Head</label>
+            <label className="block text-xs font-medium text-white/50 mb-1">Reporting Manager / Head</label>
             <select value={form.managerId} onChange={e => setForm(p => ({ ...p, managerId: e.target.value }))}
-              className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-zinc-900 text-foreground focus:outline-none focus:ring-2 focus:ring-azure-500/30 focus:border-azure-400">
+              className="w-full px-3 py-2 text-sm border border-white/5 rounded-lg bg-zinc-900 text-foreground focus:outline-none focus:ring-2 focus:ring-azure-500/30 focus:border-azure-400">
               <option value="">No Manager Assigned</option>
               {allMembers?.data.filter(m => m.id !== member?.id).map(m => (
                 <option key={m.id} value={m.id}>{m.name} ({m.designation})</option>
@@ -187,8 +187,8 @@ function MemberFormModal({
           </div>
 
         </form>
-        <div className="flex gap-3 px-6 py-4 border-t border-border">
-          <button onClick={onClose} className="flex-1 px-4 py-2 text-sm font-medium border border-border rounded-lg hover:bg-muted transition-colors">Cancel</button>
+        <div className="flex gap-3 px-6 py-4 border-t border-white/5">
+          <button onClick={onClose} className="flex-1 px-4 py-2 text-sm font-medium border border-white/5 rounded-lg hover:bg-muted transition-colors">Cancel</button>
           <button onClick={handleSubmit as any} className="flex-1 px-4 py-2 text-sm font-medium bg-azure-500 text-white rounded-lg hover:bg-azure-600 transition-colors">
             {member ? 'Save Changes' : 'Add Member'}
           </button>
@@ -351,25 +351,25 @@ export default function MembersPage() {
       </div>
 
       {/* Search and Filters */}
-      <div className="bg-card rounded-xl border border-border p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className="bg-[#1c1926]/80 backdrop-blur-md rounded-xl border border-white/5 p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div className="flex flex-col sm:flex-row flex-1 gap-3">
           <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/50" />
             <input
               type="text"
               placeholder="Search by name, email…"
               value={search}
               onChange={e => { setSearch(e.target.value); }}
-              className="w-full pl-9 pr-4 py-2 text-sm border border-border rounded-lg bg-muted/20 focus:outline-none focus:ring-2 focus:ring-azure-500/30 focus:border-azure-500"
+              className="w-full pl-9 pr-4 py-2 text-sm border border-white/5 rounded-lg bg-muted/20 focus:outline-none focus:ring-2 focus:ring-azure-500/30 focus:border-azure-500"
             />
           </div>
 
           <div className="relative w-full sm:max-w-xs">
-            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/50 pointer-events-none" />
             <select
               value={projectId}
               onChange={(e) => setProjectId(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 text-sm border border-border rounded-lg bg-muted/20 appearance-none focus:outline-none focus:ring-2 focus:ring-azure-500/30 focus:border-azure-500 text-foreground"
+              className="w-full pl-9 pr-4 py-2 text-sm border border-white/5 rounded-lg bg-muted/20 appearance-none focus:outline-none focus:ring-2 focus:ring-azure-500/30 focus:border-azure-500 text-foreground"
             >
               <option value="" className="bg-zinc-900 text-foreground">All Projects</option>
               {projectsData?.data?.map((project: any) => (
@@ -382,7 +382,7 @@ export default function MembersPage() {
         </div>
 
         {/* Quick Filters */}
-        <div className="flex items-center gap-1 bg-muted/10 p-1 border border-border rounded-xl self-start md:self-auto">
+        <div className="flex items-center gap-1 bg-muted/10 p-1 border border-white/5 rounded-xl self-start md:self-auto">
           {[
             { label: 'All', value: 'ALL' },
             { label: 'Allocated', value: 'ALLOCATED' },
@@ -395,7 +395,7 @@ export default function MembersPage() {
                 'px-3 py-1.5 text-xs font-semibold rounded-lg transition-all',
                 statusFilter === tab.value
                   ? 'bg-azure-500 text-white shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-white/5'
+                  : 'text-white/50 hover:text-foreground hover:bg-white/5'
               )}
             >
               {tab.label}
@@ -405,7 +405,7 @@ export default function MembersPage() {
       </div>
 
       {/* Table */}
-      <div className="bg-card rounded-xl border border-border table-container overflow-hidden">
+      <div className="bg-[#1c1926]/80 backdrop-blur-md rounded-xl border border-white/5 table-container overflow-hidden">
         <table className="w-full data-table">
           <thead>
             <tr>
@@ -449,7 +449,7 @@ export default function MembersPage() {
                     </div>
                   </div>
                 </td>
-                <td><span className="text-sm text-muted-foreground">{member.designation}</span></td>
+                <td><span className="text-sm text-white/50">{member.designation}</span></td>
                 <td>
                   <span className={cn(
                     'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border',
@@ -470,7 +470,7 @@ export default function MembersPage() {
                       </span>
                       {member.activeProjectNames && member.activeProjectNames.length > 1 && (
                         <div className="absolute bottom-full mb-2 left-0 hidden group-hover/tooltip:block z-50 animate-fade-in pointer-events-none">
-                          <div className="bg-popover border border-border text-foreground text-xs rounded-lg py-2 px-3 shadow-xl whitespace-nowrap">
+                          <div className="bg-popover border border-white/5 text-foreground text-xs rounded-lg py-2 px-3 shadow-xl whitespace-nowrap">
                             {member.activeProjectNames.map((proj, i) => (
                               <div key={i} className="mb-1 last:mb-0">• {proj}</div>
                             ))}
@@ -481,7 +481,7 @@ export default function MembersPage() {
                       )}
                     </div>
                   ) : (
-                    <span className="text-sm text-muted-foreground">—</span>
+                    <span className="text-sm text-white/50">—</span>
                   )}
                 </td>
                 <td>
@@ -511,13 +511,13 @@ export default function MembersPage() {
                         <button
                           onClick={() => { setCvUploadingId(member.id); cvFileRef.current?.click(); }}
                           disabled={cvUploadingId === member.id}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-muted hover:bg-muted-foreground/10 text-muted-foreground transition-colors border border-border"
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-muted hover:bg-muted-foreground/10 text-white/50 transition-colors border border-white/5"
                         >
                           <Upload className="w-3.5 h-3.5" />
                           <span>Upload</span>
                         </button>
                       ) : (
-                        <span className="text-sm text-muted-foreground">—</span>
+                        <span className="text-sm text-white/50">—</span>
                       )
                     )}
                   </div>
@@ -539,7 +539,7 @@ export default function MembersPage() {
               </tr>
             ))}
             {!isLoading && processedMembers.length === 0 && (
-              <tr><td colSpan={6} className="text-center py-12 text-muted-foreground">No members found</td></tr>
+              <tr><td colSpan={6} className="text-center py-12 text-white/50">No members found</td></tr>
             )}
           </tbody>
         </table>
@@ -582,11 +582,11 @@ export default function MembersPage() {
       {/* Delete Confirm */}
       {deleteId && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-card rounded-2xl shadow-2xl p-6 max-w-sm w-full border border-border">
+          <div className="bg-[#1c1926]/80 backdrop-blur-md rounded-2xl shadow-2xl p-6 max-w-sm w-full border border-white/5">
             <h3 className="font-semibold text-lg mb-2">Delete Member?</h3>
-            <p className="text-sm text-muted-foreground mb-6">This will permanently delete the member and all their data. This action cannot be undone.</p>
+            <p className="text-sm text-white/50 mb-6">This will permanently delete the member and all their data. This action cannot be undone.</p>
             <div className="flex gap-3">
-              <button onClick={() => setDeleteId(null)} className="flex-1 px-4 py-2 text-sm border border-border rounded-lg hover:bg-muted">Cancel</button>
+              <button onClick={() => setDeleteId(null)} className="flex-1 px-4 py-2 text-sm border border-white/5 rounded-lg hover:bg-muted">Cancel</button>
               <button onClick={() => deleteMember.mutate(deleteId)} disabled={deleteMember.isPending}
                 className="flex-1 px-4 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-60 flex items-center justify-center gap-2">
                 {deleteMember.isPending && <Loader2 className="w-4 h-4 animate-spin" />} Delete

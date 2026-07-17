@@ -49,14 +49,14 @@ export default function ChangePasswordModal({ forced = false, onClose, onSkip }:
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/50 backdrop-blur-sm">
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-        <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-700">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+      <div className="bg-[#1a1721] border border-white/10 rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+        <div className="flex items-center justify-between p-6 border-b border-white/5">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg">
-              <KeyRound className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+            <div className="p-2 bg-indigo-500/20 rounded-lg">
+              <KeyRound className="w-5 h-5 text-indigo-400" />
             </div>
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+            <h2 className="text-xl font-semibold text-white">
               {forced ? 'Change Default Password' : 'Change Password'}
             </h2>
           </div>
@@ -72,7 +72,7 @@ export default function ChangePasswordModal({ forced = false, onClose, onSkip }:
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {forced && (
-            <div className="flex items-start gap-3 p-4 bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300 rounded-lg text-sm">
+            <div className="flex items-start gap-3 p-4 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-lg text-sm">
               <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
               <p>For security reasons, you must change your default password before accessing the dashboard.</p>
             </div>
@@ -93,7 +93,7 @@ export default function ChangePasswordModal({ forced = false, onClose, onSkip }:
           {!success && (
             <>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-sm font-medium text-gray-300 mb-1">
                   Current Password
                 </label>
                 <div className="relative">
@@ -102,12 +102,12 @@ export default function ChangePasswordModal({ forced = false, onClose, onSkip }:
                     required
                     value={currentPassword}
                     onChange={e => setCurrentPassword(e.target.value)}
-                    className="w-full pl-4 pr-10 py-2 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-900 dark:text-white outline-none transition-shadow"
+                    className="w-full pl-4 pr-10 py-2 border border-white/10 bg-black/20 text-white rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-shadow"
                   />
                   <button
                     type="button"
                     onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-500"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-300"
                   >
                     {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -115,7 +115,7 @@ export default function ChangePasswordModal({ forced = false, onClose, onSkip }:
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-sm font-medium text-gray-300 mb-1">
                   New Password
                 </label>
                 <div className="relative">
@@ -124,12 +124,12 @@ export default function ChangePasswordModal({ forced = false, onClose, onSkip }:
                     required
                     value={newPassword}
                     onChange={e => setNewPassword(e.target.value)}
-                    className="w-full pl-4 pr-10 py-2 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-900 dark:text-white outline-none transition-shadow"
+                    className="w-full pl-4 pr-10 py-2 border border-white/10 bg-black/20 text-white rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-shadow"
                   />
                   <button
                     type="button"
                     onClick={() => setShowNewPassword(!showNewPassword)}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-500"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-300"
                   >
                     {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -137,7 +137,7 @@ export default function ChangePasswordModal({ forced = false, onClose, onSkip }:
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-sm font-medium text-gray-300 mb-1">
                   Confirm New Password
                 </label>
                 <div className="relative">
@@ -146,12 +146,12 @@ export default function ChangePasswordModal({ forced = false, onClose, onSkip }:
                     required
                     value={confirmPassword}
                     onChange={e => setConfirmPassword(e.target.value)}
-                    className="w-full pl-4 pr-10 py-2 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-900 dark:text-white outline-none transition-shadow"
+                    className="w-full pl-4 pr-10 py-2 border border-white/10 bg-black/20 text-white rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-shadow"
                   />
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-500"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-300"
                   >
                     {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>

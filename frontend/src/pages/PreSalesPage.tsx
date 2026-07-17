@@ -205,9 +205,9 @@ export default function PreSalesPage() {
     const hasNextStage = opp.currentStageIndex < opp.stages.length - 1;
 
     return (
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-[10px] text-muted-foreground bg-muted/5 px-5 py-1.5 rounded-b-xl border-t border-border/30">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-[10px] text-white/50 bg-muted/5 px-5 py-1.5 rounded-b-xl border-t border-white/5/30">
         <div className="flex items-center gap-1.5">
-          <Info className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+          <Info className="w-3.5 h-3.5 text-white/50 flex-shrink-0" />
           <span>
             {isWon ? (
               <span className="text-emerald-400 font-semibold">Deal successfully closed!</span>
@@ -295,16 +295,16 @@ export default function PreSalesPage() {
   if (isLoading) {
     return (
       <div className="space-y-4 animate-pulse">
-        <div className="h-8 w-64 bg-card rounded-lg" />
+        <div className="h-8 w-64 bg-[#1c1926]/80 backdrop-blur-md rounded-lg" />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="h-24 bg-card rounded-2xl border border-border" />
+            <div key={i} className="h-24 bg-[#1c1926]/80 backdrop-blur-md rounded-2xl border border-white/5" />
           ))}
         </div>
-        <div className="h-10 w-96 bg-card rounded-lg" />
+        <div className="h-10 w-96 bg-[#1c1926]/80 backdrop-blur-md rounded-lg" />
         <div className="space-y-4">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="h-44 bg-card rounded-2xl border border-border" />
+            <div key={i} className="h-44 bg-[#1c1926]/80 backdrop-blur-md rounded-2xl border border-white/5" />
           ))}
         </div>
       </div>
@@ -324,7 +324,7 @@ export default function PreSalesPage() {
         {isAdmin && (
           <button
             onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-1.5 px-3 py-2 bg-azure-500 hover:bg-azure-600 text-white text-xs font-semibold rounded-xl transition-all duration-150 shadow-md shadow-azure-500/25 active:scale-[0.98]"
+            className="flex items-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/20 text-white border border-white/10 transition-colors text-xs font-semibold rounded-xl transition-all duration-150 shadow-md shadow-azure-500/25 active:scale-[0.98]"
           >
             <Plus className="w-4 h-4 stroke-[2.5]" /> Add Opportunity
           </button>
@@ -334,9 +334,9 @@ export default function PreSalesPage() {
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {/* Total Opportunities */}
-        <div className="bg-card py-3.5 px-4 rounded-xl border border-border flex items-center justify-between hover-card">
+        <div className="bg-[#1c1926]/80 backdrop-blur-md py-3.5 px-4 rounded-xl border border-white/5 flex items-center justify-between hover-card">
           <div className="space-y-0.5">
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Total Leads</p>
+            <p className="text-[10px] font-semibold text-white/50 uppercase tracking-wider">Total Leads</p>
             <p className="text-2xl font-extrabold text-foreground">{totalCount}</p>
           </div>
           <div className="w-10 h-10 rounded-lg bg-azure-500/10 flex items-center justify-center text-azure-400">
@@ -345,9 +345,9 @@ export default function PreSalesPage() {
         </div>
 
         {/* In Progress */}
-        <div className="bg-card py-3.5 px-4 rounded-xl border border-border flex items-center justify-between hover-card">
+        <div className="bg-[#1c1926]/80 backdrop-blur-md py-3.5 px-4 rounded-xl border border-white/5 flex items-center justify-between hover-card">
           <div className="space-y-0.5">
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">In Progress</p>
+            <p className="text-[10px] font-semibold text-white/50 uppercase tracking-wider">In Progress</p>
             <p className="text-2xl font-extrabold text-foreground">{activeCount}</p>
           </div>
           <div className="w-10 h-10 rounded-lg bg-yellow-500/10 flex items-center justify-center text-yellow-400">
@@ -356,9 +356,9 @@ export default function PreSalesPage() {
         </div>
 
         {/* Closed Won */}
-        <div className="bg-card py-3.5 px-4 rounded-xl border border-border flex items-center justify-between hover-card">
+        <div className="bg-[#1c1926]/80 backdrop-blur-md py-3.5 px-4 rounded-xl border border-white/5 flex items-center justify-between hover-card">
           <div className="space-y-0.5">
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Deals Secured</p>
+            <p className="text-[10px] font-semibold text-white/50 uppercase tracking-wider">Deals Secured</p>
             <p className="text-2xl font-extrabold text-foreground">{wonCount}</p>
           </div>
           <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400">
@@ -368,21 +368,21 @@ export default function PreSalesPage() {
       </div>
 
       {/* Filters & Actions Panel */}
-      <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between bg-card/50 p-2 rounded-xl border border-border">
+      <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between bg-[#1c1926]/80 backdrop-blur-md/50 p-2 rounded-xl border border-white/5">
         {/* Search */}
         <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/50" />
           <input
             type="text"
             placeholder="Search by client or opportunity name..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-8 pr-3 py-1.5 text-xs bg-zinc-900 border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-azure-500/30"
+            className="w-full pl-8 pr-3 py-1.5 text-xs bg-zinc-900 border border-white/5 rounded-lg focus:outline-none focus:ring-1 focus:ring-azure-500/30"
           />
         </div>
 
         {/* Account Tabs */}
-        <div className="flex gap-1 p-0.5 bg-zinc-900 border border-border rounded-lg">
+        <div className="flex gap-1 p-0.5 bg-zinc-900 border border-white/5 rounded-lg">
           {([
             ['ALL', `All (${totalCount})`],
             ['PNB', `PNB (${pnbCount})`],
@@ -395,7 +395,7 @@ export default function PreSalesPage() {
                 'px-3 py-1 text-[11px] font-semibold rounded-md transition-all duration-200',
                 activeTab === val
                   ? 'bg-azure-500 text-white shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
+                  : 'text-white/50 hover:text-foreground'
               )}
             >
               {label}
@@ -407,18 +407,18 @@ export default function PreSalesPage() {
       {/* Opportunity Cards List */}
       <div className="space-y-4">
         {opportunities.length === 0 ? (
-          <div className="bg-card p-10 text-center border border-border rounded-xl">
-            <Briefcase className="w-8 h-8 text-muted-foreground mx-auto mb-2 opacity-60" />
+          <div className="bg-[#1c1926]/80 backdrop-blur-md p-10 text-center border border-white/5 rounded-xl">
+            <Briefcase className="w-8 h-8 text-white/50 mx-auto mb-2 opacity-60" />
             <h3 className="text-sm font-semibold">No opportunities tracked</h3>
-            <p className="text-xs text-muted-foreground mt-0.5">
+            <p className="text-xs text-white/50 mt-0.5">
               Click "Add Opportunity" in the top-right to create your first Proposal & Bid (PNB) or Time & Material (TNM) workflow.
             </p>
           </div>
         ) : filteredGrouped.length === 0 ? (
-          <div className="bg-card p-10 text-center border border-border rounded-xl">
-            <Briefcase className="w-8 h-8 text-muted-foreground mx-auto mb-2 opacity-60" />
+          <div className="bg-[#1c1926]/80 backdrop-blur-md p-10 text-center border border-white/5 rounded-xl">
+            <Briefcase className="w-8 h-8 text-white/50 mx-auto mb-2 opacity-60" />
             <h3 className="text-sm font-semibold">No matching opportunities</h3>
-            <p className="text-xs text-muted-foreground mt-0.5">
+            <p className="text-xs text-white/50 mt-0.5">
               Try adjusting your filters or search term to locate the records.
             </p>
           </div>
@@ -428,12 +428,12 @@ export default function PreSalesPage() {
             return (
               <details
                 key={`${grouped.clientName}-${grouped.name}`}
-                className="group/opp-card bg-card border border-border rounded-xl overflow-hidden hover-card flex flex-col transition-all duration-300 open:pb-2"
+                className="group/opp-card bg-[#1c1926] border border-white/10 rounded-xl overflow-hidden hover-card flex flex-col transition-all duration-300 open:pb-2"
               >
                 {/* Card Header: Opportunity Name & Client details */}
-                <summary className="px-5 py-3 border-b border-border bg-muted/5 flex items-center justify-between relative list-none cursor-pointer hover:bg-muted/10 transition-colors">
+                <summary className="px-5 py-3 border-b border-white/5 bg-muted/5 flex items-center justify-between relative list-none cursor-pointer hover:bg-muted/10 transition-colors">
                   <div className="flex items-center gap-3">
-                    <ChevronRight className="w-4 h-4 text-muted-foreground transition-transform group-open/opp-card:rotate-90" />
+                    <ChevronRight className="w-4 h-4 text-white/50 transition-transform group-open/opp-card:rotate-90" />
                     <div className="flex flex-col gap-0.5">
                       <h3 
                         className="font-extrabold text-sm text-foreground leading-snug hover:text-azure-400 transition-colors"
@@ -446,7 +446,7 @@ export default function PreSalesPage() {
                       >
                         {grouped.name}
                       </h3>
-                      <p className="text-[10px] text-muted-foreground font-semibold">
+                      <p className="text-[10px] text-white/50 font-semibold">
                         Client Name: <span className="text-foreground/90">{grouped.clientName}</span>
                       </p>
                     </div>
@@ -459,7 +459,7 @@ export default function PreSalesPage() {
                         setOpenMenuKey(null);
                         setDocsTarget(grouped);
                       }}
-                      className="flex items-center gap-1 px-2 py-1 text-[10px] font-semibold text-zinc-400 hover:text-zinc-300 bg-zinc-800/50 hover:bg-zinc-800 border border-border rounded-lg transition-colors"
+                      className="flex items-center gap-1 px-2 py-1 text-[10px] font-semibold text-zinc-400 hover:text-zinc-300 bg-zinc-800/50 hover:bg-zinc-800 border border-white/5 rounded-lg transition-colors"
                       title="View uploaded documents"
                     >
                       <FileText className="w-3 h-3" />
@@ -486,7 +486,7 @@ export default function PreSalesPage() {
                             const key = `${grouped.clientName}::${grouped.name}`;
                             setOpenMenuKey(openMenuKey === key ? null : key);
                           }}
-                          className="text-muted-foreground hover:text-foreground p-1.5 rounded-lg hover:bg-zinc-800/80 transition-colors"
+                          className="text-white/50 hover:text-foreground p-1.5 rounded-lg hover:bg-zinc-800/80 transition-colors"
                           title="Actions"
                           aria-label="Actions"
                         >
@@ -496,7 +496,7 @@ export default function PreSalesPage() {
                         {/* Dropdown Menu */}
                         {openMenuKey === `${grouped.clientName}::${grouped.name}` && (
                           <div
-                            className="absolute right-0 mt-1 w-44 bg-zinc-900 border border-border rounded-xl shadow-2xl z-40 py-1.5 overflow-hidden animate-fade-in"
+                            className="absolute right-0 mt-1 w-44 bg-zinc-900 border border-white/5 rounded-xl shadow-2xl z-40 py-1.5 overflow-hidden animate-fade-in"
                             onClick={(e) => e.stopPropagation()}
                           >
                             <button
@@ -516,7 +516,7 @@ export default function PreSalesPage() {
                                   setOppToReset(grouped.pnbOpp!);
                                   setOpenMenuKey(null);
                                 }}
-                                className="w-full text-left px-3.5 py-2 text-xs hover:bg-zinc-800 text-foreground transition-colors border-t border-border/30 flex items-center gap-1.5"
+                                className="w-full text-left px-3.5 py-2 text-xs hover:bg-zinc-800 text-foreground transition-colors border-t border-white/5/30 flex items-center gap-1.5"
                               >
                                 <RefreshCcw className="w-3.5 h-3.5" />
                                 Reset PNB
@@ -541,7 +541,7 @@ export default function PreSalesPage() {
                                 setOppToDelete({ name: grouped.name, clientName: grouped.clientName });
                                 setOpenMenuKey(null);
                               }}
-                              className="w-full text-left px-3.5 py-2 text-xs font-semibold hover:bg-zinc-800 text-red-400 hover:text-red-300 transition-colors flex items-center gap-1.5 border-t border-border/30"
+                              className="w-full text-left px-3.5 py-2 text-xs font-semibold hover:bg-zinc-800 text-red-400 hover:text-red-300 transition-colors flex items-center gap-1.5 border-t border-white/5/30"
                             >
                               <X className="w-3.5 h-3.5" />
                               Remove {grouped.name}
@@ -563,7 +563,7 @@ export default function PreSalesPage() {
                           <span className="px-1.5 py-0.5 rounded text-[8px] font-extrabold tracking-wide uppercase bg-blue-950/60 text-blue-400 border border-blue-900/30">
                             PNB (Proposal & Bid)
                           </span>
-                          <span className="text-[9px] text-muted-foreground font-semibold">
+                          <span className="text-[9px] text-white/50 font-semibold">
                             Stage {grouped.pnbOpp.currentStageIndex + 1} &middot;
                             <span className="text-azure-400 ml-0.5">{grouped.pnbOpp.progressPercent}%</span>
                           </span>
@@ -591,7 +591,7 @@ export default function PreSalesPage() {
                           <span className="px-1.5 py-0.5 rounded text-[8px] font-extrabold tracking-wide uppercase bg-indigo-950/60 text-indigo-400 border border-indigo-900/30">
                             TNM (Time & Material)
                           </span>
-                          <span className="text-[9px] text-muted-foreground font-semibold">
+                          <span className="text-[9px] text-white/50 font-semibold">
                             Stage {grouped.tnmOpp.currentStageIndex + 1} &middot;
                             <span className="text-azure-400 ml-0.5">{grouped.tnmOpp.progressPercent}%</span>
                           </span>
@@ -659,14 +659,14 @@ export default function PreSalesPage() {
           aria-labelledby="modal-delete-title"
         >
           <div
-            className="bg-card rounded-2xl shadow-2xl w-full max-w-sm border border-border overflow-hidden transform transition-all duration-300 scale-100 animate-scale-up"
+            className="bg-[#1c1926]/80 backdrop-blur-md rounded-2xl shadow-2xl w-full max-w-sm border border-white/5 overflow-hidden transform transition-all duration-300 scale-100 animate-scale-up"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-5 space-y-3">
               <h3 id="modal-delete-title" className="text-sm font-bold text-foreground">
                 {oppToDelete.account ? `Delete ${oppToDelete.account} Timeline` : 'Delete Opportunity'}
               </h3>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-white/50">
                 {oppToDelete.account ? (
                   <>
                     Are you sure you want to delete the <strong className="text-foreground">{oppToDelete.account}</strong> timeline for <strong className="text-foreground">"{oppToDelete.name}"</strong>?
@@ -678,10 +678,10 @@ export default function PreSalesPage() {
                 )}
               </p>
             </div>
-            <div className="flex gap-3 px-5 py-3 bg-muted/15 border-t border-border">
+            <div className="flex gap-3 px-5 py-3 bg-muted/15 border-t border-white/5">
               <button
                 onClick={() => setOppToDelete(null)}
-                className="flex-1 px-3 py-2 text-xs font-semibold border border-border rounded-xl hover:bg-muted/50 text-foreground transition-all duration-150"
+                className="flex-1 px-3 py-2 text-xs font-semibold border border-white/5 rounded-xl hover:bg-muted/50 text-foreground transition-all duration-150"
               >
                 Cancel
               </button>

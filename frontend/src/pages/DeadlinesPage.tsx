@@ -13,16 +13,16 @@ function DeadlineCard({ item, category }: { item: AssignedCertification; categor
   };
 
   return (
-    <div className={cn('flex items-center gap-4 p-4 rounded-xl border border-border border-l-4 bg-card hover-card', colors[category])}>
+    <div className={cn('flex items-center gap-4 p-4 rounded-xl border border-white/5 border-l-4 bg-[#1c1926]/80 backdrop-blur-md hover-card', colors[category])}>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-semibold">{item.certification?.name}</p>
-        <p className="text-xs text-muted-foreground mt-0.5">{item.member?.name} · {item.certification?.provider}</p>
+        <p className="text-xs text-white/50 mt-0.5">{item.member?.name} · {item.certification?.provider}</p>
       </div>
       <div className="text-right flex-shrink-0">
-        <p className={cn('text-xs font-bold', category === 'overdue' ? 'text-red-400' : category === 'today' ? 'text-orange-400' : 'text-muted-foreground')}>
+        <p className={cn('text-xs font-bold', category === 'overdue' ? 'text-red-400' : category === 'today' ? 'text-orange-400' : 'text-white/50')}>
           {formatDate(item.deadline)}
         </p>
-        <p className="text-[10px] text-muted-foreground mt-0.5">{item.progress}% complete</p>
+        <p className="text-[10px] text-white/50 mt-0.5">{item.progress}% complete</p>
       </div>
       <div className="w-10 h-10 rounded-full border-2 border-current flex items-center justify-center flex-shrink-0"
         style={{ borderColor: category === 'overdue' ? '#f87171' : category === 'today' ? '#fb923c' : '#c084fc' }}>
@@ -39,8 +39,8 @@ function Section({ title, items, category, icon: Icon, color, emptyMsg }: {
   icon: React.ComponentType<{ className?: string }>; color: string; emptyMsg: string;
 }) {
   return (
-    <div className="bg-card rounded-xl border border-border overflow-hidden">
-      <div className={cn('flex items-center justify-between px-5 py-3.5 border-b border-border', color)}>
+    <div className="bg-[#1c1926]/80 backdrop-blur-md rounded-xl border border-white/5 overflow-hidden">
+      <div className={cn('flex items-center justify-between px-5 py-3.5 border-b border-white/5', color)}>
         <div className="flex items-center gap-2">
           <Icon className="w-4 h-4" />
           <h3 className="font-semibold text-sm">{title}</h3>
@@ -49,7 +49,7 @@ function Section({ title, items, category, icon: Icon, color, emptyMsg }: {
       </div>
       <div className="p-4 space-y-3">
         {items.length === 0
-          ? <p className="text-sm text-muted-foreground text-center py-4">{emptyMsg}</p>
+          ? <p className="text-sm text-white/50 text-center py-4">{emptyMsg}</p>
           : items.map(item => <DeadlineCard key={item.id} item={item} category={category} />)
         }
       </div>
@@ -68,7 +68,7 @@ export default function DeadlinesPage() {
     return (
       <div className="grid grid-cols-2 gap-6">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="bg-card rounded-xl border border-border h-48 animate-pulse" />
+          <div key={i} className="bg-[#1c1926]/80 backdrop-blur-md rounded-xl border border-white/5 h-48 animate-pulse" />
         ))}
       </div>
     );

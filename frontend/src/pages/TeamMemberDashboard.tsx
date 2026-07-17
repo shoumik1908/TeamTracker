@@ -1,11 +1,15 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { useQuery } from '@tanstack/react-query';
-import { membersApi, notificationsApi } from '../lib/api';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { membersApi, notificationsApi, tasksApi } from '../lib/api';
 import { DashboardGreeting } from '../components/DashboardGreeting';
 import { filesApi } from '../lib/filesApi';
 import { format, formatDistanceToNow } from 'date-fns';
+import { TaskFormDialog } from './tasks/TaskFormDialog';
+import { useAssignableMembers, useUpdateTask } from '../api/tasksQueries';
+import { toast } from 'sonner';
+import { TaskRow } from '../types/tasks';
 
 class ErrorBoundary extends React.Component<any, { hasError: boolean, error: any }> {
   constructor(props: any) { super(props); this.state = { hasError: false, error: null }; }
@@ -25,6 +29,9 @@ class ErrorBoundary extends React.Component<any, { hasError: boolean, error: any
 function TeamMemberDashboardContent() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [editingAllocation, setEditingAllocation] = useState(false);
+  const [tempAllocation, setTempAllocation] = useState(100);
   
   const notifTypeIcon: Record<string, string> = {
     CERTIFICATION_ASSIGNED: '📋', DEADLINE_APPROACHING: '⏰',
@@ -40,6 +47,10 @@ function TeamMemberDashboardContent() {
     enabled: !!user?.teamMemberId
   });
   const member = memberRes?.data;
+  
+  const [modalTask, setModalTask] = useState<TaskRow | null | undefined>(undefined);
+  const { data: assignableMembers } = useAssignableMembers();
+  const updateTask = useUpdateTask();
 
   // 2. Fetch Notifications
   const { data: notifRes } = useQuery({
@@ -53,6 +64,11 @@ function TeamMemberDashboardContent() {
     queryKey: ['files'],
     queryFn: () => filesApi.getFiles(),
   });
+
+  const { data: tasksRes } = useQuery({
+    queryKey: ['dashboard-tasks'],
+    queryFn: () => tasksApi.list({}).then(r => r.data),
+  });
   
   // Calculate recent files
   const recentFiles = useMemo(() => {
@@ -65,16 +81,43 @@ function TeamMemberDashboardContent() {
   const designation = member?.designation || 'Team Member';
   const allocatedProject = member?.currentProjectName || 'Bench';
   
+  const updateMember = useMutation({
+    mutationFn: (data: { allocationPercentage: number }) => membersApi.update(user?.teamMemberId as string, data as any),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['members', user?.teamMemberId] });
+      setEditingAllocation(false);
+      toast.success('Allocation percentage updated!');
+    },
+    onError: (err: any) => {
+      toast.error('Failed to update allocation: ' + (err.response?.data?.error || err.message));
+    }
+  });
+  
   // KPI Stats
   const activeProjectsCount = member?.activeProjectsCount || 0;
   const activeCertsCount = (member?.stats?.completedCertifications || 0) + (member?.stats?.inProgressCertifications || 0);
 
   // Parse Action Items (Tasks)
-  const tasks = (member?.meetingActionItems || []).map((item: any) => ({
-    id: item.id,
-    title: item.task,
-    status: item.completed || item.status === 'completed' ? 'done' : 'open'
-  }));
+  const tasks = [...(tasksRes || [])]
+    .filter((task: any) => {
+      if (task.status === 'DONE') {
+        const completed = task.completedAt || task.updatedAt;
+        if (!completed) return false;
+        const diffMs = new Date().getTime() - new Date(completed).getTime();
+        return diffMs < 2 * 60 * 1000;
+      }
+      return true;
+    })
+    .sort((a: any, b: any) => {
+      if (!a.dueDate) return 1;
+      if (!b.dueDate) return -1;
+      return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+    })
+    .slice(0, 5)
+    .map((task: any) => ({
+      ...task,
+      status: task.status === 'DONE' ? 'done' : 'open',
+    }));
 
   // Parse Upcoming Events from Certifications and Projects
   const upcomingEvents = useMemo(() => {
@@ -136,7 +179,7 @@ function TeamMemberDashboardContent() {
   }, [member, tasks]);
 
   if (memberLoading) {
-    return <div className="p-8 text-center text-muted-foreground animate-pulse">Loading dashboard...</div>;
+    return <div className="p-8 text-center text-white/50 animate-pulse">Loading dashboard...</div>;
   }
 
   return (
@@ -174,7 +217,7 @@ function TeamMemberDashboardContent() {
             <div className="value">{activeCertsCount}</div>
             <div className="sub mono">In progress & completed</div>
           </Link>
-          <Link to="/" className="kpi">
+          <Link to="/tasks" className="kpi">
             <div className="label">Tasks due this week</div>
             <div className="value">{tasks.filter((t: any) => t.status === 'open').length}</div>
             <div className="sub mono">0 overdue</div>
@@ -191,7 +234,7 @@ function TeamMemberDashboardContent() {
               <a href="/projects">View all →</a>
             </div>
             {(!member?.projectMembers || member.projectMembers.length === 0) ? (
-              <p className="text-sm text-muted-foreground py-4">No active projects assigned.</p>
+              <p className="text-sm text-white/50 py-4">No active projects assigned.</p>
             ) : (
               member.projectMembers.map((pm: any) => {
                 const isProject = !!pm.project;
@@ -235,7 +278,7 @@ function TeamMemberDashboardContent() {
               <a href="/certifications">Cert tracker →</a>
             </div>
             {(!member?.assignedCertifications || member.assignedCertifications.length === 0) ? (
-              <p className="text-sm text-muted-foreground py-4">No certifications tracking.</p>
+              <p className="text-sm text-white/50 py-4">No certifications tracking.</p>
             ) : (
               member.assignedCertifications.slice(0,5).map((cert: any) => {
                 let badgeClass = 'valid';
@@ -268,16 +311,37 @@ function TeamMemberDashboardContent() {
           {/* Action Items */}
           <div className="card">
             <div className="card-head">
-              <h2>Today's Tasks</h2>
-              <a href="#">Add task</a>
+              <h2>Task List</h2>
+              {user?.role?.permissions?.manageTeam || user?.role?.permissions?.['tasks:manage'] ? (
+                <a href="/tasks?create=1" onClick={(e) => { e.preventDefault(); navigate('/tasks?create=1'); }}>Add task</a>
+              ) : null}
             </div>
             {tasks.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-4">No tasks pending.</p>
+              <p className="text-sm text-white/50 py-4">No tasks pending.</p>
             ) : (
               tasks.slice(0, 5).map((t: any) => (
-                <div className={`task ${t.status}`} key={t.id}>
-                  <span className="mark">{t.status === 'done' ? '✓' : ''}</span>
-                  <span className="label truncate">{t.title}</span>
+                <div 
+                  className={`task ${t.status} hover:bg-neutral-800/50 transition-colors p-2 rounded`} 
+                  key={t.id}
+                >
+                  <span 
+                    className="mark cursor-pointer hover:bg-neutral-700/50" 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      updateTask.mutate({ id: t.id, input: { status: t.status === 'done' ? 'TODO' : 'DONE' } }, {
+                        onSuccess: () => toast.success(`Task marked as ${t.status === 'done' ? 'To do' : 'Done'}`),
+                        onError: () => toast.error("Couldn't update task")
+                      });
+                    }}
+                  >
+                    {t.status === 'done' ? '✓' : ''}
+                  </span>
+                  <span 
+                    className="label truncate cursor-pointer flex-1" 
+                    onClick={() => setModalTask(t)}
+                  >
+                    {t.title}
+                  </span>
                 </div>
               ))
             )}
@@ -292,7 +356,7 @@ function TeamMemberDashboardContent() {
           <div className="card">
             <div className="card-head"><h2>Recent notifications</h2></div>
             {notifications.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-4">No recent notifications.</p>
+              <p className="text-sm text-white/50 py-4">No recent notifications.</p>
             ) : (
               notifications.map((n: any) => (
                 <div className="notif" key={n.id}>
@@ -311,7 +375,7 @@ function TeamMemberDashboardContent() {
           <div className="card">
             <div className="card-head"><h2>Upcoming</h2></div>
             {upcomingEvents.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-4">No upcoming deadlines.</p>
+              <p className="text-sm text-white/50 py-4">No upcoming deadlines.</p>
             ) : (
               upcomingEvents.map(ev => (
                 <div className="cal-item" key={ev.id}>
@@ -348,7 +412,7 @@ function TeamMemberDashboardContent() {
           <div className="card">
             <div className="card-head"><h2>Recent files</h2></div>
             {recentFiles.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-4">No files uploaded recently.</p>
+              <p className="text-sm text-white/50 py-4">No files uploaded recently.</p>
             ) : (
               recentFiles.map((f: any) => {
                 const isPdf = f.fileName?.toLowerCase().endsWith('.pdf');
@@ -365,19 +429,101 @@ function TeamMemberDashboardContent() {
 
           {/* Utilization */}
           <div className="card">
-            <div className="card-head"><h2>My utilization</h2></div>
-            <div className="util-bar">
-              <div className="fill" style={{ width: activeProjectsCount > 0 ? '100%' : '0%' }}></div>
+            <div className="card-head flex items-center justify-between">
+              <h2>My utilization</h2>
+              {editingAllocation ? (
+                <div className="flex gap-2">
+                  <button 
+                    onClick={() => updateMember.mutate({ allocationPercentage: tempAllocation })} 
+                    disabled={updateMember.isPending}
+                    className="text-xs bg-azure-500 text-white px-2 py-1 rounded hover:bg-azure-600 disabled:opacity-50"
+                  >
+                    Save
+                  </button>
+                  <button 
+                    onClick={() => setEditingAllocation(false)}
+                    className="text-xs bg-zinc-700 text-white px-2 py-1 rounded hover:bg-zinc-600"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <button 
+                  onClick={() => {
+                    setTempAllocation(member?.allocationPercentage ?? (activeProjectsCount > 0 ? 100 : 0));
+                    setEditingAllocation(true);
+                  }}
+                  className="text-[10px] uppercase font-bold text-azure-400 hover:text-azure-300"
+                >
+                  Edit
+                </button>
+              )}
             </div>
-            <div className="util-labels">
-              <span>Allocated <b>{activeProjectsCount > 0 ? '100%' : '0%'}</b></span>
-              <span>Available <b>{activeProjectsCount > 0 ? '0%' : '100%'}</b></span>
-            </div>
+            
+            {editingAllocation ? (
+              <div className="py-4 space-y-2">
+                <div className="flex justify-between text-xs text-white/50">
+                  <span>0%</span>
+                  <span className="font-bold text-azure-400">{tempAllocation}%</span>
+                  <span>100%</span>
+                </div>
+                <input 
+                  type="range" 
+                  min="0" max="100" step="5"
+                  value={tempAllocation}
+                  onChange={e => setTempAllocation(parseInt(e.target.value))}
+                  className="w-full accent-azure-500 cursor-pointer"
+                />
+              </div>
+            ) : (
+              <>
+                <div className="util-bar mt-4">
+                  <div className="fill" style={{ width: `${member?.allocationPercentage ?? (activeProjectsCount > 0 ? 100 : 0)}%` }}></div>
+                </div>
+                <div className="util-labels">
+                  <span>Allocated <b>{member?.allocationPercentage ?? (activeProjectsCount > 0 ? 100 : 0)}%</b></span>
+                  <span>Available <b>{100 - (member?.allocationPercentage ?? (activeProjectsCount > 0 ? 100 : 0))}%</b></span>
+                </div>
+              </>
+            )}
           </div>
 
         </div>
-
       </div>
+      
+      {modalTask !== undefined && (
+        <TaskFormDialog
+          initial={modalTask}
+          members={assignableMembers || []}
+          isAdmin={!!(user?.role?.permissions?.manageTeam || user?.role?.permissions?.['tasks:manage'])}
+          onClose={() => setModalTask(undefined)}
+          onSave={(taskData) => {
+            const input = (user?.role?.permissions?.manageTeam || user?.role?.permissions?.['tasks:manage'])
+              ? {
+                  title: taskData.title.trim(),
+                  description: taskData.description?.trim() || undefined,
+                  assigneeId: taskData.assigneeId,
+                  priority: taskData.priority,
+                  dueDate: taskData.due || null,
+                  status: taskData.status,
+                }
+              : { status: taskData.status };
+
+            if (modalTask) {
+              updateTask.mutate(
+                { id: modalTask.id, input },
+                {
+                  onSuccess: () => {
+                    toast.success("Task updated");
+                    setModalTask(undefined);
+                  },
+                  onError: (err) => toast.error(err instanceof Error ? err.message : "Couldn't update task"),
+                }
+              );
+            }
+          }}
+        />
+      )}
     </div>
   );
 }

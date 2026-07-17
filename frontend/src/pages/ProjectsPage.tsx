@@ -35,19 +35,19 @@ function ProjectMenu({ onEdit, onDelete }: {
     <div ref={ref} className="relative flex justify-end" onClick={e => e.stopPropagation()}>
       <button
         onClick={() => setOpen(o => !o)}
-        className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-white/5 rounded-lg transition-colors"
+        className="p-1.5 text-white/50 hover:text-foreground hover:bg-[#1c1926]/80 backdrop-blur-md/5 rounded-lg transition-colors"
         title="Options"
       >
         <MoreVertical className="w-4 h-4" />
       </button>
 
       {open && (
-        <div className="absolute right-0 top-8 z-30 w-36 bg-popover border border-border rounded-xl shadow-xl overflow-hidden animate-fade-in">
+        <div className="absolute right-0 top-8 z-30 w-36 bg-popover border border-white/5 rounded-xl shadow-xl overflow-hidden animate-fade-in">
           <button
             onClick={() => { setOpen(false); onEdit(); }}
             className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-foreground hover:bg-muted/40 transition-colors text-left"
           >
-            <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
+            <Pencil className="w-3.5 h-3.5 text-white/50" />
             Edit
           </button>
           <button
@@ -80,82 +80,82 @@ function ProjectModal({ project, onClose, onSave }: { project?: Project; onClose
 
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-fade-in">
-      <div className="bg-card rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-border">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+      <div className="bg-[#1c1926]/80 backdrop-blur-md rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-white/5">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/5">
           <h2 className="font-semibold text-lg">{project ? 'Edit Project' : 'New Project'}</h2>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-white/50 hover:text-foreground"><X className="w-5 h-5" /></button>
         </div>
         <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
           <div>
-            <label className="block text-xs font-medium text-muted-foreground mb-1">Project Name *</label>
+            <label className="block text-xs font-medium text-white/50 mb-1">Project Name *</label>
             <input required value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
-              className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30"
+              className="w-full px-3 py-2 text-sm border border-white/5 rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30"
               placeholder="Azure Cloud Migration" />
           </div>
           <div>
-            <label className="block text-xs font-medium text-muted-foreground mb-1">Description</label>
+            <label className="block text-xs font-medium text-white/50 mb-1">Description</label>
             <textarea rows={2} value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
-              className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30 resize-none"
+              className="w-full px-3 py-2 text-sm border border-white/5 rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30 resize-none"
               placeholder="Brief description..." />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1">Client</label>
+              <label className="block text-xs font-medium text-white/50 mb-1">Client</label>
               <input value={form.client} onChange={e => setForm(p => ({ ...p, client: e.target.value }))}
-                className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30"
+                className="w-full px-3 py-2 text-sm border border-white/5 rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30"
                 placeholder="Acme Corp / Internal" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1">Priority</label>
+              <label className="block text-xs font-medium text-white/50 mb-1">Priority</label>
               <select value={form.priority} onChange={e => setForm(p => ({ ...p, priority: e.target.value }))}
-                className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30">
+                className="w-full px-3 py-2 text-sm border border-white/5 rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30">
                 {PRIORITIES.map(p => <option key={p}>{p}</option>)}
               </select>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1">Start Date *</label>
+              <label className="block text-xs font-medium text-white/50 mb-1">Start Date *</label>
               <input type="date" value={form.startDate} onChange={e => setForm(p => ({ ...p, startDate: e.target.value }))}
-                className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30" />
+                className="w-full px-3 py-2 text-sm border border-white/5 rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1">End Date</label>
+              <label className="block text-xs font-medium text-white/50 mb-1">End Date</label>
               <input type="date" value={form.endDate} onChange={e => setForm(p => ({ ...p, endDate: e.target.value }))}
-                className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30" />
+                className="w-full px-3 py-2 text-sm border border-white/5 rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30" />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1">Status</label>
+              <label className="block text-xs font-medium text-white/50 mb-1">Status</label>
               <select value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value }))}
-                className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-azure-500/30">
+                className="w-full px-3 py-2 text-sm border border-white/5 rounded-lg bg-[#1c1926]/80 backdrop-blur-md focus:outline-none focus:ring-2 focus:ring-azure-500/30">
                 {STATUSES.map(s => <option key={s} value={s}>{formatStatus(s)}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1">Progress ({form.progress}%)</label>
+              <label className="block text-xs font-medium text-white/50 mb-1">Progress ({form.progress}%)</label>
               <input type="range" min={0} max={100} value={form.progress}
                 onChange={e => setForm(p => ({ ...p, progress: e.target.value }))} className="w-full accent-azure-500 mt-2" />
             </div>
           </div>
           <div>
-            <label className="block text-xs font-medium text-muted-foreground mb-1">Project Manager</label>
+            <label className="block text-xs font-medium text-white/50 mb-1">Project Manager</label>
             <select value={form.managerId} onChange={e => setForm(p => ({ ...p, managerId: e.target.value }))}
-              className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-azure-500/30">
+              className="w-full px-3 py-2 text-sm border border-white/5 rounded-lg bg-[#1c1926]/80 backdrop-blur-md focus:outline-none focus:ring-2 focus:ring-azure-500/30">
               <option value="">No Manager Assigned</option>
               {members?.data.map(m => <option key={m.id} value={m.id}>{m.name} ({m.designation})</option>)}
             </select>
           </div>
           {!project && (
             <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-2">Assign Members</label>
+              <label className="block text-xs font-medium text-white/50 mb-2">Assign Members</label>
               <div className="flex flex-wrap gap-2 max-h-24 overflow-y-auto">
                 {members?.data.map(m => (
                   <button key={m.id} type="button"
                     onClick={() => setSelectedMembers(prev => prev.includes(m.id) ? prev.filter(id => id !== m.id) : [...prev, m.id])}
                     className={cn('text-xs px-2.5 py-1 rounded-full border transition-colors',
-                      selectedMembers.includes(m.id) ? 'bg-azure-500 text-white border-azure-500 shadow-lg shadow-azure-500/20' : 'border-border hover:border-azure-500/50 bg-muted/10')}>
+                      selectedMembers.includes(m.id) ? 'bg-azure-500 text-white border-azure-500 shadow-lg shadow-azure-500/20' : 'border-white/5 hover:border-azure-500/50 bg-muted/10')}>
                     {m.name}
                   </button>
                 ))}
@@ -163,8 +163,8 @@ function ProjectModal({ project, onClose, onSave }: { project?: Project; onClose
             </div>
           )}
         </div>
-        <div className="flex gap-3 px-6 py-4 border-t border-border">
-          <button onClick={onClose} className="flex-1 px-4 py-2 text-sm border border-border rounded-lg hover:bg-muted bg-card">Cancel</button>
+        <div className="flex gap-3 px-6 py-4 border-t border-white/5">
+          <button onClick={onClose} className="flex-1 px-4 py-2 text-sm border border-white/5 rounded-lg hover:bg-muted bg-[#1c1926]/80 backdrop-blur-md">Cancel</button>
           <button onClick={() => { if (form.name && form.startDate) onSave({ ...form, progress: parseInt(form.progress), memberIds: selectedMembers, managerId: form.managerId || null }); }}
             className="flex-1 px-4 py-2 text-sm bg-azure-500 text-white rounded-lg hover:bg-azure-600">
             {project ? 'Save Changes' : 'Create Project'}
@@ -216,14 +216,14 @@ export default function ProjectsPage() {
         </button>
       </div>
 
-      <div className="bg-card rounded-xl border border-border p-4 flex gap-3">
+      <div className="bg-[#1c1926]/80 backdrop-blur-md rounded-xl border border-white/5 p-4 flex gap-3">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/50" />
           <input type="text" placeholder="Search projects…" value={search} onChange={e => { setSearch(e.target.value); setPage(1); }}
-            className="w-full pl-9 pr-4 py-2 text-sm border border-border rounded-lg bg-muted/20 focus:outline-none focus:ring-2 focus:ring-azure-500/30 focus:border-azure-500" />
+            className="w-full pl-9 pr-4 py-2 text-sm border border-white/5 rounded-lg bg-muted/20 focus:outline-none focus:ring-2 focus:ring-azure-500/30 focus:border-azure-500" />
         </div>
         <select value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
-          className="px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30 bg-card">
+          className="px-3 py-2 text-sm border border-white/5 rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30 bg-[#1c1926]/80 backdrop-blur-md">
           <option value="">All Statuses</option>
           {STATUSES.map(s => <option key={s} value={s}>{formatStatus(s)}</option>)}
         </select>
@@ -232,7 +232,7 @@ export default function ProjectsPage() {
       {/* Project Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {isLoading && Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="bg-card rounded-xl border border-border p-5 h-48 animate-pulse">
+          <div key={i} className="bg-[#1c1926]/80 backdrop-blur-md rounded-xl border border-white/5 p-5 h-48 animate-pulse">
             <div className="h-5 bg-muted rounded w-2/3 mb-2" />
             <div className="h-3 bg-muted rounded w-1/3 mb-4" />
             <div className="h-12 bg-muted rounded mb-3" />
@@ -241,12 +241,12 @@ export default function ProjectsPage() {
         {sortedProjects.map(project => (
           <div key={project.id} 
             onClick={() => navigate(`/projects/${project.id}`)}
-            className="bg-card rounded-xl border border-border p-5 hover-card cursor-pointer hover:border-azure-500/40 transition-colors"
+            className="bg-[#1c1926]/80 backdrop-blur-md rounded-xl border border-white/5 p-5 hover-card cursor-pointer hover:border-azure-500/40 transition-colors"
           >
             <div className="flex items-start justify-between gap-3 mb-3">
               <div className="flex-1 min-w-0">
                 <h3 className="font-semibold truncate group-hover:text-azure-400">{project.name}</h3>
-                {project.client && <p className="text-xs text-muted-foreground mt-0.5">Client: {project.client}</p>}
+                {project.client && <p className="text-xs text-white/50 mt-0.5">Client: {project.client}</p>}
                 <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1">
                   {project.manager && (
                     <p className="text-xs text-azure-400 font-semibold flex items-center gap-1">
@@ -270,12 +270,12 @@ export default function ProjectsPage() {
               </div>
             </div>
 
-            {project.description && <p className="text-xs text-muted-foreground line-clamp-2 mb-3">{project.description}</p>}
+            {project.description && <p className="text-xs text-white/50 line-clamp-2 mb-3">{project.description}</p>}
 
             {/* Progress */}
             <div className="mb-3">
               <div className="flex justify-between text-xs mb-1">
-                <span className="text-muted-foreground">Progress</span>
+                <span className="text-white/50">Progress</span>
                 <span className="font-semibold">{project.progress}%</span>
               </div>
               <div className="w-full bg-muted rounded-full h-2">
@@ -299,19 +299,19 @@ export default function ProjectsPage() {
                       ))}
                     </div>
                     {project.members.length > 3 && (
-                      <span className="text-xs text-muted-foreground ml-1">+{project.members.length - 3}</span>
+                      <span className="text-xs text-white/50 ml-1">+{project.members.length - 3}</span>
                     )}
-                    <span className="text-xs text-muted-foreground ml-1.5 flex items-center gap-1">
+                    <span className="text-xs text-white/50 ml-1.5 flex items-center gap-1">
                       <Users className="w-3 h-3 text-azure-500" />{project.members.length}
                     </span>
                   </div>
                 ) : (
-                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                  <span className="text-xs text-white/50 flex items-center gap-1">
                     <Users className="w-3.5 h-3.5" /> Assign Team
                   </span>
                 )}
                 {project.endDate && (
-                  <span className="text-xs text-muted-foreground flex items-center gap-1 ml-3">
+                  <span className="text-xs text-white/50 flex items-center gap-1 ml-3">
                     <Calendar className="w-3 h-3" />{formatDate(project.endDate)}
                   </span>
                 )}
@@ -330,7 +330,7 @@ export default function ProjectsPage() {
           </div>
         ))}
         {!isLoading && data?.data.length === 0 && (
-          <div className="col-span-2 text-center py-12 text-muted-foreground bg-card rounded-xl border border-border">
+          <div className="col-span-2 text-center py-12 text-white/50 bg-[#1c1926]/80 backdrop-blur-md rounded-xl border border-white/5">
             No projects found
           </div>
         )}
@@ -344,11 +344,11 @@ export default function ProjectsPage() {
 
       {deleteId && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-card rounded-2xl shadow-2xl p-6 max-w-sm w-full border border-border">
+          <div className="bg-[#1c1926]/80 backdrop-blur-md rounded-2xl shadow-2xl p-6 max-w-sm w-full border border-white/5">
             <h3 className="font-semibold text-lg mb-2">Delete Project?</h3>
-            <p className="text-sm text-muted-foreground mb-6">This will permanently delete the project and all member assignments.</p>
+            <p className="text-sm text-white/50 mb-6">This will permanently delete the project and all member assignments.</p>
             <div className="flex gap-3">
-              <button onClick={() => setDeleteId(null)} className="flex-1 px-4 py-2 text-sm border border-border rounded-lg hover:bg-muted">Cancel</button>
+              <button onClick={() => setDeleteId(null)} className="flex-1 px-4 py-2 text-sm border border-white/5 rounded-lg hover:bg-muted">Cancel</button>
               <button onClick={() => del.mutate(deleteId)} disabled={del.isPending}
                 className="flex-1 px-4 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-60 flex items-center justify-center gap-2">
                 {del.isPending && <Loader2 className="w-4 h-4 animate-spin" />} Delete
@@ -435,21 +435,21 @@ function ManageTeamModal({ project, onClose }: { project: Project; onClose: () =
 
   return (
     <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
-      <div className="bg-card rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-border/80 flex flex-col max-h-[85vh] transform transition-all">
+      <div className="bg-[#1c1926]/80 backdrop-blur-md rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-white/5/80 flex flex-col max-h-[85vh] transform transition-all">
         {/* Header */}
-        <div className="relative flex items-center justify-between px-6 py-5 border-b border-border/80 bg-gradient-to-b from-muted/30 to-card">
+        <div className="relative flex items-center justify-between px-6 py-5 border-b border-white/5/80 bg-gradient-to-b from-muted/30 to-card">
           <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-azure-500/20 via-azure-500 to-azure-500/20" />
           <div className="space-y-1">
             <h2 className="font-bold text-lg text-foreground tracking-tight flex items-center gap-2">
               <Users className="w-5 h-5 text-azure-400" />
               Manage Project Team
             </h2>
-            <p className="text-xs text-muted-foreground flex items-center gap-1.5 font-medium">
+            <p className="text-xs text-white/50 flex items-center gap-1.5 font-medium">
               <span className="w-1.5 h-1.5 rounded-full bg-azure-500 animate-pulse" />
               {projectDetail.name}
             </p>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all">
+          <button onClick={onClose} className="p-1.5 rounded-lg text-white/50 hover:text-foreground hover:bg-muted/50 transition-all">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -458,13 +458,13 @@ function ManageTeamModal({ project, onClose }: { project: Project; onClose: () =
         <div className="p-6 space-y-6 overflow-y-auto flex-1">
           {/* Current Members Section */}
           <div className="space-y-3">
-            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            <h3 className="text-xs font-semibold text-white/50 uppercase tracking-wider">
               Current Members ({projectDetail.members?.length || 0})
             </h3>
             <div className="space-y-2.5 max-h-[30vh] overflow-y-auto pr-1">
               {projectDetail.members && projectDetail.members.length > 0 ? (
                 projectDetail.members.map(pm => (
-                  <div key={pm.id} className="group flex items-center justify-between p-3 rounded-xl bg-muted/20 border border-border/40 hover:border-azure-500/30 transition-all hover:bg-muted/35">
+                  <div key={pm.id} className="group flex items-center justify-between p-3 rounded-xl bg-black/30 border border-white/10/40 hover:border-azure-500/30 transition-all hover:bg-muted/35">
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 rounded-xl bg-azure-500/10 border border-azure-500/20 flex items-center justify-center text-azure-400 text-sm font-bold flex-shrink-0 overflow-hidden group-hover:scale-105 transition-transform">
                         {pm.member.profilePictureUrl ? (
@@ -477,7 +477,7 @@ function ManageTeamModal({ project, onClose }: { project: Project; onClose: () =
                         <p className="text-sm font-semibold text-foreground tracking-tight group-hover:text-azure-400 transition-colors">
                           {pm.member.name}
                         </p>
-                        <p className="text-[10px] text-muted-foreground font-medium">
+                        <p className="text-[10px] text-white/50 font-medium">
                           {pm.member.designation || 'Team Member'}
                         </p>
                       </div>
@@ -489,7 +489,7 @@ function ManageTeamModal({ project, onClose }: { project: Project; onClose: () =
                       <button 
                         onClick={() => removeMember.mutate(pm.memberId)}
                         disabled={removeMember.isPending}
-                        className="p-1.5 text-muted-foreground hover:text-red-400 hover:bg-red-950/40 rounded-lg opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all"
+                        className="p-1.5 text-white/50 hover:text-red-400 hover:bg-red-950/40 rounded-lg opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all"
                         title="Remove member"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -498,28 +498,28 @@ function ManageTeamModal({ project, onClose }: { project: Project; onClose: () =
                   </div>
                 ))
               ) : (
-                <div className="flex flex-col items-center justify-center py-10 rounded-2xl border border-dashed border-border/60 bg-muted/5 text-center">
-                  <Users className="w-10 h-10 text-muted-foreground/20 mb-2.5" />
-                  <p className="text-xs text-muted-foreground font-medium">No team members assigned yet</p>
-                  <p className="text-[10px] text-muted-foreground/50 mt-0.5">Assign members below to get started</p>
+                <div className="flex flex-col items-center justify-center py-10 rounded-2xl border border-dashed border-white/5/60 bg-muted/5 text-center">
+                  <Users className="w-10 h-10 text-white/50/20 mb-2.5" />
+                  <p className="text-xs text-white/50 font-medium">No team members assigned yet</p>
+                  <p className="text-[10px] text-white/50/50 mt-0.5">Assign members below to get started</p>
                 </div>
               )}
             </div>
           </div>
 
           {/* Add Member Form Section */}
-          <div className="pt-5 border-t border-border/80 space-y-3 bg-card">
-            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+          <div className="pt-5 border-t border-white/5/80 space-y-3 bg-[#1c1926]/80 backdrop-blur-md">
+            <h3 className="text-xs font-semibold text-white/50 uppercase tracking-wider flex items-center gap-1.5">
               <UserPlus className="w-4 h-4 text-azure-400" />
               Add Project Team Member
             </h3>
-            <div className="grid grid-cols-1 gap-3.5 p-4 rounded-2xl bg-muted/15 border border-border/60">
+            <div className="grid grid-cols-1 gap-3.5 p-4 rounded-2xl bg-muted/15 border border-white/5/60">
               <div>
-                <label className="block text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Select Member</label>
+                <label className="block text-[10px] font-semibold text-white/50 uppercase tracking-wider mb-1.5">Select Member</label>
                 <select 
                   value={selectedMemberId} 
                   onChange={e => setSelectedMemberId(e.target.value)}
-                  className="w-full px-3 py-2.5 text-sm border border-border rounded-xl bg-background/80 text-foreground focus:outline-none focus:ring-2 focus:ring-azure-500/40 focus:border-azure-500/60 transition-all cursor-pointer"
+                  className="w-full px-3 py-2.5 text-sm border border-white/5 rounded-xl bg-background/80 text-foreground focus:outline-none focus:ring-2 focus:ring-azure-500/40 focus:border-azure-500/60 transition-all cursor-pointer"
                 >
                   <option value="">Choose a team member…</option>
                   {assignableMembers.map(m => (
@@ -529,11 +529,11 @@ function ManageTeamModal({ project, onClose }: { project: Project; onClose: () =
               </div>
               <div className="grid grid-cols-3 gap-2 items-end">
                 <div className="col-span-2">
-                  <label className="block text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Select Role</label>
+                  <label className="block text-[10px] font-semibold text-white/50 uppercase tracking-wider mb-1.5">Select Role</label>
                   <select 
                     value={role} 
                     onChange={e => setRole(e.target.value)}
-                    className="w-full px-3 py-2.5 text-sm border border-border rounded-xl bg-background/80 text-foreground focus:outline-none focus:ring-2 focus:ring-azure-500/40 focus:border-azure-500/60 transition-all cursor-pointer"
+                    className="w-full px-3 py-2.5 text-sm border border-white/5 rounded-xl bg-background/80 text-foreground focus:outline-none focus:ring-2 focus:ring-azure-500/40 focus:border-azure-500/60 transition-all cursor-pointer"
                   >
                     <option value="PROJECT_MANAGER">Project Manager</option>
                     <option value="TEAM_LEADER">Team Leader</option>
@@ -557,7 +557,7 @@ function ManageTeamModal({ project, onClose }: { project: Project; onClose: () =
                 <button 
                   onClick={() => { if (selectedMemberId) addMember.mutate({ memberId: selectedMemberId, role }); }}
                   disabled={!selectedMemberId || addMember.isPending}
-                  className="w-full py-2.5 rounded-xl text-sm font-semibold transition-all bg-azure-500 hover:bg-azure-600 text-white shadow-lg shadow-azure-500/20 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 h-[42px]"
+                  className="w-full py-2.5 rounded-xl text-sm font-semibold transition-all bg-white/10 hover:bg-white/20 text-white border border-white/10 transition-colors shadow-lg shadow-azure-500/20 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 h-[42px]"
                 >
                   {addMember.isPending ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -574,10 +574,10 @@ function ManageTeamModal({ project, onClose }: { project: Project; onClose: () =
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4.5 border-t border-border/80 flex justify-end bg-muted/20">
+        <div className="px-6 py-4.5 border-t border-white/5/80 flex justify-end bg-muted/20">
           <button 
             onClick={onClose} 
-            className="px-5 py-2.5 text-sm border border-border/85 rounded-xl hover:bg-muted bg-card text-foreground font-semibold hover:border-border transition-colors"
+            className="px-5 py-2.5 text-sm border border-white/5/85 rounded-xl hover:bg-muted bg-[#1c1926]/80 backdrop-blur-md text-foreground font-semibold hover:border-white/5 transition-colors"
           >
             Close
           </button>
@@ -608,16 +608,16 @@ function ProjectMeetingsModal({ project, onClose }: { project: Project; onClose:
 
   return (
     <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
-      <div className="bg-card rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden border border-border/80 flex flex-col h-[85vh] transform transition-all">
+      <div className="bg-[#1c1926]/80 backdrop-blur-md rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden border border-white/5/80 flex flex-col h-[85vh] transform transition-all">
         {/* Header */}
-        <div className="relative flex items-center justify-between px-6 py-5 border-b border-border/80 bg-gradient-to-b from-muted/30 to-card flex-shrink-0">
+        <div className="relative flex items-center justify-between px-6 py-5 border-b border-white/5/80 bg-gradient-to-b from-muted/30 to-card flex-shrink-0">
           <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-azure-500/20 via-azure-500 to-azure-500/20" />
           <div className="space-y-1">
             <h2 className="font-bold text-lg text-foreground tracking-tight flex items-center gap-2">
               <Video className="w-5 h-5 text-azure-400" />
               Recordings & Transcripts
             </h2>
-            <p className="text-xs text-muted-foreground font-medium">
+            <p className="text-xs text-white/50 font-medium">
               Teams integration for {project.name}
             </p>
           </div>
@@ -625,11 +625,11 @@ function ProjectMeetingsModal({ project, onClose }: { project: Project; onClose:
             <button 
               onClick={() => syncMeetings.mutate()} 
               disabled={syncMeetings.isPending}
-              className="px-3 py-1.5 text-xs font-medium bg-muted/40 border border-border rounded-lg hover:bg-muted transition-colors flex items-center gap-1.5"
+              className="px-3 py-1.5 text-xs font-medium bg-muted/40 border border-white/5 rounded-lg hover:bg-muted transition-colors flex items-center gap-1.5"
             >
               {syncMeetings.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Sync Meetings"}
             </button>
-            <button onClick={onClose} className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all">
+            <button onClick={onClose} className="p-1.5 rounded-lg text-white/50 hover:text-foreground hover:bg-muted/50 transition-all">
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -638,9 +638,9 @@ function ProjectMeetingsModal({ project, onClose }: { project: Project; onClose:
         {/* Body */}
         <div className="flex flex-1 min-h-0">
           {/* List */}
-          <div className="w-1/3 border-r border-border overflow-y-auto bg-muted/5 p-4 space-y-3">
-            {isLoading && <div className="text-sm text-muted-foreground text-center py-8">Loading meetings...</div>}
-            {!isLoading && meetings?.length === 0 && <div className="text-sm text-muted-foreground text-center py-8">No meetings found. Click Sync to pull from Teams.</div>}
+          <div className="w-1/3 border-r border-white/5 overflow-y-auto bg-muted/5 p-4 space-y-3">
+            {isLoading && <div className="text-sm text-white/50 text-center py-8">Loading meetings...</div>}
+            {!isLoading && meetings?.length === 0 && <div className="text-sm text-white/50 text-center py-8">No meetings found. Click Sync to pull from Teams.</div>}
             
             {meetings?.map(m => (
               <div 
@@ -648,11 +648,11 @@ function ProjectMeetingsModal({ project, onClose }: { project: Project; onClose:
                 onClick={() => setSelectedMeeting(m)}
                 className={cn(
                   "p-4 rounded-xl border cursor-pointer transition-all hover:border-azure-500/40",
-                  selectedMeeting?.id === m.id ? "bg-azure-900/20 border-azure-500" : "bg-card border-border"
+                  selectedMeeting?.id === m.id ? "bg-azure-900/20 border-azure-500" : "bg-[#1c1926]/80 backdrop-blur-md border-white/5"
                 )}
               >
                 <h4 className="font-semibold text-sm line-clamp-1 mb-1">{m.subject}</h4>
-                <div className="flex justify-between items-center text-xs text-muted-foreground">
+                <div className="flex justify-between items-center text-xs text-white/50">
                   <span>{new Date(m.startTime).toLocaleDateString([], { month: 'short', day: 'numeric' })}</span>
                   <span>{Math.round((new Date(m.endTime).getTime() - new Date(m.startTime).getTime()) / 60000)} min</span>
                 </div>
@@ -666,7 +666,7 @@ function ProjectMeetingsModal({ project, onClose }: { project: Project; onClose:
               <div className="space-y-6">
                 <div>
                   <h3 className="text-xl font-bold mb-2">{selectedMeeting.subject}</h3>
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-4 text-sm text-white/50">
                     <span className="flex items-center gap-1.5"><Users className="w-4 h-4" /> Organizer: {selectedMeeting.organizer}</span>
                     <span className="flex items-center gap-1.5"><Calendar className="w-4 h-4" /> {new Date(selectedMeeting.startTime).toLocaleString()}</span>
                   </div>
@@ -707,17 +707,17 @@ function ProjectMeetingsModal({ project, onClose }: { project: Project; onClose:
 
                 {selectedMeeting.transcriptText && (
                   <div>
-                    <h4 className="text-sm font-bold flex items-center gap-2 mb-3 text-muted-foreground">
+                    <h4 className="text-sm font-bold flex items-center gap-2 mb-3 text-white/50">
                       <FileText className="w-4 h-4" /> Full Transcript
                     </h4>
-                    <div className="bg-muted/10 border border-border rounded-xl p-4 text-xs font-mono text-muted-foreground whitespace-pre-wrap h-64 overflow-y-auto">
+                    <div className="bg-muted/10 border border-white/5 rounded-xl p-4 text-xs font-mono text-white/50 whitespace-pre-wrap h-64 overflow-y-auto">
                       {selectedMeeting.transcriptText}
                     </div>
                   </div>
                 )}
               </div>
             ) : (
-              <div className="h-full flex flex-col items-center justify-center text-muted-foreground">
+              <div className="h-full flex flex-col items-center justify-center text-white/50">
                 <Video className="w-12 h-12 mb-4 opacity-20" />
                 <p>Select a meeting from the left to view details</p>
               </div>

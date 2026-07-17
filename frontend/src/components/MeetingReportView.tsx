@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { generateReportDocx } from '@/lib/exportDocx';
+import api from '@/lib/api';
 
 type WindowType = 'daily' | 'weekly' | 'monthly' | 'custom';
 
@@ -120,16 +121,13 @@ export default function MeetingReportView({ projectId, projectName }: { projectI
     const start = range.start.toISOString().split('T')[0];
     const end = range.end.toISOString().split('T')[0];
     try {
-      const res = await fetch(
-        'http://localhost:3001/api/projects/' + projectId + '/meeting-report?start=' + start + '&end=' + end
-      );
-      if (!res.ok) throw new Error(await res.text());
-      const data = await res.json();
+      const res = await api.get('/projects/' + projectId + '/meeting-report?start=' + start + '&end=' + end);
+      const data = res.data;
       setReportData(data);
       setPeriod({ start, end });
       setReportGenTime(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }) + ' IST');
     } catch (e: any) {
-      setError(e.message);
+      setError(e.response?.data?.error || e.response?.data?.message || e.message);
     } finally {
       setLoading(false);
     }

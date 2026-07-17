@@ -231,9 +231,9 @@ export default function GtmTrackerPage() {
     const hasNextStage = plan.currentStageIndex < plan.stages.length - 1;
 
     return (
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-[10px] text-muted-foreground bg-muted/5 px-5 py-1.5 rounded-b-xl border-t border-border/30">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-[10px] text-white/50 bg-muted/5 px-5 py-1.5 rounded-b-xl border-t border-white/5/30">
         <div className="flex items-center gap-1.5">
-          <Info className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+          <Info className="w-3.5 h-3.5 text-white/50 flex-shrink-0" />
           <span>
             {isWon ? (
               <span className="text-emerald-400 font-semibold">GTM successfully launched!</span>
@@ -687,7 +687,7 @@ export default function GtmTrackerPage() {
       {toastMessage && (
         <div className={cn(
           "fixed bottom-4 right-4 z-50 p-4 rounded-xl shadow-2xl flex items-center gap-2.5 border text-xs font-semibold animate-slide-in",
-          toastMessage.type === 'success' ? "bg-emerald-950/80 text-emerald-400 border-emerald-800/40" : "bg-zinc-900 border-border text-foreground"
+          toastMessage.type === 'success' ? "bg-emerald-950/80 text-emerald-400 border-emerald-800/40" : "bg-zinc-900 border-white/5 text-foreground"
         )}>
           {toastMessage.type === 'success' ? <CheckCircle2 className="w-4 h-4 text-emerald-400" /> : <Info className="w-4 h-4 text-azure-400" />}
           {toastMessage.text}
@@ -709,7 +709,7 @@ export default function GtmTrackerPage() {
         {activeGtmTab === 'launches' && (
           <button
             onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-azure-500 hover:bg-azure-600 text-white text-xs font-bold rounded-xl transition-all duration-150 shadow-md shadow-azure-500/25 active:scale-[0.98]"
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-white/10 hover:bg-white/20 text-white border border-white/10 transition-colors text-xs font-bold rounded-xl transition-all duration-150 shadow-md shadow-azure-500/25 active:scale-[0.98]"
           >
             <Plus className="w-4 h-4 stroke-[2.5]" /> Add GTM Plan
           </button>
@@ -727,7 +727,7 @@ export default function GtmTrackerPage() {
         {activeGtmTab === 'campaigns' && (
           <button
             onClick={openAddCampaign}
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-azure-500 hover:bg-azure-600 text-white text-xs font-bold rounded-xl transition-all duration-150 shadow-md shadow-azure-500/25 active:scale-[0.98]"
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-white/10 hover:bg-white/20 text-white border border-white/10 transition-colors text-xs font-bold rounded-xl transition-all duration-150 shadow-md shadow-azure-500/25 active:scale-[0.98]"
           >
             <Plus className="w-4 h-4 stroke-[2.5]" /> Add Campaign
           </button>
@@ -748,7 +748,7 @@ export default function GtmTrackerPage() {
       </div>
 
       {/* Horizontal Tabs bar */}
-      <div className="border-b border-border/50">
+      <div className="border-b border-white/5/50">
         <div className="flex gap-6">
           {([
             { id: 'overview', label: 'Overview', icon: LayoutDashboard, badge: 0 },
@@ -771,7 +771,7 @@ export default function GtmTrackerPage() {
                   "flex items-center gap-2 pb-3.5 text-xs font-bold transition-all relative border-b-2 -mb-[2px]",
                   isActive 
                     ? "text-[#378add] border-[#378add]" 
-                    : "text-muted-foreground border-transparent hover:text-foreground"
+                    : "text-white/50 border-transparent hover:text-foreground"
                 )}
               >
                 <Icon className="w-4 h-4" />
@@ -792,12 +792,12 @@ export default function GtmTrackerPage() {
         <div className="space-y-4 animate-pulse">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="h-24 bg-card rounded-2xl border border-border" />
+              <div key={i} className="h-24 bg-[#1c1926]/80 backdrop-blur-md rounded-2xl border border-white/5" />
             ))}
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="h-64 bg-card rounded-2xl border border-border" />
-            <div className="h-64 bg-card rounded-2xl border border-border" />
+            <div className="h-64 bg-[#1c1926]/80 backdrop-blur-md rounded-2xl border border-white/5" />
+            <div className="h-64 bg-[#1c1926]/80 backdrop-blur-md rounded-2xl border border-white/5" />
           </div>
         </div>
       ) : (
@@ -809,7 +809,7 @@ export default function GtmTrackerPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="bg-[#1a1a18] py-4 px-5 rounded-[8px] flex items-center justify-between hover-card">
                   <div className="space-y-1">
-                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Active Launches</p>
+                    <p className="text-[10px] font-semibold text-white/50 uppercase tracking-wider">Active Launches</p>
                     <p className="text-2xl font-extrabold text-foreground">{activeLaunchesCount}</p>
                   </div>
                   <div className="w-9 h-9 rounded-lg bg-azure-500/10 flex items-center justify-center text-azure-400">
@@ -819,7 +819,7 @@ export default function GtmTrackerPage() {
 
                 <div className="bg-[#1a1a18] py-4 px-5 rounded-[8px] flex items-center justify-between hover-card">
                   <div className="space-y-1">
-                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Partners</p>
+                    <p className="text-[10px] font-semibold text-white/50 uppercase tracking-wider">Partners</p>
                     <p className="text-2xl font-extrabold text-foreground">{partnersList.length}</p>
                   </div>
                   <div className="w-9 h-9 rounded-lg bg-violet-500/10 flex items-center justify-center text-violet-400">
@@ -829,7 +829,7 @@ export default function GtmTrackerPage() {
 
                 <div className="bg-[#1a1a18] py-4 px-5 rounded-[8px] flex items-center justify-between hover-card">
                   <div className="space-y-1">
-                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Audit Issues</p>
+                    <p className="text-[10px] font-semibold text-white/50 uppercase tracking-wider">Audit Issues</p>
                     <p className="text-2xl font-extrabold text-amber-400">{activeIssuesCount}</p>
                   </div>
                   <div className="w-9 h-9 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-400">
@@ -839,7 +839,7 @@ export default function GtmTrackerPage() {
 
                 <div className="bg-[#1a1a18] py-4 px-5 rounded-[8px] flex items-center justify-between hover-card">
                   <div className="space-y-1">
-                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Open Campaigns</p>
+                    <p className="text-[10px] font-semibold text-white/50 uppercase tracking-wider">Open Campaigns</p>
                     <p className="text-2xl font-extrabold text-foreground">
                       {campaignsList.filter(c => c.status !== 'Completed').length}
                     </p>
@@ -856,7 +856,7 @@ export default function GtmTrackerPage() {
                 <div className="bg-[#1a1a18] p-5 rounded-[8px] space-y-4">
                   <div className="flex items-center justify-between">
                     <h3 className="text-xs font-bold text-foreground uppercase tracking-wider">Launches in progress</h3>
-                    <span className="text-[10px] font-semibold text-muted-foreground">Top 3 by recency</span>
+                    <span className="text-[10px] font-semibold text-white/50">Top 3 by recency</span>
                   </div>
 
                   <div className="space-y-4">
@@ -874,16 +874,16 @@ export default function GtmTrackerPage() {
                         const pct = Math.round((plan.currentStageIndex / (plan.stages.length - 1)) * 100) || 0;
                         const isGreen = pct >= 70;
                         return (
-                          <div key={plan.id} className="bg-zinc-900/30 p-3 rounded-lg border border-border/30 space-y-2">
+                          <div key={plan.id} className="bg-zinc-900/30 p-3 rounded-lg border border-white/5/30 space-y-2">
                             <div className="flex justify-between items-start">
                               <div>
                                 <h4 className="text-xs font-bold text-foreground leading-snug">{plan.name}</h4>
-                                <p className="text-[10px] text-muted-foreground mt-0.5">{plan.clientName} • {plan.category === 'NEW_MARKET_ENTRY' ? 'New Market' : 'Expansion'}</p>
+                                <p className="text-[10px] text-white/50 mt-0.5">{plan.clientName} • {plan.category === 'NEW_MARKET_ENTRY' ? 'New Market' : 'Expansion'}</p>
                               </div>
                               <span className="text-[10px] font-bold text-foreground">{pct}%</span>
                             </div>
                             <div>
-                              <p className="text-[9px] font-semibold text-muted-foreground">Current Stage: <span className="text-foreground/95">{plan.stages[plan.currentStageIndex]}</span></p>
+                              <p className="text-[9px] font-semibold text-white/50">Current Stage: <span className="text-foreground/95">{plan.stages[plan.currentStageIndex]}</span></p>
                               <div className="w-full bg-zinc-800 h-1.5 rounded-full mt-1.5 overflow-hidden">
                                 <div
                                   className={cn("h-full transition-all duration-300", isGreen ? "bg-emerald-500" : "bg-azure-500")}
@@ -901,7 +901,7 @@ export default function GtmTrackerPage() {
                       const isLost = stage.toLowerCase().includes('cancelled');
                       return !isWon && !isLost;
                     }).length === 0 && (
-                      <p className="text-[11px] text-muted-foreground italic text-center py-6">No active launches in progress.</p>
+                      <p className="text-[11px] text-white/50 italic text-center py-6">No active launches in progress.</p>
                     )}
                   </div>
                 </div>
@@ -962,7 +962,7 @@ export default function GtmTrackerPage() {
                             urgency: 2,
                             title: `${partner.name}: Renewal Approaching`,
                             details: `Renewal date: ${formatDate(partner.renewalDate)} (${days < 0 ? 'Expired' : `${days} days left`})`,
-                            icon: <Clock className="w-4 h-4 shrink-0 text-muted-foreground mt-0.5" />,
+                            icon: <Clock className="w-4 h-4 shrink-0 text-white/50 mt-0.5" />,
                             dateSort: renDate.getTime(),
                             statusBadge: (
                               <span className={cn(
@@ -989,19 +989,19 @@ export default function GtmTrackerPage() {
 
                       if (feed.length === 0) {
                         return (
-                          <p className="text-[11px] text-muted-foreground italic text-center py-6">All systems nominal. No issues require attention.</p>
+                          <p className="text-[11px] text-white/50 italic text-center py-6">All systems nominal. No issues require attention.</p>
                         );
                       }
 
                       return feed.map(item => (
-                        <div key={item.id} className="flex gap-3 bg-zinc-900/30 p-3 rounded-lg border border-border/30 hover:bg-zinc-900/50 transition-colors">
+                        <div key={item.id} className="flex gap-3 bg-zinc-900/30 p-3 rounded-lg border border-white/5/30 hover:bg-zinc-900/50 transition-colors">
                           {item.icon}
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between gap-2">
                               <h4 className="text-xs font-bold text-foreground truncate">{item.title}</h4>
                               {item.statusBadge}
                             </div>
-                            <p className="text-[10px] text-muted-foreground mt-1 leading-snug">{item.details}</p>
+                            <p className="text-[10px] text-white/50 mt-1 leading-snug">{item.details}</p>
                           </div>
                         </div>
                       ));
@@ -1019,7 +1019,7 @@ export default function GtmTrackerPage() {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="bg-[#1a1a18] py-4 px-5 rounded-[8px] flex items-center justify-between hover-card">
                   <div className="space-y-1">
-                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Total GTM Launches</p>
+                    <p className="text-[10px] font-semibold text-white/50 uppercase tracking-wider">Total GTM Launches</p>
                     <p className="text-2xl font-extrabold text-foreground">{totalLaunchesCount}</p>
                   </div>
                   <div className="w-9 h-9 rounded-lg bg-azure-500/10 flex items-center justify-center text-azure-400">
@@ -1029,7 +1029,7 @@ export default function GtmTrackerPage() {
 
                 <div className="bg-[#1a1a18] py-4 px-5 rounded-[8px] flex items-center justify-between hover-card">
                   <div className="space-y-1">
-                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">In Progress</p>
+                    <p className="text-[10px] font-semibold text-white/50 uppercase tracking-wider">In Progress</p>
                     <p className="text-2xl font-extrabold text-foreground">{activeLaunchesCount}</p>
                   </div>
                   <div className="w-9 h-9 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-400">
@@ -1039,7 +1039,7 @@ export default function GtmTrackerPage() {
 
                 <div className="bg-[#1a1a18] py-4 px-5 rounded-[8px] flex items-center justify-between hover-card">
                   <div className="space-y-1">
-                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Launched</p>
+                    <p className="text-[10px] font-semibold text-white/50 uppercase tracking-wider">Launched</p>
                     <p className="text-2xl font-extrabold text-foreground">{launchedCount}</p>
                   </div>
                   <div className="w-9 h-9 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400">
@@ -1049,19 +1049,19 @@ export default function GtmTrackerPage() {
               </div>
 
               {/* Filters & Actions Panel */}
-              <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between bg-card p-3 rounded-xl border border-border">
+              <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between bg-[#1c1926]/80 backdrop-blur-md p-3 rounded-xl border border-white/5">
                 <div className="relative flex-1 max-w-sm">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/50" />
                   <input
                     type="text"
                     placeholder="Search by client or plan name..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-9 pr-3.5 py-2 text-xs bg-zinc-900 border border-border rounded-xl focus:outline-none focus:ring-1 focus:ring-azure-500/30 text-foreground"
+                    className="w-full pl-9 pr-3.5 py-2 text-xs bg-zinc-900 border border-white/5 rounded-xl focus:outline-none focus:ring-1 focus:ring-azure-500/30 text-foreground"
                   />
                 </div>
 
-                <div className="flex gap-1 p-0.5 bg-zinc-900 border border-border rounded-lg">
+                <div className="flex gap-1 p-0.5 bg-zinc-900 border border-white/5 rounded-lg">
                   {([
                     ['ALL', `All (${totalLaunchesCount})`],
                     ['NEW_MARKET_ENTRY', `New Market (${newMarketCount})`],
@@ -1074,7 +1074,7 @@ export default function GtmTrackerPage() {
                         'px-3 py-1.5 text-[10px] font-bold rounded-md transition-all duration-200',
                         launchesTab === val
                           ? 'bg-[#378add] text-white shadow-sm'
-                          : 'text-muted-foreground hover:text-foreground'
+                          : 'text-white/50 hover:text-foreground'
                       )}
                     >
                       {label}
@@ -1086,18 +1086,18 @@ export default function GtmTrackerPage() {
               {/* Plan Cards List */}
               <div className="space-y-4">
                 {plans.length === 0 ? (
-                  <div className="bg-card p-12 text-center border border-dashed border-border rounded-xl">
-                    <Target className="w-10 h-10 text-muted-foreground/60 mx-auto mb-3" />
+                  <div className="bg-[#1c1926]/80 backdrop-blur-md p-12 text-center border border-dashed border-white/5 rounded-xl">
+                    <Target className="w-10 h-10 text-white/50/60 mx-auto mb-3" />
                     <h3 className="text-sm font-bold text-foreground">No GTM plans tracked</h3>
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <p className="text-xs text-white/50 mt-1">
                       Click "Add GTM Plan" in the top-right to track your first launch.
                     </p>
                   </div>
                 ) : filteredGrouped.length === 0 ? (
-                  <div className="bg-card p-12 text-center border border-border rounded-xl">
-                    <Target className="w-10 h-10 text-muted-foreground/60 mx-auto mb-3" />
+                  <div className="bg-[#1c1926]/80 backdrop-blur-md p-12 text-center border border-white/5 rounded-xl">
+                    <Target className="w-10 h-10 text-white/50/60 mx-auto mb-3" />
                     <h3 className="text-sm font-bold text-foreground">No matching plans</h3>
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <p className="text-xs text-white/50 mt-1">
                       Try adjusting your filters or search term to locate the records.
                     </p>
                   </div>
@@ -1105,14 +1105,14 @@ export default function GtmTrackerPage() {
                   filteredGrouped.map((grouped) => (
                     <div
                       key={`${grouped.clientName}-${grouped.name}`}
-                      className="bg-card border border-border rounded-2xl overflow-hidden hover-card flex flex-col transition-all duration-300"
+                      className="bg-[#1c1926] border border-white/10 rounded-2xl overflow-hidden hover-card flex flex-col transition-all duration-300"
                     >
-                      <div className="px-5 py-3.5 border-b border-border/50 bg-zinc-900/10 flex items-center justify-between relative">
+                      <div className="px-5 py-3.5 border-b border-white/5/50 bg-zinc-900/10 flex items-center justify-between relative">
                         <div className="flex flex-col gap-0.5">
                           <h3 className="font-extrabold text-sm text-foreground leading-snug">
                             {grouped.name}
                           </h3>
-                          <p className="text-[10px] text-muted-foreground font-semibold">
+                          <p className="text-[10px] text-white/50 font-semibold">
                             Client Name: <span className="text-foreground/90">{grouped.clientName}</span>
                           </p>
                         </div>
@@ -1123,7 +1123,7 @@ export default function GtmTrackerPage() {
                               const key = `${grouped.clientName}::${grouped.name}`;
                               setOpenMenuKey(openMenuKey === key ? null : key);
                             }}
-                            className="text-muted-foreground hover:text-foreground p-1.5 rounded-lg hover:bg-zinc-800/80 transition-colors"
+                            className="text-white/50 hover:text-foreground p-1.5 rounded-lg hover:bg-zinc-800/80 transition-colors"
                             title="Actions"
                           >
                             <MoreVertical className="w-4 h-4" />
@@ -1131,7 +1131,7 @@ export default function GtmTrackerPage() {
 
                           {openMenuKey === `${grouped.clientName}::${grouped.name}` && (
                             <div
-                              className="absolute right-0 mt-1 w-52 bg-zinc-900 border border-border rounded-xl shadow-2xl z-40 py-1.5 overflow-hidden"
+                              className="absolute right-0 mt-1 w-52 bg-zinc-900 border border-white/5 rounded-xl shadow-2xl z-40 py-1.5 overflow-hidden"
                               onClick={(e) => e.stopPropagation()}
                             >
                               <button
@@ -1150,7 +1150,7 @@ export default function GtmTrackerPage() {
                                   setPlanToDelete({ name: grouped.name, clientName: grouped.clientName });
                                   setOpenMenuKey(null);
                                 }}
-                                className="w-full text-left px-3.5 py-2.5 text-xs font-semibold hover:bg-zinc-800 text-red-400 hover:text-red-300 transition-colors flex items-center gap-1.5 border-t border-border/30"
+                                className="w-full text-left px-3.5 py-2.5 text-xs font-semibold hover:bg-zinc-800 text-red-400 hover:text-red-300 transition-colors flex items-center gap-1.5 border-t border-white/5/30"
                               >
                                 <X className="w-3.5 h-3.5" />
                                 Remove {grouped.name}
@@ -1211,24 +1211,24 @@ export default function GtmTrackerPage() {
           {/* TAB 2: PARTNERS */}
           {activeGtmTab === 'partners' && (
             <div className="space-y-5">
-              <div className="flex items-center justify-between bg-card p-3 rounded-xl border border-border">
+              <div className="flex items-center justify-between bg-[#1c1926]/80 backdrop-blur-md p-3 rounded-xl border border-white/5">
                 <div className="relative flex-1 max-w-sm">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/50" />
                   <input
                     type="text"
                     placeholder="Search partners by name..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-9 pr-3.5 py-2 text-xs bg-zinc-900 border border-border rounded-xl focus:outline-none focus:ring-1 focus:ring-azure-500/30 text-foreground"
+                    className="w-full pl-9 pr-3.5 py-2 text-xs bg-zinc-900 border border-white/5 rounded-xl focus:outline-none focus:ring-1 focus:ring-azure-500/30 text-foreground"
                   />
                 </div>
               </div>
 
               {partnersList.length === 0 ? (
-                <div className="bg-card p-12 text-center border border-dashed border-border rounded-xl">
-                  <Users className="w-10 h-10 text-muted-foreground/60 mx-auto mb-3" />
+                <div className="bg-[#1c1926]/80 backdrop-blur-md p-12 text-center border border-dashed border-white/5 rounded-xl">
+                  <Users className="w-10 h-10 text-white/50/60 mx-auto mb-3" />
                   <h3 className="text-sm font-bold text-foreground">No GTM partners added</h3>
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <p className="text-xs text-white/50 mt-1">
                     Click "Add Partner" in the top-right to register a partner.
                   </p>
                 </div>
@@ -1251,19 +1251,19 @@ export default function GtmTrackerPage() {
                               {getPartnerProximityBadge(partner.renewalDate)}
                             </div>
                             
-                            <p className="text-[10px] text-muted-foreground font-semibold mt-3 flex items-center gap-1">
-                              <Calendar className="w-3.5 h-3.5 text-muted-foreground/85" />
+                            <p className="text-[10px] text-white/50 font-semibold mt-3 flex items-center gap-1">
+                              <Calendar className="w-3.5 h-3.5 text-white/50/85" />
                               Renewal Date: <span className="text-foreground/90 font-bold">{formatDate(partner.renewalDate)}</span>
                             </p>
 
                             {partner.requirements && partner.requirements.length > 0 && (
-                              <div className="mt-4 pt-3.5 border-t border-border/40 space-y-1.5">
-                                <h5 className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Required Certifications:</h5>
+                              <div className="mt-4 pt-3.5 border-t border-white/5/40 space-y-1.5">
+                                <h5 className="text-[9px] font-bold text-white/50 uppercase tracking-wider">Required Certifications:</h5>
                                 <div className="space-y-1">
                                   {partner.requirements.map(req => (
                                     <p key={req.id} className="text-[10px] text-foreground/80 flex justify-between items-center bg-zinc-900/30 px-2 py-1 rounded">
                                       <span className="truncate max-w-[200px]">{req.certificationName}</span>
-                                      <span className="font-bold text-muted-foreground/80 shrink-0">Min Count: {req.minimumCount}</span>
+                                      <span className="font-bold text-white/50/80 shrink-0">Min Count: {req.minimumCount}</span>
                                     </p>
                                   ))}
                                 </div>
@@ -1275,7 +1275,7 @@ export default function GtmTrackerPage() {
                         <div className="absolute top-4 right-4 flex items-center gap-1">
                           <button
                             onClick={() => openEditPartner(partner)}
-                            className="p-1.5 hover:bg-zinc-800/80 rounded-md text-muted-foreground hover:text-foreground transition-all"
+                            className="p-1.5 hover:bg-zinc-800/80 rounded-md text-white/50 hover:text-foreground transition-all"
                             title="Edit Partner"
                           >
                             <Pencil className="w-3.5 h-3.5" />
@@ -1286,7 +1286,7 @@ export default function GtmTrackerPage() {
                                 deletePartnerMutation.mutate(partner.id);
                               }
                             }}
-                            className="p-1.5 hover:bg-red-950/20 rounded-md text-muted-foreground hover:text-red-400 transition-all"
+                            className="p-1.5 hover:bg-red-950/20 rounded-md text-white/50 hover:text-red-400 transition-all"
                             title="Delete Partner"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -1303,10 +1303,10 @@ export default function GtmTrackerPage() {
           {activeGtmTab === 'audit' && (
             <div className="space-y-5">
               {auditList.length === 0 ? (
-                <div className="bg-card p-12 text-center border border-dashed border-border rounded-xl">
-                  <ShieldCheck className="w-10 h-10 text-muted-foreground/60 mx-auto mb-3" />
+                <div className="bg-[#1c1926]/80 backdrop-blur-md p-12 text-center border border-dashed border-white/5 rounded-xl">
+                  <ShieldCheck className="w-10 h-10 text-white/50/60 mx-auto mb-3" />
                   <h3 className="text-sm font-bold text-foreground">No audit data available</h3>
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <p className="text-xs text-white/50 mt-1">
                     Requirements defined under Partners will dynamically compute compliance here.
                   </p>
                 </div>
@@ -1318,7 +1318,7 @@ export default function GtmTrackerPage() {
                         <h4 className="text-[10px] font-extrabold text-[#378add] uppercase tracking-wider">{audit.partnerName} Requirement</h4>
                         <p className="text-xs font-semibold text-foreground/90">{audit.certificationName}</p>
                         
-                        <p className="text-[10px] text-muted-foreground">
+                        <p className="text-[10px] text-white/50">
                           Requires <span className="font-bold text-foreground">{audit.minimumCount}</span> completed certs • Currently have:{' '}
                           <span className={cn(
                             "font-extrabold",
@@ -1350,24 +1350,24 @@ export default function GtmTrackerPage() {
           {/* TAB 4: CAMPAIGNS */}
           {activeGtmTab === 'campaigns' && (
             <div className="space-y-5">
-              <div className="flex items-center justify-between bg-card p-3 rounded-xl border border-border">
+              <div className="flex items-center justify-between bg-[#1c1926]/80 backdrop-blur-md p-3 rounded-xl border border-white/5">
                 <div className="relative flex-1 max-w-sm">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/50" />
                   <input
                     type="text"
                     placeholder="Search campaigns by name..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-9 pr-3.5 py-2 text-xs bg-zinc-900 border border-border rounded-xl focus:outline-none focus:ring-1 focus:ring-azure-500/30 text-foreground"
+                    className="w-full pl-9 pr-3.5 py-2 text-xs bg-zinc-900 border border-white/5 rounded-xl focus:outline-none focus:ring-1 focus:ring-azure-500/30 text-foreground"
                   />
                 </div>
               </div>
 
               {campaignsList.length === 0 ? (
-                <div className="bg-card p-12 text-center border border-dashed border-border rounded-xl">
-                  <Target className="w-10 h-10 text-muted-foreground/60 mx-auto mb-3" />
+                <div className="bg-[#1c1926]/80 backdrop-blur-md p-12 text-center border border-dashed border-white/5 rounded-xl">
+                  <Target className="w-10 h-10 text-white/50/60 mx-auto mb-3" />
                   <h3 className="text-sm font-bold text-foreground">No marketing campaigns registered</h3>
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <p className="text-xs text-white/50 mt-1">
                     Click "Add Campaign" in the top-right to register your first campaign.
                   </p>
                 </div>
@@ -1384,7 +1384,7 @@ export default function GtmTrackerPage() {
                               "px-2 py-0.5 rounded-full text-[9px] font-bold shrink-0 ml-2 border",
                               campaign.status === 'Active' ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" :
                               campaign.status === 'Planned' ? "bg-azure-500/10 text-azure-400 border-azure-500/20" :
-                              "bg-zinc-800 text-muted-foreground border-border/50"
+                              "bg-zinc-800 text-white/50 border-white/5/50"
                             )}>
                               {campaign.status}
                             </span>
@@ -1406,15 +1406,15 @@ export default function GtmTrackerPage() {
                           )}
 
                           {campaign.description && (
-                            <p className="text-xs text-muted-foreground mt-3.5 leading-relaxed bg-zinc-950/30 p-3 rounded-lg border border-border/30">
+                            <p className="text-xs text-white/50 mt-3.5 leading-relaxed bg-zinc-950/30 p-3 rounded-lg border border-white/5/30">
                               {campaign.description}
                             </p>
                           )}
                         </div>
 
-                        <div className="mt-4 pt-3.5 border-t border-border/40 flex items-center justify-between text-[10px] text-muted-foreground font-semibold">
+                        <div className="mt-4 pt-3.5 border-t border-white/5/40 flex items-center justify-between text-[10px] text-white/50 font-semibold">
                           <p className="flex items-center gap-1">
-                            <Calendar className="w-3.5 h-3.5 text-muted-foreground/80" />
+                            <Calendar className="w-3.5 h-3.5 text-white/50/80" />
                             {campaign.startDate || campaign.endDate ? (
                               <span>{formatDate(campaign.startDate)} - {formatDate(campaign.endDate)}</span>
                             ) : (
@@ -1426,7 +1426,7 @@ export default function GtmTrackerPage() {
                         <div className="absolute top-4 right-4 flex items-center gap-1">
                           <button
                             onClick={() => openEditCampaign(campaign)}
-                            className="p-1.5 hover:bg-zinc-800/80 rounded-md text-muted-foreground hover:text-foreground transition-all"
+                            className="p-1.5 hover:bg-zinc-800/80 rounded-md text-white/50 hover:text-foreground transition-all"
                             title="Edit Campaign"
                           >
                             <Pencil className="w-3.5 h-3.5" />
@@ -1437,7 +1437,7 @@ export default function GtmTrackerPage() {
                                 deleteCampaignMutation.mutate(campaign.id);
                               }
                             }}
-                            className="p-1.5 hover:bg-red-950/20 rounded-md text-muted-foreground hover:text-red-400 transition-all"
+                            className="p-1.5 hover:bg-red-950/20 rounded-md text-white/50 hover:text-red-400 transition-all"
                             title="Delete Campaign"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -1454,15 +1454,15 @@ export default function GtmTrackerPage() {
           {activeGtmTab === 'collateral' && (
             <div className="space-y-5">
               {/* Filtering Controls */}
-              <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between bg-card p-3 rounded-xl border border-border">
+              <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between bg-[#1c1926]/80 backdrop-blur-md p-3 rounded-xl border border-white/5">
                 <div className="relative flex-1 max-w-sm">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/50" />
                   <input
                     type="text"
                     placeholder="Search files by name..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-9 pr-3.5 py-2 text-xs bg-zinc-900 border border-border rounded-xl focus:outline-none focus:ring-1 focus:ring-azure-500/30 text-foreground"
+                    className="w-full pl-9 pr-3.5 py-2 text-xs bg-zinc-900 border border-white/5 rounded-xl focus:outline-none focus:ring-1 focus:ring-azure-500/30 text-foreground"
                   />
                 </div>
 
@@ -1470,7 +1470,7 @@ export default function GtmTrackerPage() {
                   <select
                     value={filterPartnerId}
                     onChange={e => setFilterPartnerId(e.target.value)}
-                    className="bg-zinc-900 border border-border rounded-xl px-3 py-1.5 text-xs text-foreground focus:outline-none"
+                    className="bg-zinc-900 border border-white/5 rounded-xl px-3 py-1.5 text-xs text-foreground focus:outline-none"
                   >
                     <option value="ALL">All Partners</option>
                     {partnersList.map(p => (
@@ -1481,7 +1481,7 @@ export default function GtmTrackerPage() {
                   <select
                     value={filterLaunchId}
                     onChange={e => setFilterLaunchId(e.target.value)}
-                    className="bg-zinc-900 border border-border rounded-xl px-3 py-1.5 text-xs text-foreground focus:outline-none"
+                    className="bg-zinc-900 border border-white/5 rounded-xl px-3 py-1.5 text-xs text-foreground focus:outline-none"
                   >
                     <option value="ALL">All Launches</option>
                     {plans.map(p => (
@@ -1492,18 +1492,18 @@ export default function GtmTrackerPage() {
               </div>
 
               {collateralList.length === 0 ? (
-                <div className="bg-card p-12 text-center border border-dashed border-border rounded-xl">
-                  <FolderOpen className="w-10 h-10 text-muted-foreground/60 mx-auto mb-3" />
+                <div className="bg-[#1c1926]/80 backdrop-blur-md p-12 text-center border border-dashed border-white/5 rounded-xl">
+                  <FolderOpen className="w-10 h-10 text-white/50/60 mx-auto mb-3" />
                   <h3 className="text-sm font-bold text-foreground">No collateral uploaded yet</h3>
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <p className="text-xs text-white/50 mt-1">
                     Upload sales collateral, decks, and case studies to ADLS Gen2 storage.
                   </p>
                 </div>
               ) : filteredCollateral.length === 0 ? (
-                <div className="bg-card p-12 text-center border border-border rounded-xl">
-                  <FolderOpen className="w-10 h-10 text-muted-foreground/60 mx-auto mb-3" />
+                <div className="bg-[#1c1926]/80 backdrop-blur-md p-12 text-center border border-white/5 rounded-xl">
+                  <FolderOpen className="w-10 h-10 text-white/50/60 mx-auto mb-3" />
                   <h3 className="text-sm font-bold text-foreground">No matching documents</h3>
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <p className="text-xs text-white/50 mt-1">
                     Try adjusting your filters or search terms.
                   </p>
                 </div>
@@ -1512,7 +1512,7 @@ export default function GtmTrackerPage() {
                   {filteredCollateral.map(file => {
                     const FileIcon = getFileIcon(file.type);
                     return (
-                      <div key={file.id} className="bg-[#1a1a18] p-4 rounded-[8px] flex flex-col justify-between border border-border/20 hover-card relative">
+                      <div key={file.id} className="bg-[#1a1a18] p-4 rounded-[8px] flex flex-col justify-between border border-white/5/20 hover-card relative">
                         <div>
                           <div className="flex items-center gap-3">
                             <div className="w-8 h-8 rounded-lg bg-azure-500/10 text-azure-400 flex items-center justify-center shrink-0">
@@ -1522,7 +1522,7 @@ export default function GtmTrackerPage() {
                               <h4 className="text-xs font-bold text-foreground truncate" title={file.name}>
                                 {file.name}
                               </h4>
-                              <p className="text-[9px] text-muted-foreground mt-0.5">
+                              <p className="text-[9px] text-white/50 mt-0.5">
                                 Uploaded: {formatDate(file.uploadedAt)}
                               </p>
                             </div>
@@ -1544,7 +1544,7 @@ export default function GtmTrackerPage() {
                           )}
                         </div>
 
-                        <div className="flex items-center justify-between border-t border-border/30 mt-4 pt-3 text-[9px] text-muted-foreground">
+                        <div className="flex items-center justify-between border-t border-white/5/30 mt-4 pt-3 text-[9px] text-white/50">
                           <span>By: {file.uploadedBy}</span>
                           <span className="font-semibold">{Math.round(file.size / 1024)} KB</span>
                         </div>
@@ -1553,7 +1553,7 @@ export default function GtmTrackerPage() {
                         <div className="absolute top-4 right-4 flex items-center gap-1">
                           <button
                             onClick={() => handleCollateralDownload(file.id)}
-                            className="p-1 hover:bg-zinc-800/80 rounded text-muted-foreground hover:text-foreground transition-all"
+                            className="p-1 hover:bg-zinc-800/80 rounded text-white/50 hover:text-foreground transition-all"
                             title="Download File"
                           >
                             <FileDown className="w-3.5 h-3.5" />
@@ -1564,7 +1564,7 @@ export default function GtmTrackerPage() {
                                 deleteCollateralMutation.mutate(file.id);
                               }
                             }}
-                            className="p-1 hover:bg-red-950/20 rounded text-muted-foreground hover:text-red-400 transition-all"
+                            className="p-1 hover:bg-red-950/20 rounded text-white/50 hover:text-red-400 transition-all"
                             title="Delete File"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -1635,56 +1635,56 @@ export default function GtmTrackerPage() {
       {/* 5. Add/Edit Partner Modal */}
       {showPartnerModal && (
         <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-zinc-950 border border-border rounded-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
-            <div className="px-5 py-4 border-b border-border/50 flex justify-between items-center bg-zinc-900/20">
+          <div className="bg-zinc-950 border border-white/5 rounded-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="px-5 py-4 border-b border-white/5/50 flex justify-between items-center bg-zinc-900/20">
               <h3 className="text-sm font-bold text-foreground">
                 {editingPartner ? `Edit GTM Partner: ${editingPartner.name}` : 'Add New GTM Partner'}
               </h3>
-              <button onClick={closePartnerModal} className="p-1 hover:bg-zinc-800 rounded-lg text-muted-foreground">
+              <button onClick={closePartnerModal} className="p-1 hover:bg-zinc-800 rounded-lg text-white/50">
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <form onSubmit={handlePartnerSubmit} className="flex-1 overflow-y-auto p-5 space-y-4">
               <div>
-                <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1.5">Partner Name *</label>
+                <label className="block text-[10px] font-bold text-white/50 uppercase mb-1.5">Partner Name *</label>
                 <input
                   type="text"
                   required
                   value={partnerName}
                   onChange={e => setPartnerName(e.target.value)}
                   placeholder="e.g. Microsoft Integration Services"
-                  className="w-full bg-zinc-900 border border-border rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-azure-500/30"
+                  className="w-full bg-zinc-900 border border-white/5 rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-azure-500/30"
                 />
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1.5">Partnership Tier *</label>
+                <label className="block text-[10px] font-bold text-white/50 uppercase mb-1.5">Partnership Tier *</label>
                 <input
                   type="text"
                   required
                   value={partnerTier}
                   onChange={e => setPartnerTier(e.target.value)}
                   placeholder="e.g. Gold Partner"
-                  className="w-full bg-zinc-900 border border-border rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-azure-500/30"
+                  className="w-full bg-zinc-900 border border-white/5 rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-azure-500/30"
                 />
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1.5">Renewal Date *</label>
+                <label className="block text-[10px] font-bold text-white/50 uppercase mb-1.5">Renewal Date *</label>
                 <input
                   type="date"
                   required
                   value={partnerRenewalDate}
                   onChange={e => setPartnerRenewalDate(e.target.value)}
-                  className="w-full bg-zinc-900 border border-border rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-azure-500/30"
+                  className="w-full bg-zinc-900 border border-white/5 rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-azure-500/30"
                 />
               </div>
 
               {/* Requirements Dynamic List */}
-              <div className="pt-3 border-t border-border/40">
+              <div className="pt-3 border-t border-white/5/40">
                 <div className="flex justify-between items-center mb-3">
-                  <h4 className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider">Partner Requirements</h4>
+                  <h4 className="text-[10px] font-extrabold text-white/50 uppercase tracking-wider">Partner Requirements</h4>
                   <button
                     type="button"
                     onClick={addRequirementRow}
@@ -1695,19 +1695,19 @@ export default function GtmTrackerPage() {
                 </div>
 
                 {partnerRequirements.length === 0 ? (
-                  <p className="text-[10px] text-muted-foreground italic bg-zinc-900/30 p-3 rounded-xl border border-border/30">
+                  <p className="text-[10px] text-white/50 italic bg-zinc-900/30 p-3 rounded-xl border border-white/5/30">
                     No requirement constraints configured. Click 'Add Row' to configure certifications.
                   </p>
                 ) : (
                   <div className="space-y-2">
                     {partnerRequirements.map((req, idx) => (
-                      <div key={idx} className="flex gap-2 items-center bg-zinc-900/50 p-2.5 rounded-xl border border-border/40">
+                      <div key={idx} className="flex gap-2 items-center bg-zinc-900/50 p-2.5 rounded-xl border border-white/5/40">
                         <div className="flex-1">
-                          <label className="block text-[8px] font-bold text-muted-foreground uppercase mb-1">Certification</label>
+                          <label className="block text-[8px] font-bold text-white/50 uppercase mb-1">Certification</label>
                           <select
                             value={req.certificationName}
                             onChange={e => updateRequirementRow(idx, 'certificationName', e.target.value)}
-                            className="w-full bg-zinc-950 border border-border rounded-lg px-2.5 py-1 text-[11px] text-foreground focus:outline-none"
+                            className="w-full bg-zinc-950 border border-white/5 rounded-lg px-2.5 py-1 text-[11px] text-foreground focus:outline-none"
                           >
                             {certCatalog.map(c => (
                               <option key={c.id} value={c.name}>{c.name}</option>
@@ -1715,14 +1715,14 @@ export default function GtmTrackerPage() {
                           </select>
                         </div>
                         <div className="w-24">
-                          <label className="block text-[8px] font-bold text-muted-foreground uppercase mb-1">Min Count</label>
+                          <label className="block text-[8px] font-bold text-white/50 uppercase mb-1">Min Count</label>
                           <input
                             type="number"
                             min={1}
                             required
                             value={req.minimumCount}
                             onChange={e => updateRequirementRow(idx, 'minimumCount', parseInt(e.target.value) || 1)}
-                            className="w-full bg-zinc-950 border border-border rounded-lg px-2.5 py-1 text-[11px] text-foreground focus:outline-none"
+                            className="w-full bg-zinc-950 border border-white/5 rounded-lg px-2.5 py-1 text-[11px] text-foreground focus:outline-none"
                           />
                         </div>
                         <button
@@ -1738,11 +1738,11 @@ export default function GtmTrackerPage() {
                 )}
               </div>
 
-              <div className="flex justify-end gap-2 pt-3 border-t border-border/40">
+              <div className="flex justify-end gap-2 pt-3 border-t border-white/5/40">
                 <button
                   type="button"
                   onClick={closePartnerModal}
-                  className="px-3.5 py-1.5 border border-border rounded-xl text-xs font-bold hover:bg-zinc-800 text-foreground"
+                  className="px-3.5 py-1.5 border border-white/5 rounded-xl text-xs font-bold hover:bg-zinc-800 text-foreground"
                 >
                   Cancel
                 </button>
@@ -1763,35 +1763,35 @@ export default function GtmTrackerPage() {
       {/* 6. Add/Edit Campaign Modal */}
       {showCampaignModal && (
         <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-zinc-950 border border-border rounded-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
-            <div className="px-5 py-4 border-b border-border/50 flex justify-between items-center bg-zinc-900/20">
+          <div className="bg-zinc-950 border border-white/5 rounded-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="px-5 py-4 border-b border-white/5/50 flex justify-between items-center bg-zinc-900/20">
               <h3 className="text-sm font-bold text-foreground">
                 {editingCampaign ? `Edit Campaign: ${editingCampaign.name}` : 'Add New Campaign'}
               </h3>
-              <button onClick={closeCampaignModal} className="p-1 hover:bg-zinc-800 rounded-lg text-muted-foreground">
+              <button onClick={closeCampaignModal} className="p-1 hover:bg-zinc-800 rounded-lg text-white/50">
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <form onSubmit={handleCampaignSubmit} className="flex-1 overflow-y-auto p-5 space-y-4">
               <div>
-                <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1.5">Campaign Name *</label>
+                <label className="block text-[10px] font-bold text-white/50 uppercase mb-1.5">Campaign Name *</label>
                 <input
                   type="text"
                   required
                   value={campaignName}
                   onChange={e => setCampaignName(e.target.value)}
                   placeholder="e.g. Q3 Cloud Migration Push"
-                  className="w-full bg-zinc-900 border border-border rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-azure-500/30"
+                  className="w-full bg-zinc-900 border border-white/5 rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-azure-500/30"
                 />
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1.5">Status *</label>
+                <label className="block text-[10px] font-bold text-white/50 uppercase mb-1.5">Status *</label>
                 <select
                   value={campaignStatus}
                   onChange={e => setCampaignStatus(e.target.value as any)}
-                  className="w-full bg-zinc-900 border border-border rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none"
+                  className="w-full bg-zinc-900 border border-white/5 rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none"
                 >
                   <option value="Planned">Planned</option>
                   <option value="Active">Active</option>
@@ -1801,11 +1801,11 @@ export default function GtmTrackerPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1.5">Link to Launch (Optional)</label>
+                  <label className="block text-[10px] font-bold text-white/50 uppercase mb-1.5">Link to Launch (Optional)</label>
                   <select
                     value={campaignLaunchId}
                     onChange={e => setCampaignLaunchId(e.target.value)}
-                    className="w-full bg-zinc-900 border border-border rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none"
+                    className="w-full bg-zinc-900 border border-white/5 rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none"
                   >
                     <option value="">None</option>
                     {plans.map(p => (
@@ -1814,11 +1814,11 @@ export default function GtmTrackerPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1.5">Link to Partner (Optional)</label>
+                  <label className="block text-[10px] font-bold text-white/50 uppercase mb-1.5">Link to Partner (Optional)</label>
                   <select
                     value={campaignPartnerId}
                     onChange={e => setCampaignPartnerId(e.target.value)}
-                    className="w-full bg-zinc-900 border border-border rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none"
+                    className="w-full bg-zinc-900 border border-white/5 rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none"
                   >
                     <option value="">None</option>
                     {partnersList.map(p => (
@@ -1830,48 +1830,48 @@ export default function GtmTrackerPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1.5">Start Date</label>
+                  <label className="block text-[10px] font-bold text-white/50 uppercase mb-1.5">Start Date</label>
                   <input
                     type="date"
                     value={campaignStartDate}
                     onChange={e => setCampaignStartDate(e.target.value)}
-                    className="w-full bg-zinc-900 border border-border rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none"
+                    className="w-full bg-zinc-900 border border-white/5 rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1.5">End Date</label>
+                  <label className="block text-[10px] font-bold text-white/50 uppercase mb-1.5">End Date</label>
                   <input
                     type="date"
                     value={campaignEndDate}
                     onChange={e => setCampaignEndDate(e.target.value)}
-                    className="w-full bg-zinc-900 border border-border rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none"
+                    className="w-full bg-zinc-900 border border-white/5 rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1.5">Description</label>
+                <label className="block text-[10px] font-bold text-white/50 uppercase mb-1.5">Description</label>
                 <textarea
                   rows={4}
                   value={campaignDesc}
                   onChange={e => setCampaignDesc(e.target.value)}
                   placeholder="Add campaign deliverables, targets or notes..."
-                  className="w-full bg-zinc-900 border border-border rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none resize-none"
+                  className="w-full bg-zinc-900 border border-white/5 rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none resize-none"
                 />
               </div>
 
-              <div className="flex justify-end gap-2 pt-3 border-t border-border/40">
+              <div className="flex justify-end gap-2 pt-3 border-t border-white/5/40">
                 <button
                   type="button"
                   onClick={closeCampaignModal}
-                  className="px-3.5 py-1.5 border border-border rounded-xl text-xs font-bold hover:bg-zinc-800 text-foreground"
+                  className="px-3.5 py-1.5 border border-white/5 rounded-xl text-xs font-bold hover:bg-zinc-800 text-foreground"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={createCampaignMutation.isPending || updateCampaignMutation.isPending}
-                  className="px-4.5 py-1.5 bg-azure-500 hover:bg-azure-600 text-white rounded-xl text-xs font-bold flex items-center gap-1.5"
+                  className="px-4.5 py-1.5 bg-white/10 hover:bg-white/20 text-white border border-white/10 transition-colors rounded-xl text-xs font-bold flex items-center gap-1.5"
                 >
                   {(createCampaignMutation.isPending || updateCampaignMutation.isPending) && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                   Save Campaign
@@ -1885,32 +1885,32 @@ export default function GtmTrackerPage() {
       {/* 7. Upload Collateral Modal */}
       {showCollateralModal && (
         <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-zinc-950 border border-border rounded-2xl w-full max-w-lg overflow-hidden flex flex-col">
-            <div className="px-5 py-4 border-b border-border/50 flex justify-between items-center bg-zinc-900/20">
+          <div className="bg-zinc-950 border border-white/5 rounded-2xl w-full max-w-lg overflow-hidden flex flex-col">
+            <div className="px-5 py-4 border-b border-white/5/50 flex justify-between items-center bg-zinc-900/20">
               <h3 className="text-sm font-bold text-foreground">Upload GTM Collateral</h3>
-              <button onClick={() => setShowCollateralModal(false)} className="p-1 hover:bg-zinc-800 rounded-lg text-muted-foreground">
+              <button onClick={() => setShowCollateralModal(false)} className="p-1 hover:bg-zinc-800 rounded-lg text-white/50">
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <form onSubmit={handleUploadSubmit} className="p-5 space-y-4">
               <div>
-                <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1.5">File Selection *</label>
+                <label className="block text-[10px] font-bold text-white/50 uppercase mb-1.5">File Selection *</label>
                 <input
                   type="file"
                   required
                   onChange={e => setCollateralFile(e.target.files?.[0] || null)}
-                  className="w-full bg-zinc-900 border border-border rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-azure-500/30"
+                  className="w-full bg-zinc-900 border border-white/5 rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-azure-500/30"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1.5">Link to Launch (Optional)</label>
+                  <label className="block text-[10px] font-bold text-white/50 uppercase mb-1.5">Link to Launch (Optional)</label>
                   <select
                     value={collateralLaunchId}
                     onChange={e => setCollateralLaunchId(e.target.value)}
-                    className="w-full bg-zinc-900 border border-border rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none"
+                    className="w-full bg-zinc-900 border border-white/5 rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none"
                   >
                     <option value="">None</option>
                     {plans.map(p => (
@@ -1919,11 +1919,11 @@ export default function GtmTrackerPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1.5">Link to Partner (Optional)</label>
+                  <label className="block text-[10px] font-bold text-white/50 uppercase mb-1.5">Link to Partner (Optional)</label>
                   <select
                     value={collateralPartnerId}
                     onChange={e => setCollateralPartnerId(e.target.value)}
-                    className="w-full bg-zinc-900 border border-border rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none"
+                    className="w-full bg-zinc-900 border border-white/5 rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none"
                   >
                     <option value="">None</option>
                     {partnersList.map(p => (
@@ -1934,14 +1934,14 @@ export default function GtmTrackerPage() {
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1.5">Uploaded By</label>
+                <label className="block text-[10px] font-bold text-white/50 uppercase mb-1.5">Uploaded By</label>
                 <input
                   type="text"
                   required
                   value={collateralUploader}
                   onChange={e => setCollateralUploader(e.target.value)}
                   placeholder="e.g. Alice Johnson"
-                  className="w-full bg-zinc-900 border border-border rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none"
+                  className="w-full bg-zinc-900 border border-white/5 rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none"
                 />
               </div>
 
@@ -1949,11 +1949,11 @@ export default function GtmTrackerPage() {
                 <p className="text-[10px] text-red-400 font-semibold">{uploadError}</p>
               )}
 
-              <div className="flex justify-end gap-2 pt-3 border-t border-border/40">
+              <div className="flex justify-end gap-2 pt-3 border-t border-white/5/40">
                 <button
                   type="button"
                   onClick={() => setShowCollateralModal(false)}
-                  className="px-3.5 py-1.5 border border-border rounded-xl text-xs font-bold hover:bg-zinc-800 text-foreground"
+                  className="px-3.5 py-1.5 border border-white/5 rounded-xl text-xs font-bold hover:bg-zinc-800 text-foreground"
                 >
                   Cancel
                 </button>

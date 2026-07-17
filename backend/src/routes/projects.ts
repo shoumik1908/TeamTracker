@@ -178,13 +178,17 @@ router.post('/', async (req: Request, res: Response) => {
     },
   });
 
-  await prisma.notification.create({
-    data: {
-      type: 'PROJECT_UPDATED',
-      title: 'New Project Created',
-      message: `Project "${name}" has been created`,
-    },
-  });
+  const targetMemberIds = project.members.map(m => m.memberId);
+  if (targetMemberIds.length > 0) {
+    await prisma.notification.createMany({
+      data: targetMemberIds.map(id => ({
+        memberId: id,
+        type: 'PROJECT_UPDATED',
+        title: 'New Project Created',
+        message: `Project "${name}" has been created`,
+      })),
+    });
+  }
 
   res.status(201).json(project);
 });
@@ -214,13 +218,17 @@ router.put('/:id', async (req: Request, res: Response) => {
     },
   });
 
-  await prisma.notification.create({
-    data: {
-      type: 'PROJECT_UPDATED',
-      title: 'Project Updated',
-      message: `Project "${project.name}" has been updated`,
-    },
-  });
+  const targetMemberIds = project.members.map(m => m.member.id);
+  if (targetMemberIds.length > 0) {
+    await prisma.notification.createMany({
+      data: targetMemberIds.map(id => ({
+        memberId: id,
+        type: 'PROJECT_UPDATED',
+        title: 'Project Updated',
+        message: `Project "${project.name}" has been updated`,
+      })),
+    });
+  }
 
   res.json(project);
 });

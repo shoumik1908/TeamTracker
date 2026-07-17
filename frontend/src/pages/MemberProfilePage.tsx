@@ -91,58 +91,58 @@ function UpdateCertificationModal({ assignment, onClose, onSaved }: {
 
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-fade-in">
-      <div className="bg-card rounded-2xl shadow-2xl w-full max-w-md border border-border">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+      <div className="bg-[#1c1926]/80 backdrop-blur-md rounded-2xl shadow-2xl w-full max-w-md border border-white/5">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/5">
           <div>
             <h2 className="font-semibold text-lg">Update Certification</h2>
-            <p className="text-xs text-muted-foreground">{assignment.certification?.name}</p>
+            <p className="text-xs text-white/50">{assignment.certification?.name}</p>
           </div>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-white/50 hover:text-foreground"><X className="w-5 h-5" /></button>
         </div>
         <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
           <div>
-            <label className="block text-xs font-medium text-muted-foreground mb-1">Progress ({form.progress}%)</label>
+            <label className="block text-xs font-medium text-white/50 mb-1">Progress ({form.progress}%)</label>
             <input type="range" min={0} max={100} value={form.progress}
               onChange={e => setForm(p => ({ ...p, progress: parseInt(e.target.value) }))}
               className="w-full accent-azure-500" />
-            <div className="flex justify-between text-xs text-muted-foreground mt-1"><span>0%</span><span>100%</span></div>
+            <div className="flex justify-between text-xs text-white/50 mt-1"><span>0%</span><span>100%</span></div>
           </div>
           <div>
-            <label className="block text-xs font-medium text-muted-foreground mb-1">Status</label>
+            <label className="block text-xs font-medium text-white/50 mb-1">Status</label>
             <select value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value as any }))}
-              className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-zinc-900 text-foreground focus:outline-none focus:ring-2 focus:ring-azure-500/30">
+              className="w-full px-3 py-2 text-sm border border-white/5 rounded-lg bg-zinc-900 text-foreground focus:outline-none focus:ring-2 focus:ring-azure-500/30">
               {STATUSES.map(s => <option key={s} value={s}>{formatStatus(s)}</option>)}
             </select>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1">Completed On</label>
+              <label className="block text-xs font-medium text-white/50 mb-1">Completed On</label>
               <input type="date" value={form.completionDate} onChange={e => setForm(p => ({ ...p, completionDate: e.target.value }))}
-                className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30" />
+                className="w-full px-3 py-2 text-sm border border-white/5 rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1">Valid Till</label>
+              <label className="block text-xs font-medium text-white/50 mb-1">Valid Till</label>
               <input type="date" value={form.expiryDate} onChange={e => setForm(p => ({ ...p, expiryDate: e.target.value }))}
-                className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30" />
+                className="w-full px-3 py-2 text-sm border border-white/5 rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30" />
             </div>
           </div>
           <div>
-            <label className="block text-xs font-medium text-muted-foreground mb-1">Credential ID</label>
+            <label className="block text-xs font-medium text-white/50 mb-1">Credential ID</label>
             <input value={form.credentialId} onChange={e => setForm(p => ({ ...p, credentialId: e.target.value }))}
-              className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30"
+              className="w-full px-3 py-2 text-sm border border-white/5 rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30"
               placeholder="e.g. AZ-900-2024-123" />
           </div>
           <div>
-            <label className="block text-xs font-medium text-muted-foreground mb-1">Certificate File</label>
+            <label className="block text-xs font-medium text-white/50 mb-1">Certificate File</label>
             <div onClick={() => fileInputRef.current?.click()}
-              className="border-2 border-dashed border-border rounded-xl p-4 text-center cursor-pointer hover:border-azure-500 hover:bg-azure-900/20 transition-colors bg-muted/10">
+              className="border-2 border-dashed border-white/5 rounded-xl p-4 text-center cursor-pointer hover:border-azure-500 hover:bg-azure-900/20 transition-colors bg-muted/10">
               {file
                 ? <p className="text-sm text-azure-300 font-medium truncate">{file.name}</p>
                 : assignment.certificateUrl
-                  ? <p className="text-xs text-muted-foreground">Certificate uploaded · click to replace</p>
+                  ? <p className="text-xs text-white/50">Certificate uploaded · click to replace</p>
                   : <>
-                      <Upload className="w-6 h-6 text-muted-foreground mx-auto mb-1" />
-                      <p className="text-xs text-muted-foreground">Click to upload PDF, PNG, or JPG</p>
+                      <Upload className="w-6 h-6 text-white/50 mx-auto mb-1" />
+                      <p className="text-xs text-white/50">Click to upload PDF, PNG, or JPG</p>
                     </>
               }
               <input ref={fileInputRef} type="file" accept=".pdf,.png,.jpg,.jpeg" className="hidden"
@@ -161,15 +161,15 @@ function UpdateCertificationModal({ assignment, onClose, onSaved }: {
             )}
           </div>
           <div>
-            <label className="block text-xs font-medium text-muted-foreground mb-1">Notes</label>
+            <label className="block text-xs font-medium text-white/50 mb-1">Notes</label>
             <textarea rows={2} value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
-              className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30 resize-none"
+              className="w-full px-3 py-2 text-sm border border-white/5 rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30 resize-none"
               placeholder="Optional notes about your progress…" />
           </div>
           {error && <p className="text-xs text-red-400">{error}</p>}
         </div>
-        <div className="flex gap-3 px-6 py-4 border-t border-border">
-          <button onClick={onClose} className="flex-1 px-4 py-2 text-sm border border-border rounded-lg hover:bg-muted">Cancel</button>
+        <div className="flex gap-3 px-6 py-4 border-t border-white/5">
+          <button onClick={onClose} className="flex-1 px-4 py-2 text-sm border border-white/5 rounded-lg hover:bg-muted">Cancel</button>
           <button onClick={() => { setError(null); save.mutate(); }} disabled={save.isPending}
             className="flex-1 px-4 py-2 text-sm bg-azure-500 text-white rounded-lg hover:bg-azure-600 disabled:opacity-60 flex items-center justify-center gap-2">
             {save.isPending && <Loader2 className="w-4 h-4 animate-spin" />} Save Update
@@ -195,14 +195,14 @@ function ProjectMenu({ onEditRole, onRemove }: { onEditRole: () => void; onRemov
   return (
     <div ref={ref} className="relative flex-shrink-0">
       <button onClick={() => setOpen(o => !o)}
-        className="p-1 text-muted-foreground hover:text-foreground hover:bg-white/5 rounded-lg transition-colors" title="Options">
+        className="p-1 text-white/50 hover:text-foreground hover:bg-[#1c1926]/80 backdrop-blur-md/5 rounded-lg transition-colors" title="Options">
         <MoreVertical className="w-4 h-4" />
       </button>
       {open && (
-        <div className="absolute right-0 top-7 z-30 w-44 bg-popover border border-border rounded-xl shadow-xl overflow-hidden animate-fade-in">
+        <div className="absolute right-0 top-7 z-30 w-44 bg-popover border border-white/5 rounded-xl shadow-xl overflow-hidden animate-fade-in">
           <button onClick={() => { setOpen(false); onEditRole(); }}
             className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-foreground hover:bg-muted/40 transition-colors text-left">
-            <Pencil className="w-3.5 h-3.5 text-muted-foreground" /> Edit role
+            <Pencil className="w-3.5 h-3.5 text-white/50" /> Edit role
           </button>
           <button onClick={() => { setOpen(false); onRemove(); }}
             className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-red-400 hover:bg-red-950/40 transition-colors text-left">
@@ -346,15 +346,15 @@ export default function MemberProfilePage() {
   if (isLoading) {
     return (
       <div className="space-y-4 animate-pulse">
-        <div className="h-48 bg-card rounded-2xl border border-border" />
+        <div className="h-48 bg-[#1c1926]/80 backdrop-blur-md rounded-2xl border border-white/5" />
         <div className="grid grid-cols-3 gap-4">
-          {[1,2,3].map(i => <div key={i} className="h-24 bg-card rounded-xl border border-border" />)}
+          {[1,2,3].map(i => <div key={i} className="h-24 bg-[#1c1926]/80 backdrop-blur-md rounded-xl border border-white/5" />)}
         </div>
       </div>
     );
   }
 
-  if (!member) return <div className="text-center py-20 text-muted-foreground">Member not found</div>;
+  if (!member) return <div className="text-center py-20 text-white/50">Member not found</div>;
 
   const { stats } = member;
 
@@ -362,12 +362,12 @@ export default function MemberProfilePage() {
     <div className="space-y-6">
       {/* Back */}
       <button onClick={() => navigate('/members')}
-        className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+        className="flex items-center gap-2 text-sm text-white/50 hover:text-foreground transition-colors">
         <ArrowLeft className="w-4 h-4" /> Back to Members
       </button>
 
       {/* Profile Header Card */}
-      <div className="bg-card rounded-2xl border border-border overflow-hidden">
+      <div className="bg-[#1c1926]/80 backdrop-blur-md rounded-2xl border border-white/5 overflow-hidden">
         {/* Banner */}
         <div className="h-24 bg-gradient-to-r from-azure-800 via-azure-700 to-primary" />
         <div className="px-6 pb-6">
@@ -380,13 +380,13 @@ export default function MemberProfilePage() {
             </div>
             <div className="pb-1">
               <h1 className="text-2xl font-bold">{member.name}</h1>
-              <p className="text-muted-foreground">{member.designation}</p>
+              <p className="text-white/50">{member.designation}</p>
             </div>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-2">
             {member.manager && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground col-span-2 md:col-span-1">
+              <div className="flex items-center gap-2 text-sm text-white/50 col-span-2 md:col-span-1">
                 <span>👤 Reports to: <strong className="text-foreground">{member.manager.name}</strong></span>
               </div>
             )}
@@ -398,12 +398,12 @@ export default function MemberProfilePage() {
       </div>
 
       {/* Resource Allocation Section */}
-      <div className="bg-card rounded-xl border border-border p-5 space-y-4">
+      <div className="bg-[#1c1926]/80 backdrop-blur-md rounded-xl border border-white/5 p-5 space-y-4">
         <h3 className="font-semibold text-sm">Resource Allocation</h3>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
           {/* Status Badge */}
           <div className="space-y-1.5">
-            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Allocation Status</span>
+            <span className="text-[10px] font-bold text-white/50 uppercase tracking-wider block">Allocation Status</span>
             <div>
               <span className={cn(
                 'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border',
@@ -419,7 +419,7 @@ export default function MemberProfilePage() {
 
           {/* Allocation Percentage */}
           <div className="space-y-1">
-            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Total Allocation</span>
+            <span className="text-[10px] font-bold text-white/50 uppercase tracking-wider block">Total Allocation</span>
             <span className="text-xl font-bold text-azure-400">
               {member.allocationStatus === 'ALLOCATED' ? '100%' : '0%'}
             </span>
@@ -427,7 +427,7 @@ export default function MemberProfilePage() {
 
           {/* Reporting Manager */}
           <div className="space-y-1">
-            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Reporting Manager</span>
+            <span className="text-[10px] font-bold text-white/50 uppercase tracking-wider block">Reporting Manager</span>
             <span className="text-sm font-semibold text-foreground">
               {member.manager ? member.manager.name : 'No Manager Assigned'}
             </span>
@@ -436,8 +436,8 @@ export default function MemberProfilePage() {
 
         {/* Active Projects List */}
         {member.allocationStatus === 'ALLOCATED' && (
-          <div className="mt-4 border-t border-border pt-4">
-            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-3">Active Project(s) Details</span>
+          <div className="mt-4 border-t border-white/5 pt-4">
+            <span className="text-xs font-semibold text-white/50 uppercase tracking-wider block mb-3">Active Project(s) Details</span>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {member.projectMembers
                 .filter(pm => pm.project && pm.project.status !== 'COMPLETED')
@@ -445,14 +445,14 @@ export default function MemberProfilePage() {
                   const activeCount = member.projectMembers.filter(p => p.project && p.project.status !== 'COMPLETED').length;
                   const allocPercent = Math.round(100 / activeCount);
                   return (
-                    <div key={pm.id} className="p-3.5 rounded-xl bg-muted/20 border border-border/40 space-y-2">
+                    <div key={pm.id} className="p-3.5 rounded-xl bg-black/30 border border-white/10/40 space-y-2">
                       <div className="flex justify-between items-start">
                         <span className="text-sm font-bold text-foreground">{pm.project.name}</span>
                         <span className="text-[10px] font-semibold bg-azure-950/40 text-azure-400 border border-azure-800/30 px-2 py-0.5 rounded-lg">
                           {allocPercent}% Allocation
                         </span>
                       </div>
-                      <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground pt-1.5 border-t border-border/20">
+                      <div className="grid grid-cols-2 gap-2 text-xs text-white/50 pt-1.5 border-t border-white/5/20">
                         <div>
                           <span>Start Date: </span>
                           <strong className="text-foreground">{formatDate(pm.project.startDate)}</strong>
@@ -478,12 +478,12 @@ export default function MemberProfilePage() {
           { label: 'Total Projects', value: stats.totalProjects, icon: FolderKanban, color: 'text-purple-400', bg: 'bg-purple-950/40' },
           { label: 'Active Projects', value: stats.activeProjects, icon: TrendingUp, color: 'text-azure-400', bg: 'bg-azure-950/40' },
         ].map(({ label, value, icon: Icon, color, bg }) => (
-          <div key={label} className="bg-card rounded-xl border border-border p-4 flex items-center gap-3">
+          <div key={label} className="bg-[#1c1926]/80 backdrop-blur-md rounded-xl border border-white/5 p-4 flex items-center gap-3">
             <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0', bg)}>
               <Icon className={cn('w-5 h-5', color)} />
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">{label}</p>
+              <p className="text-xs text-white/50">{label}</p>
               <p className={cn('text-2xl font-bold', color)}>{value}</p>
             </div>
           </div>
@@ -494,7 +494,7 @@ export default function MemberProfilePage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         
         {/* Contacts Card */}
-        <div className="bg-card rounded-xl border border-border p-5 space-y-4 flex flex-col justify-between">
+        <div className="bg-[#1c1926]/80 backdrop-blur-md rounded-xl border border-white/5 p-5 space-y-4 flex flex-col justify-between">
           <div className="space-y-4 w-full">
             <div className="flex items-center gap-2">
               <Phone className="w-4 h-4 text-emerald-400" />
@@ -503,7 +503,7 @@ export default function MemberProfilePage() {
             
             <div className="space-y-3">
               <div className="space-y-1">
-                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Email</span>
+                <span className="text-[10px] font-bold text-white/50 uppercase tracking-wider block">Email</span>
                 <span className="text-sm font-medium text-foreground break-all">
                   {member.email || 'No email provided'}
                 </span>
@@ -511,7 +511,7 @@ export default function MemberProfilePage() {
 
               <div className="space-y-1">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Phone Number</span>
+                  <span className="text-[10px] font-bold text-white/50 uppercase tracking-wider block">Phone Number</span>
                   {!isEditingPhone ? (
                     canEdit && (
                       <button
@@ -534,7 +534,7 @@ export default function MemberProfilePage() {
                       >
                         {updatePhoneMutation.isPending ? 'Saving...' : 'Save'}
                       </button>
-                      <span className="text-muted-foreground text-[10px]">|</span>
+                      <span className="text-white/50 text-[10px]">|</span>
                       <button
                         onClick={() => setIsEditingPhone(false)}
                         className="text-[10px] font-bold text-red-400 hover:text-red-300"
@@ -557,7 +557,7 @@ export default function MemberProfilePage() {
                     value={phoneInput}
                     onChange={(e) => setPhoneInput(e.target.value)}
                     placeholder="+1 (555) 000-0000"
-                    className="w-full mt-1 px-3 py-1.5 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-azure-500/30"
+                    className="w-full mt-1 px-3 py-1.5 text-sm border border-white/5 rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-azure-500/30"
                   />
                 ) : (
                   <span className="text-sm font-medium text-foreground">
@@ -569,7 +569,7 @@ export default function MemberProfilePage() {
           </div>
         </div>
         {/* CV Card */}
-        <div className="bg-card rounded-xl border border-border p-5 space-y-4 flex flex-col justify-between">
+        <div className="bg-[#1c1926]/80 backdrop-blur-md rounded-xl border border-white/5 p-5 space-y-4 flex flex-col justify-between">
           <div className="space-y-4 w-full">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -578,7 +578,7 @@ export default function MemberProfilePage() {
               </div>
               <div className="flex items-center gap-2">
                 {member.cvUploadedAt && (
-                  <span className="text-[10px] text-muted-foreground">
+                  <span className="text-[10px] text-white/50">
                     Last updated {new Date(member.cvUploadedAt).toLocaleDateString()}
                   </span>
                 )}
@@ -648,7 +648,7 @@ export default function MemberProfilePage() {
                   <span className="text-xs text-emerald-400 font-medium">CV Document Active</span>
                 </div>
                 <div className="pt-1">
-                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-2">Azure ADLS Gen2 Location</span>
+                  <span className="text-[10px] font-bold text-white/50 uppercase tracking-wider block mb-2">Azure ADLS Gen2 Location</span>
                   <a
                     href={member.cvBlobUrl}
                     target="_blank"
@@ -664,7 +664,7 @@ export default function MemberProfilePage() {
                 
                 {/* ATS Breakdown Details */}
                 {member.atsScoreBreakdown && (
-                  <div className="pt-4 mt-6 border-t border-border/50">
+                  <div className="pt-4 mt-6 border-t border-white/5/50">
                     <div className="flex items-start gap-6 mb-6">
                       {/* Left: Gauge */}
                       <div className="flex-shrink-0">
@@ -677,7 +677,7 @@ export default function MemberProfilePage() {
                           <BrainCircuit className="w-4 h-4 text-indigo-400" />
                           ATS Resume Analysis
                         </h4>
-                        <p className="text-xs text-muted-foreground mt-1 max-w-sm leading-relaxed">
+                        <p className="text-xs text-white/50 mt-1 max-w-sm leading-relaxed">
                           This resume has been scored on a 100-point rubric across 8 key dimensions. Expand the sections below to see the exact breakdown and AI feedback.
                         </p>
                       </div>
@@ -690,7 +690,7 @@ export default function MemberProfilePage() {
                       <span className="flex items-center gap-2 text-indigo-400">
                         View Detailed Breakdown
                       </span>
-                      {isAtsExpanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+                      {isAtsExpanded ? <ChevronUp className="w-4 h-4 text-white/50" /> : <ChevronDown className="w-4 h-4 text-white/50" />}
                     </button>
                     
                     {isAtsExpanded && (
@@ -717,11 +717,11 @@ export default function MemberProfilePage() {
 
                             return (
                               <div key={dim.label} className="space-y-1.5">
-                                <div className="flex justify-between text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                                <div className="flex justify-between text-[10px] font-bold text-white/50 uppercase tracking-wider">
                                   <span>{dim.label}</span>
                                   <span className={barColor.replace('bg-', 'text-')}>{dim.score} / {dim.max}</span>
                                 </div>
-                                <div className="w-full bg-zinc-900 rounded-full h-2 overflow-hidden border border-border/50">
+                                <div className="w-full bg-zinc-900 rounded-full h-2 overflow-hidden border border-white/5/50">
                                   <div 
                                     className={`${barColor} h-2 rounded-full transition-all duration-1000`} 
                                     style={{ width: `${percent}%` }}
@@ -782,9 +782,9 @@ export default function MemberProfilePage() {
               </div>
             ) : (
               !uploadCvMutation.isPending && (
-                <div className="flex items-center gap-2.5 p-3.5 bg-muted/20 border border-border/50 rounded-xl">
+                <div className="flex items-center gap-2.5 p-3.5 bg-black/30 border border-white/10/50 rounded-xl">
                   <BrainCircuit className="w-4 h-4 text-indigo-400 flex-shrink-0" />
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-white/50">
                     No CV uploaded yet. Upload a PDF/DOCX using the button above.
                   </p>
                 </div>
@@ -794,7 +794,7 @@ export default function MemberProfilePage() {
         </div>
 
         {/* Skills & Expertise Card */}
-        <div className="bg-card rounded-xl border border-border p-5 space-y-4 flex flex-col justify-between">
+        <div className="bg-[#1c1926]/80 backdrop-blur-md rounded-xl border border-white/5 p-5 space-y-4 flex flex-col justify-between">
           <div className="space-y-4 w-full">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -823,7 +823,7 @@ export default function MemberProfilePage() {
                   >
                     {updateSkillsMutation.isPending ? 'Saving...' : 'Save'}
                   </button>
-                  <span className="text-muted-foreground text-[10px]">|</span>
+                  <span className="text-white/50 text-[10px]">|</span>
                   <button
                     onClick={() => setIsEditingSkills(false)}
                     className="text-xs font-semibold text-red-400 hover:text-red-300 transition-colors"
@@ -842,14 +842,14 @@ export default function MemberProfilePage() {
 
             {isEditingSkills ? (
               <div className="space-y-2">
-                <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                <label className="block text-[10px] font-bold text-white/50 uppercase tracking-wider">
                   Enter skills (comma separated)
                 </label>
                 <textarea
                   value={skillsInput}
                   onChange={e => setSkillsInput(e.target.value)}
                   rows={4}
-                  className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-muted/20 focus:outline-none focus:ring-2 focus:ring-azure-500/30 text-foreground resize-none"
+                  className="w-full px-3 py-2 text-sm border border-white/5 rounded-lg bg-muted/20 focus:outline-none focus:ring-2 focus:ring-azure-500/30 text-foreground resize-none"
                   placeholder="React, Node.js, TypeScript, Docker..."
                 />
               </div>
@@ -862,7 +862,7 @@ export default function MemberProfilePage() {
                 ))}
               </div>
             ) : (
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-white/50">
                 No skills added yet. Upload a CV to auto-extract, or click Edit to add skills manually.
               </p>
             )}
@@ -872,7 +872,7 @@ export default function MemberProfilePage() {
 
       <div className="grid grid-cols-2 gap-6">
         {/* Current Projects */}
-        <div className="bg-card rounded-xl border border-border p-5">
+        <div className="bg-[#1c1926]/80 backdrop-blur-md rounded-xl border border-white/5 p-5">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-sm">Current Projects</h3>
             {canEdit && (
@@ -883,14 +883,14 @@ export default function MemberProfilePage() {
             )}
           </div>
           {member.projectMembers.length === 0
-            ? <p className="text-sm text-muted-foreground">Not assigned to any projects — click <strong className="text-foreground">Add to Project</strong> to assign one.</p>
+            ? <p className="text-sm text-white/50">Not assigned to any projects — click <strong className="text-foreground">Add to Project</strong> to assign one.</p>
             : <div className="space-y-3">
                 {member.projectMembers.map(pm => (
-                  <div key={pm.id} className="p-3 rounded-lg bg-muted/30 border border-border/50">
+                  <div key={pm.id} className="p-3 rounded-lg bg-muted/30 border border-white/5/50">
                     <div className="flex items-start justify-between gap-2">
                       <div>
                         <p className="text-sm font-medium">{pm.project.name}</p>
-                        {pm.role && <p className="text-xs text-muted-foreground">{pm.role}</p>}
+                        {pm.role && <p className="text-xs text-white/50">{pm.role}</p>}
                       </div>
                       <div className="flex items-center gap-1.5 flex-shrink-0">
                         <span className={cn('text-[10px] px-2 py-0.5 rounded-full border font-medium', getStatusColor(pm.project.status))}>
@@ -905,7 +905,7 @@ export default function MemberProfilePage() {
                       </div>
                     </div>
                     <div className="mt-2">
-                      <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                      <div className="flex justify-between text-xs text-white/50 mb-1">
                         <span>Progress</span><span>{pm.project.progress}%</span>
                       </div>
                       <div className="w-full bg-muted rounded-full h-1.5">
@@ -920,14 +920,14 @@ export default function MemberProfilePage() {
         </div>
 
         {/* Certifications */}
-        <div className="bg-card rounded-xl border border-border p-5 h-fit transition-all duration-200">
+        <div className="bg-[#1c1926]/80 backdrop-blur-md rounded-xl border border-white/5 p-5 h-fit transition-all duration-200">
           <div
             onClick={() => setIsCertsOpen(prev => !prev)}
             className="flex items-center justify-between cursor-pointer select-none"
           >
             <div className="flex items-center gap-2">
               <h3 className="font-semibold text-sm">Certifications</h3>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-semibold">
+              <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-white/50 font-semibold">
                 {member.assignedCertifications.length}
               </span>
             </div>
@@ -938,22 +938,22 @@ export default function MemberProfilePage() {
                   <Plus className="w-3 h-3" /> Add
                 </button>
               )}
-              <ChevronDown className={cn("w-4 h-4 text-muted-foreground transition-transform duration-200", isCertsOpen && "rotate-180")} />
+              <ChevronDown className={cn("w-4 h-4 text-white/50 transition-transform duration-200", isCertsOpen && "rotate-180")} />
             </div>
           </div>
 
           {isCertsOpen && (
-            <div className="mt-4 pt-4 border-t border-border/40 space-y-3 animate-fade-in">
+            <div className="mt-4 pt-4 border-t border-white/5/40 space-y-3 animate-fade-in">
               {member.assignedCertifications.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No certifications yet — click <strong className="text-foreground">Add</strong> to log one.</p>
+                <p className="text-sm text-white/50">No certifications yet — click <strong className="text-foreground">Add</strong> to log one.</p>
               ) : (
                 <div className="space-y-3">
                   {member.assignedCertifications.map(ac => (
-                    <div key={ac.id} className="p-3 rounded-lg bg-muted/30 border border-border/50">
+                    <div key={ac.id} className="p-3 rounded-lg bg-muted/30 border border-white/5/50">
                       <div className="flex items-start justify-between gap-2">
                         <div>
                           <p className="text-sm font-medium">{ac.certification?.name}</p>
-                          <p className="text-xs text-muted-foreground">{ac.certification?.provider}</p>
+                          <p className="text-xs text-white/50">{ac.certification?.provider}</p>
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
                           <span className={cn('text-[10px] px-2 py-0.5 rounded-full border font-medium', getStatusColor(ac.status))}>
@@ -968,7 +968,7 @@ export default function MemberProfilePage() {
                         </div>
                       </div>
                       <div className="mt-2">
-                        <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                        <div className="flex justify-between text-xs text-white/50 mb-1">
                           <span>Deadline: {formatDate(ac.deadline)}</span><span>{ac.progress}%</span>
                         </div>
                         <div className="w-full bg-muted rounded-full h-1.5">
@@ -1013,22 +1013,22 @@ export default function MemberProfilePage() {
 
       {editRolePm && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-card rounded-2xl shadow-2xl w-full max-w-sm border border-border">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+          <div className="bg-[#1c1926]/80 backdrop-blur-md rounded-2xl shadow-2xl w-full max-w-sm border border-white/5">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-white/5">
               <div>
                 <h2 className="font-semibold text-lg">Edit Role</h2>
-                <p className="text-xs text-muted-foreground">{editRolePm.project.name}</p>
+                <p className="text-xs text-white/50">{editRolePm.project.name}</p>
               </div>
-              <button onClick={() => setEditRolePm(undefined)} className="text-muted-foreground hover:text-foreground"><X className="w-5 h-5" /></button>
+              <button onClick={() => setEditRolePm(undefined)} className="text-white/50 hover:text-foreground"><X className="w-5 h-5" /></button>
             </div>
             <div className="p-6">
-              <label className="block text-xs font-medium text-muted-foreground mb-1">Role</label>
+              <label className="block text-xs font-medium text-white/50 mb-1">Role</label>
               <input value={roleInput} onChange={e => setRoleInput(e.target.value)} autoFocus
-                className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30"
+                className="w-full px-3 py-2 text-sm border border-white/5 rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30"
                 placeholder="e.g. Developer, Analyst (leave blank to clear)" />
             </div>
-            <div className="flex gap-3 px-6 py-4 border-t border-border">
-              <button onClick={() => setEditRolePm(undefined)} className="flex-1 px-4 py-2 text-sm border border-border rounded-lg hover:bg-muted">Cancel</button>
+            <div className="flex gap-3 px-6 py-4 border-t border-white/5">
+              <button onClick={() => setEditRolePm(undefined)} className="flex-1 px-4 py-2 text-sm border border-white/5 rounded-lg hover:bg-muted">Cancel</button>
               <button onClick={() => updateRole.mutate({ pm: editRolePm, role: roleInput })} disabled={updateRole.isPending}
                 className="flex-1 px-4 py-2 text-sm bg-azure-500 text-white rounded-lg hover:bg-azure-600 disabled:opacity-60 flex items-center justify-center gap-2">
                 {updateRole.isPending && <Loader2 className="w-4 h-4 animate-spin" />} Save

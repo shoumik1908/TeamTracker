@@ -48,9 +48,10 @@ router.get('/', async (req, res) => {
       .filter(m => m.aiMinutes)
       .map(m => {
         const title = m.meetingTitle || 'Meeting';
-        const qs = (m.aiMinutes as any).quick_summary || '';
+        const purpose = (m.aiMinutes as any).purpose || '';
+        const discussions = ((m.aiMinutes as any).discussion_points || []).join('; ');
         const pu = ((m.aiMinutes as any).progress_updates || []).map((p: any) => p.exact_value).join('; ');
-        return `${title}: ${qs} (Updates: ${pu})`;
+        return `${title}:\nPurpose: ${purpose}\nDiscussions: ${discussions}\nUpdates: ${pu}`;
       })
       .filter(s => s.length > 0)
       .join('\n');

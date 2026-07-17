@@ -19,6 +19,7 @@ const navItems = [
   { to: '/gtm', icon: Rocket, label: 'GTM' },
   { to: '/project-updates', icon: MessageSquareDiff, label: 'Project Updates' },
   { to: '/notifications', icon: Bell, label: 'Notifications' },
+  { to: '/tasks', icon: Target, label: 'Tasks' },
   { to: '/reports', icon: FileBarChart, label: 'Reports' },
   { to: '/files', icon: FolderOpen, label: 'Files' }
 ];
@@ -60,17 +61,15 @@ export default function Sidebar({
 
       <aside
         className={cn(
-          'flex flex-col h-screen bg-sidebar transition-all duration-300 ease-in-out relative z-50 flex-shrink-0',
+          'flex flex-col h-screen bg-[#14121b]/40 backdrop-blur-xl border-r border-white/5 transition-all duration-300 ease-in-out relative z-50 flex-shrink-0',
           'md:relative absolute top-0 left-0',
           isMobileMenuOpen ? 'translate-x-0 w-64 shadow-2xl' : '-translate-x-full md:translate-x-0',
           collapsed ? 'md:w-16 w-64' : 'w-64'
         )}
       >
       {/* Logo */}
-      <div className={cn('flex items-center gap-3 px-4 py-5 border-b border-border', collapsed && 'justify-center px-2')}>
-        <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-azure-500 flex items-center justify-center shadow-lg shadow-azure-500/40">
-          <Zap className="w-4 h-4 text-white" />
-        </div>
+      <div className={cn('flex items-center gap-3 px-4 py-5 border-b border-white/5', collapsed && 'justify-center px-2')}>
+        <img src="/logo.svg" alt="Logo" className="flex-shrink-0 w-8 h-8 shadow-lg shadow-black/20" />
         {!collapsed && (
           <div className="animate-fade-in overflow-hidden">
             <p className="text-foreground font-bold text-sm leading-tight">Team Tracker</p>

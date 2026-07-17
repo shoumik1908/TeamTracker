@@ -167,6 +167,7 @@ export interface DashboardStats {
   pendingCertifications: number;
   overdueCertifications: number;
   upcomingDeadlines: number;
+  pendingTasks: number;
 }
 
 export interface CertificationStatusData {

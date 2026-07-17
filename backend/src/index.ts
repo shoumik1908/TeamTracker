@@ -3,6 +3,7 @@ import 'express-async-errors';
 import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
+import compression from 'compression';
 import { validateAiConfig } from './services/aiProvider';
 
 // Validate AI environment configuration
@@ -29,6 +30,7 @@ import filesRouter from './routes/files';
 import logsRouter from './routes/logs';
 import meetingRecordsRouter from './routes/meetingRecords';
 import meetingReportRouter from './routes/meetingReport';
+import taskRoutes from './routes/taskRoutes';
 import { errorHandler } from './middleware/errorHandler';
 import { initLogCleanupJob } from './jobs/logCleanup';
 import { initMeetingMinutesRetryJob } from './jobs/meetingMinutesRetry';
@@ -49,6 +51,7 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
+app.use(compression());
 app.use(morgan('dev'));
 
 // Health check
@@ -75,6 +78,7 @@ app.use('/api/logs', logsRouter);
 app.use('/api/projects/:projectId/documentation', documentationRouter);
 app.use('/api/projects/:projectId/meeting-records', meetingRecordsRouter);
 app.use('/api/projects/:projectId/meeting-report', meetingReportRouter);
+app.use('/api/tasks', taskRoutes);
 app.use('/api/presales/:opportunityId/documentation', documentationRouter);
 app.use('/api/presales/:opportunityId/meeting-records', meetingRecordsRouter);
 app.use('/api', teamsRouter);

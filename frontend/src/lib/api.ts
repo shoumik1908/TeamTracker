@@ -122,6 +122,14 @@ export const notificationsApi = {
   delete: (id: string) => api.delete(`/notifications/${id}`),
 };
 
+// ---- Tasks ----
+export const tasksApi = {
+  list: (params?: Record<string, unknown>) => api.get('/tasks', { params }),
+  create: (data: Record<string, unknown>) => api.post('/tasks', data),
+  update: (id: string, data: Record<string, unknown>) => api.patch(`/tasks/${id}`, data),
+  delete: (id: string) => api.delete(`/tasks/${id}`),
+};
+
 // ---- Search ----
 export const searchApi = {
   global: (q: string) => api.get('/search', { params: { q } }),

@@ -84,25 +84,25 @@ export default function LogsPage() {
             <History className="w-6 h-6 text-indigo-500" />
             Activity Logs
           </h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-white/50 mt-1">
             Recent activity across the app. Entries automatically expire after 7 days.
           </p>
         </div>
         
         <div className="relative">
-          <Search className="w-5 h-5 text-muted-foreground absolute left-3 top-1/2 transform -translate-y-1/2" />
+          <Search className="w-5 h-5 text-white/50 absolute left-3 top-1/2 transform -translate-y-1/2" />
           <input
             type="text"
             placeholder="Search activity..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-10 pr-4 py-2 bg-background border border-input rounded-lg text-foreground focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 w-full md:w-64"
+            className="pl-10 pr-4 py-2 bg-black/30 border border-white/10 rounded-lg text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent w-full md:w-64 outline-none placeholder:text-white/40"
           />
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-border">
+      <div className="border-b border-white/5">
         <nav className="-mb-px flex space-x-8 overflow-x-auto">
           {TABS.map(tab => (
             <button
@@ -112,7 +112,7 @@ export default function LogsPage() {
                 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors
                 ${category === tab 
                   ? 'border-indigo-500 text-indigo-400'
-                  : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
+                  : 'border-transparent text-white/50 hover:text-foreground hover:border-white/5'
                 }
               `}
             >
@@ -123,37 +123,37 @@ export default function LogsPage() {
       </div>
 
       {/* Log Feed */}
-      <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
+      <div className="bg-[#1c1926]/80 backdrop-blur-md rounded-xl shadow-sm border border-white/5 overflow-hidden">
         {error ? (
           <div className="p-12 text-center text-red-500 flex flex-col items-center">
             <AlertCircle className="w-12 h-12 mb-4 opacity-50" />
             <p>{error}</p>
           </div>
         ) : logs.length === 0 && !loading ? (
-          <div className="p-12 text-center text-muted-foreground flex flex-col items-center">
+          <div className="p-12 text-center text-white/50 flex flex-col items-center">
             <History className="w-12 h-12 mb-4 opacity-20" />
             <p className="text-lg font-medium text-foreground">No activity found</p>
             <p className="text-sm">Try adjusting your filters or search query.</p>
           </div>
         ) : (
-          <div className="divide-y divide-border">
+          <div className="divide-y divide-white/5">
             {logs.map((log, index) => {
               const isLast = index === logs.length - 1;
               return (
                 <div 
                   key={log.id} 
                   ref={isLast ? lastLogElementRef : null}
-                  className="p-4 hover:bg-muted/50 transition-colors flex items-start gap-4"
+                  className="p-4 hover:bg-white/5 transition-colors flex items-start gap-4"
                 >
-                  <div className="p-2 bg-muted rounded-full border border-border/50 mt-1">
+                  <div className="p-2 bg-white/5 rounded-full border border-white/5 mt-1">
                     {getIconForAction(log.action, log.category)}
                   </div>
                   
                   <div className="flex-1 min-w-0">
-                    <p className="text-foreground text-sm font-medium">
+                    <p className="text-white text-sm font-medium">
                       {log.details}
                     </p>
-                    <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-3 mt-1 text-xs text-white/50">
                       <span className="inline-flex items-center gap-1">
                         <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
                         {log.category}
@@ -173,7 +173,7 @@ export default function LogsPage() {
             })}
             
             {loading && (
-              <div className="p-6 text-center text-muted-foreground">
+              <div className="p-6 text-center text-white/50">
                 <div className="animate-spin rounded-full h-6 w-6 border-2 border-indigo-500 border-t-transparent mx-auto"></div>
               </div>
             )}

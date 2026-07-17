@@ -8,6 +8,7 @@ interface Role {
     write: boolean;
     delete: boolean;
     manageTeam: boolean;
+    'tasks:manage'?: boolean;
   };
 }
 
@@ -27,7 +28,7 @@ interface AuthContextType {
   logout: () => void;
   updateUser: (user: User) => void;
   isLoading: boolean;
-  hasPermission: (action: keyof Role['permissions']) => boolean;
+  hasPermission: (action: keyof Role['permissions'] | string) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -68,9 +69,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('user', JSON.stringify(updatedUser));
   };
 
-  const hasPermission = (action: keyof Role['permissions']) => {
+  const hasPermission = (action: keyof Role['permissions'] | string) => {
     if (!user) return false;
-    return user.role.permissions[action] === true;
+    const permissions = user.role.permissions as Record<string, boolean>;
+    if (permissions.manageTeam === true) return true;
+    return permissions[action] === true;
   };
 
   return (

@@ -24,7 +24,9 @@ export default function Layout() {
   )?.[1] || 'Team Tracker';
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <div className="flex h-screen overflow-hidden bg-transparent relative z-10">
+      {/* Background Glow */}
+      <div className="absolute top-0 right-0 w-[1000px] h-[1000px] bg-[radial-gradient(circle_at_50%_50%,rgba(94,44,217,0.12)_0%,rgba(20,18,27,0)_70%)] pointer-events-none" />
       <Sidebar 
         isMobileMenuOpen={isMobileMenuOpen} 
         setIsMobileMenuOpen={setIsMobileMenuOpen} 
@@ -35,7 +37,7 @@ export default function Layout() {
           isMobileMenuOpen={isMobileMenuOpen} 
           setIsMobileMenuOpen={setIsMobileMenuOpen} 
         />
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 bg-background w-full">
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 bg-transparent w-full">
           <Outlet />
         </main>
       </div>
