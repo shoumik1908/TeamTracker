@@ -412,8 +412,8 @@ router.post('/analyze-doc', docUpload.single('file'), async (req: Request, res: 
   // ── 3. Groq analysis ────────────────────────────────────────────────────────
   const analysis = await analyzePresalesDocWithAI(
     plainText,
-    pnbCurrentStage, pnbCurrentPercent,
-    tnmCurrentStage, tnmCurrentPercent
+    pnbCurrentStage || 'Unknown', pnbCurrentPercent,
+    tnmCurrentStage || 'Unknown', tnmCurrentPercent
   );
 
   // Compute what the new percent would be if confirmed (for the frontend confirmation prompt)
