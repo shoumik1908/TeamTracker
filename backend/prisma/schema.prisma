@@ -156,15 +156,16 @@ model ProjectUpdate {
 }
 
 model Notification {
-  id        String           @id @default(cuid())
-  memberId  String?
-  type      NotificationType
-  title     String
-  message   String
-  read      Boolean          @default(false)
-  createdAt DateTime         @default(now())
+  id         String           @id @default(cuid())
+  memberId   String?          // set for member-targeted notifications
+  targetRole String?          // set for role-targeted notifications, e.g. "Admin"
+  type       NotificationType
+  title      String
+  message    String
+  read       Boolean          @default(false)
+  createdAt  DateTime         @default(now())
 
-  member    TeamMember?      @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  member     TeamMember?      @relation(fields: [memberId], references: [id], onDelete: SetNull)
 
   @@map("notifications")
 }
@@ -317,6 +318,8 @@ enum NotificationType {
   CERTIFICATION_COMPLETED
   PROJECT_UPDATED
   PROJECT_ASSIGNED
+  CERTIFICATE_EDIT_REQUESTED
+  NEW_MEMBER_REGISTERED
 }
 
 enum EditRequestStatus {

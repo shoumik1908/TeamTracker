@@ -714,6 +714,16 @@ router.post('/assignments/:id/request-edit', async (req: Request, res: Response)
     include: { assignment: { include: { member: true, certification: true } } },
   });
 
+  // Notify admins
+  await prisma.notification.create({
+    data: {
+      targetRole: 'Admin',
+      type: 'CERTIFICATE_EDIT_REQUESTED',
+      title: 'Certificate Edit Requested',
+      message: `${requestedBy} requested an edit for ${existing.member.name}'s ${existing.certification.name} certificate.`,
+    },
+  });
+
   res.status(201).json(editRequest);
 });
 

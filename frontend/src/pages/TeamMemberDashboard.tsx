@@ -1,7 +1,9 @@
 import React, { useMemo } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { membersApi, notificationsApi } from '../lib/api';
+import { DashboardGreeting } from '../components/DashboardGreeting';
 import { filesApi } from '../lib/filesApi';
 import { format, formatDistanceToNow } from 'date-fns';
 
@@ -22,6 +24,14 @@ class ErrorBoundary extends React.Component<any, { hasError: boolean, error: any
 
 function TeamMemberDashboardContent() {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  
+  const notifTypeIcon: Record<string, string> = {
+    CERTIFICATION_ASSIGNED: '📋', DEADLINE_APPROACHING: '⏰',
+    CERTIFICATE_UPLOADED: '📄', CERTIFICATION_COMPLETED: '🎉',
+    PROJECT_UPDATED: '🚀', PROJECT_ASSIGNED: '👥',
+    NEW_MEMBER_REGISTERED: '👋', CERTIFICATE_EDIT_REQUESTED: '✏️',
+  };
   
   // 1. Fetch Member Profile
   const { data: memberRes, isLoading: memberLoading } = useQuery({
@@ -136,7 +146,7 @@ function TeamMemberDashboardContent() {
         {/* Welcome Row */}
         <div className="welcome-row animate-fade-in" style={{ animationDelay: '0ms' }}>
           <div className="welcome">
-            <h1>Good afternoon, {firstName} 👋</h1>
+            <DashboardGreeting name={firstName} />
             <div className="meta">
               <span><b>{designation}</b></span>
               <span className="sep">·</span>
@@ -146,34 +156,29 @@ function TeamMemberDashboardContent() {
             </div>
           </div>
           <div className="quick-actions">
-            <button className="qa-btn"><span className="plus">+</span> Upload CV</button>
-            <button className="qa-btn"><span className="plus">+</span> Update status</button>
-            <button className="qa-btn"><span className="plus">+</span> Request leave</button>
+            <button className="qa-btn" onClick={() => navigate(`/members/${user?.teamMemberId}`)}>
+              <span className="plus">+</span> Upload CV
+            </button>
           </div>
         </div>
 
         {/* KPI Strip */}
-        <div className="kpi-strip animate-fade-in" style={{ animationDelay: '50ms' }}>
-          <div className="kpi">
+        <div className="kpi-strip animate-fade-in" style={{ animationDelay: '50ms', gridTemplateColumns: 'repeat(3, 1fr)' }}>
+          <Link to="/projects" className="kpi">
             <div className="label">Assigned projects</div>
             <div className="value">{activeProjectsCount}</div>
             <div className="sub mono">Active assignments</div>
-          </div>
-          <div className="kpi">
+          </Link>
+          <Link to="/certifications" className="kpi">
             <div className="label">Active certifications</div>
             <div className="value">{activeCertsCount}</div>
             <div className="sub mono">In progress & completed</div>
-          </div>
-          <div className="kpi">
+          </Link>
+          <Link to="/" className="kpi">
             <div className="label">Tasks due this week</div>
             <div className="value">{tasks.filter((t: any) => t.status === 'open').length}</div>
             <div className="sub mono">0 overdue</div>
-          </div>
-          <div className="kpi">
-            <div className="label">Pending actions</div>
-            <div className="value">2</div>
-            <div className="sub mono">Needs attention</div>
-          </div>
+          </Link>
         </div>
 
         {/* Main Grid */}
@@ -194,8 +199,8 @@ function TeamMemberDashboardContent() {
                 const role = pm.role || designation;
                 
                 // Mock progress and status for visual fidelity
-                const pct = Math.floor(Math.random() * 40) + 40; 
-                const isAtRisk = pct < 60;
+                const pct = pm.project?.progress || pm.opportunity?.progressPercent || 0; 
+                const isAtRisk = pct < 60 && pm.project?.status !== 'COMPLETED';
                 
                 return (
                   <div className="project-item" key={pm.id}>
@@ -291,9 +296,10 @@ function TeamMemberDashboardContent() {
             ) : (
               notifications.map((n: any) => (
                 <div className="notif" key={n.id}>
-                  <span className="bell">🔔</span>
-                  <div>
-                    {n.title}
+                  <div className="bell">{notifTypeIcon[n.type] || '🔔'}</div>
+                  <div className="flex-1">
+                    <div className="font-medium text-[13.5px] leading-tight text-ink">{n.title}</div>
+                    <div className="text-xs text-ink-soft mt-0.5 leading-snug">{n.message}</div>
                     <span className="when">{n.createdAt ? formatDistanceToNow(new Date(n.createdAt), { addSuffix: true }) : ''}</span>
                   </div>
                 </div>

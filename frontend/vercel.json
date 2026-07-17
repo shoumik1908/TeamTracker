@@ -4,6 +4,10 @@
     {
       "source": "/api/:path*",
       "destination": "https://REPLACE-WITH-YOUR-RENDER-URL.onrender.com/api/:path*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }

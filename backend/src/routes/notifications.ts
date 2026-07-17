@@ -16,12 +16,21 @@ router.get('/', async (req: Request, res: Response) => {
   const user = (req as AuthRequest).user;
   const where: any = {};
   
+  const orConditions: any[] = [];
+  
   if (user?.teamMemberId) {
-    where.OR = [
-      { memberId: user.teamMemberId },
-      { memberId: null }
-    ];
+    orConditions.push({ memberId: user.teamMemberId });
   }
+  
+  if (user?.permissions?.manageTeam) {
+    orConditions.push({ targetRole: 'Admin' });
+  }
+
+  // Support legacy global notifications
+  orConditions.push({ memberId: null, targetRole: null });
+
+  where.OR = orConditions;
+
   if (unreadOnly === 'true') where.read = false;
 
   const [notifications, total, unreadCount] = await Promise.all([

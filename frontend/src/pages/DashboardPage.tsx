@@ -4,6 +4,7 @@ import { dashboardApi } from '@/lib/api';
 import type { DashboardStats, Notification } from '@/types';
 import { formatRelative, formatDate } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
+import { DashboardGreeting } from '@/components/DashboardGreeting';
 
 export default function DashboardPage() {
   const navigate = useNavigate();
@@ -31,6 +32,7 @@ export default function DashboardPage() {
     CERTIFICATION_ASSIGNED: '📋', DEADLINE_APPROACHING: '⏰',
     CERTIFICATE_UPLOADED: '📄', CERTIFICATION_COMPLETED: '🎉',
     PROJECT_UPDATED: '🚀', PROJECT_ASSIGNED: '👥',
+    NEW_MEMBER_REGISTERED: '👋', CERTIFICATE_EDIT_REQUESTED: '✏️',
   };
 
   const firstName = user?.name?.split(' ')[0] || 'Admin';
@@ -46,7 +48,7 @@ export default function DashboardPage() {
         {/* Welcome Row */}
         <div className="welcome-row animate-fade-in" style={{ animationDelay: '0ms' }}>
           <div className="welcome">
-            <h1>Welcome back, {firstName} ⚡</h1>
+            <DashboardGreeting name={firstName} />
             <div className="meta">
               <span>Admin Overview</span>
               <span className="sep">•</span>
@@ -139,7 +141,11 @@ export default function DashboardPage() {
                     <div className="bell">{notifTypeIcon[activity.type] || '📢'}</div>
                     <div className="flex-1">
                       <div className="font-medium text-[13.5px] leading-tight text-ink">{activity.title}</div>
-                      <div className="text-xs text-ink-soft mt-0.5 leading-snug">{activity.message}</div>
+                      <div className="text-xs text-ink-soft mt-0.5 leading-snug">
+                        {user?.role?.permissions?.manageTeam && activity.member?.name 
+                          ? `${activity.member.name}: ${activity.message}` 
+                          : activity.message}
+                      </div>
                       <span className="when">{formatRelative(activity.createdAt)}</span>
                     </div>
                   </div>

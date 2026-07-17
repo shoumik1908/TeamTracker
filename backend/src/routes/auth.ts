@@ -84,6 +84,16 @@ router.post('/register', async (req: Request, res: Response, next: NextFunction)
 
     const token = generateToken(user, user.role);
 
+    // Notify admins
+    await prisma.notification.create({
+      data: {
+        targetRole: 'Admin',
+        type: 'NEW_MEMBER_REGISTERED',
+        title: 'New User Registered',
+        message: `${name} has just registered and mapped to their team profile.`,
+      },
+    });
+
     res.status(201).json({
       token,
       user: {

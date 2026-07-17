@@ -243,12 +243,14 @@ router.post('/:id/members', async (req: Request, res: Response) => {
     include: { member: { select: { id: true, name: true, profilePictureUrl: true, designation: true } } },
   });
 
+  const project = await prisma.project.findUnique({ where: { id: req.params.id } });
+
   await prisma.notification.create({
     data: {
       memberId,
       type: 'PROJECT_ASSIGNED',
       title: 'Assigned to Project',
-      message: `You have been assigned to project`,
+      message: `You have been assigned to project "${project?.name || 'Unknown'}"`,
     },
   });
 
