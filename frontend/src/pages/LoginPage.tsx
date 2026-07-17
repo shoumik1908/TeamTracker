@@ -12,7 +12,7 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  
+
   const stars = useMemo(() => {
     return [...Array(40)].map(() => ({
       left: `${Math.random() * 100}%`,
@@ -132,7 +132,7 @@ export default function LoginPage() {
             </div>
 
             <button type="submit" className="submit-btn" disabled={loading}>
-              {loading ? 'Processing...' : (isLogin ? 'Secure access ' : 'Create account ')}
+              {loading ? 'Processing...' : (isLogin ? 'Login' : 'Create account')}
               {!loading && <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>}
             </button>
           </form>

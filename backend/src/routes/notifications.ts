@@ -41,7 +41,7 @@ router.get('/', async (req: Request, res: Response) => {
       include: { member: { select: { name: true, profilePictureUrl: true } } },
     }),
     prisma.notification.count({ where }),
-    prisma.notification.count({ where: { read: false } }),
+    prisma.notification.count({ where: { ...where, read: false } }),
   ]);
 
   res.json({
@@ -77,10 +77,20 @@ router.put('/:id/read', async (req: Request, res: Response) => {
 router.put('/read-all/mark', async (req: Request, res: Response) => {
   const user = (req as AuthRequest).user;
   const where: any = { read: false };
+  
+  const orConditions: any[] = [];
   if (user?.teamMemberId) {
-    where.memberId = user.teamMemberId; // Only mark their own as read
+    orConditions.push({ memberId: user.teamMemberId });
   }
-  await prisma.notification.updateMany({ where, data: { read: true } });
+  if (user?.permissions?.manageTeam) {
+    orConditions.push({ targetRole: 'Admin' });
+  }
+  
+  if (orConditions.length > 0) {
+    where.OR = orConditions;
+    await prisma.notification.updateMany({ where, data: { read: true } });
+  }
+  
   res.json({ message: 'All notifications marked as read' });
 });
 
