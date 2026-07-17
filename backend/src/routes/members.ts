@@ -5,7 +5,7 @@ import bcrypt from 'bcryptjs';
 import { uploadImage } from '../middleware/upload';
 import { uploadFile, deleteFile, extractBlobName, CONTAINERS, sanitizeDirectoryName } from '../services/blobStorage';
 import { AppError } from '../middleware/errorHandler';
-import { extractCvWithGroq } from '../services/groqExtractor';
+import { extractCvWithAI } from '../services/aiExtractor';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
 
 // Multer config for CV uploads (PDF + DOCX, in-memory, 10 MB limit)
@@ -408,7 +408,7 @@ router.post('/:id/upload-cv', cvUpload.single('cv'), async (req: Request, res: R
   }
 
   // ── 2. Groq AI extraction ───────────────────────────────────────────────
-  const extracted = await extractCvWithGroq(plainText);
+  const extracted = await extractCvWithAI(plainText);
 
   // ── 3. Upload file to ADLS Gen2 ─────────────────────────────────────────
   // Reuse same folder pattern as certificates: {memberId}-{PersonName}/cv/{filename}

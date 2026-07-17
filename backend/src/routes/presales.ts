@@ -3,7 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import multer from 'multer';
 import { uploadFile, deleteFile, extractBlobName, CONTAINERS, sanitizeDirectoryName, getContainerNameFromUrl } from '../services/blobStorage';
 import { BlobServiceClient } from '@azure/storage-blob';
-import { analyzePresalesDocWithGroq } from '../services/groqExtractor';
+import { analyzePresalesDocWithAI } from '../services/aiExtractor';
 import { generateProposalSummary, generateSingleSection } from '../services/azureOpenAIService';
 import { AppError } from '../middleware/errorHandler';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
@@ -410,7 +410,7 @@ router.post('/analyze-doc', docUpload.single('file'), async (req: Request, res: 
   }
 
   // ── 3. Groq analysis ────────────────────────────────────────────────────────
-  const analysis = await analyzePresalesDocWithGroq(
+  const analysis = await analyzePresalesDocWithAI(
     plainText,
     pnbCurrentStage, pnbCurrentPercent,
     tnmCurrentStage, tnmCurrentPercent
