@@ -14,7 +14,8 @@ export default function FilesPage() {
   
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
     'By Team Member': true,
-    'By Client / Opportunity': true
+    'By Client / Opportunity': true,
+    'By Project': true
   });
   
   const [expandedEntities, setExpandedEntities] = useState<Record<string, boolean>>({});
@@ -116,11 +117,12 @@ export default function FilesPage() {
   const filteredGrouped = useMemo(() => {
     const grouped = {
       'By Team Member': {} as Record<string, any[]>,
-      'By Client / Opportunity': {} as Record<string, any[]>
+      'By Client / Opportunity': {} as Record<string, any[]>,
+      'By Project': {} as Record<string, any[]>
     };
     
     filteredFlatFiles.forEach(file => {
-      const group = file.entityGroup as 'By Team Member' | 'By Client / Opportunity';
+      const group = file.entityGroup as 'By Team Member' | 'By Client / Opportunity' | 'By Project';
       if (!grouped[group]) return;
       if (!grouped[group][file.entityName]) {
         grouped[group][file.entityName] = [];
@@ -260,8 +262,8 @@ export default function FilesPage() {
           ) : (
             /* FOLDER HIERARCHY VIEW */
             <div className="space-y-6 animate-fade-in">
-              {['By Team Member', 'By Client / Opportunity'].map((groupName) => {
-                const groupData = filteredGrouped[groupName as 'By Team Member' | 'By Client / Opportunity'];
+              {['By Team Member', 'By Client / Opportunity', 'By Project'].map((groupName) => {
+                const groupData = filteredGrouped[groupName as 'By Team Member' | 'By Client / Opportunity' | 'By Project'];
                 if (!groupData || Object.keys(groupData).length === 0) return null;
                 
                 const isGroupExpanded = expandedGroups[groupName];

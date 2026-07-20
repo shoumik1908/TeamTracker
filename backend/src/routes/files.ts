@@ -177,7 +177,7 @@ router.get('/', async (req: Request, res: Response) => {
         category: pFile.project ? 'Project Document' : (pFile.opportunity ? 'GTM Document' : (pFile.type || 'Document')),
         entityId,
         entityName,
-        entityGroup: 'By Client / Opportunity',
+        entityGroup: pFile.project ? 'By Project' : 'By Client / Opportunity',
         uploadDate: pFile.uploadedAt
       });
     }
@@ -188,11 +188,12 @@ router.get('/', async (req: Request, res: Response) => {
     // Grouping
     const grouped = {
       'By Team Member': {} as Record<string, any[]>,
-      'By Client / Opportunity': {} as Record<string, any[]>
+      'By Client / Opportunity': {} as Record<string, any[]>,
+      'By Project': {} as Record<string, any[]>
     };
 
     files.forEach(file => {
-      const group = file.entityGroup as 'By Team Member' | 'By Client / Opportunity';
+      const group = file.entityGroup as 'By Team Member' | 'By Client / Opportunity' | 'By Project';
       if (!grouped[group][file.entityName]) {
         grouped[group][file.entityName] = [];
       }

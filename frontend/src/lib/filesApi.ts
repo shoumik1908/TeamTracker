@@ -8,7 +8,7 @@ export interface FileItem {
   category: 'CV' | 'Certificate' | 'GTM Document' | 'Project Document' | 'PDF' | 'Word Doc';
   entityId: string;
   entityName: string;
-  entityGroup: 'By Team Member' | 'By Client / Opportunity';
+  entityGroup: 'By Team Member' | 'By Client / Opportunity' | 'By Project';
   uploadDate: string;
 }
 
@@ -17,6 +17,7 @@ export interface FilesResponse {
   grouped: {
     'By Team Member': Record<string, FileItem[]>;
     'By Client / Opportunity': Record<string, FileItem[]>;
+    'By Project': Record<string, FileItem[]>;
   };
 }
 

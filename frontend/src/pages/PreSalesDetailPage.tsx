@@ -63,7 +63,7 @@ function formatDate(dateStr: string | null) {
 type SectionType = 'files' | 'links' | 'notes' | 'records';
 
 export default function PreSalesDetailPage() {
-  const { opportunityId } = useParams<{ opportunityId: string }>();
+  const { id: opportunityId } = useParams<{ id: string }>();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
