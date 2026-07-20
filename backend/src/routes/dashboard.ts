@@ -114,21 +114,19 @@ router.get('/monthly-completions', async (req: Request, res: Response) => {
   const sixMonthsAgo = new Date();
   sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
-  const completions = await prisma.assignedCertification.findMany({
-    where: {
-      ...certWhere,
-      status: 'COMPLETED',
-      completionDate: { gte: sixMonthsAgo },
-    },
-    select: { completionDate: true },
-  });
+  const { Prisma } = require('@prisma/client');
+  const completions: any[] = await prisma.$queryRaw`
+    SELECT TO_CHAR("completionDate", 'YYYY-MM') as month_key, COUNT(*)::int as count
+    FROM "assigned_certifications"
+    WHERE status = 'COMPLETED' AND "completionDate" >= ${sixMonthsAgo}
+    ${isAdmin ? Prisma.empty : Prisma.sql`AND "memberId" = ${teamMemberId}`}
+    GROUP BY TO_CHAR("completionDate", 'YYYY-MM')
+  `;
 
-  // Group by month
   const monthlyData: Record<string, number> = {};
   completions.forEach(c => {
-    if (c.completionDate) {
-      const key = c.completionDate.toISOString().substring(0, 7); // YYYY-MM
-      monthlyData[key] = (monthlyData[key] || 0) + 1;
+    if (c.month_key) {
+      monthlyData[c.month_key] = c.count;
     }
   });
 

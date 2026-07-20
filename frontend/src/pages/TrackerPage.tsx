@@ -311,7 +311,7 @@ export default function TrackerPage() {
   const { data, isLoading } = useQuery<PaginatedResponse<AssignedCertification>>({
     queryKey: ['tracker', search, status, provider, deadline],
     queryFn: () => certificationsApi.assignments({ search, status: status || undefined, provider: provider || undefined, deadline: deadline || undefined, limit: 1000 }).then(r => r.data),
-    refetchInterval: 30000,
+    staleTime: 60000,
   });
 
   const [expandedMembers, setExpandedMembers] = useState<Set<string>>(new Set());
@@ -1424,3 +1424,4 @@ function AddNewCertificationInline({
     </div>
   );
 }
+

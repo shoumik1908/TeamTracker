@@ -36,7 +36,7 @@ export default function Header({
     queryKey: ['notifications-panel'],
     queryFn: () => notificationsApi.list({ limit: '8' }).then(r => r.data),
     enabled: showNotifications,
-    refetchInterval: showNotifications ? 15000 : false,
+    staleTime: 60000,
   });
 
   const markRead = useMutation({
@@ -276,3 +276,4 @@ export default function Header({
     </header>
   );
 }
+

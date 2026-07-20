@@ -141,7 +141,7 @@ export default function GtmTrackerPage() {
   const { data: launchesRes, isLoading: isLoadingLaunches } = useQuery({
     queryKey: ['gtm-plans'],
     queryFn: () => gtmApi.list(),
-    refetchInterval: 30000,
+    staleTime: 60000,
     enabled: activeGtmTab === 'launches' || activeGtmTab === 'campaigns' || activeGtmTab === 'collateral' || activeGtmTab === 'overview'
   });
   const plans = launchesRes?.data || [];
@@ -318,7 +318,7 @@ export default function GtmTrackerPage() {
   const { data: partnersRes, isLoading: isLoadingPartners } = useQuery({
     queryKey: ['gtm-partners'],
     queryFn: () => gtmApi.listPartners(),
-    refetchInterval: 30000,
+    staleTime: 60000,
     enabled: activeGtmTab === 'partners' || activeGtmTab === 'campaigns' || activeGtmTab === 'collateral' || activeGtmTab === 'overview'
   });
   const partnersList = partnersRes?.data || [];
@@ -458,7 +458,7 @@ export default function GtmTrackerPage() {
   const { data: auditRes, isLoading: isLoadingAudit } = useQuery({
     queryKey: ['gtm-audit'],
     queryFn: () => gtmApi.getAudit(),
-    refetchInterval: 30000,
+    staleTime: 60000,
     enabled: true
   });
   const auditList = auditRes?.data || [];
@@ -479,7 +479,7 @@ export default function GtmTrackerPage() {
   const { data: campaignsRes, isLoading: isLoadingCampaigns } = useQuery({
     queryKey: ['gtm-campaigns'],
     queryFn: () => gtmApi.listCampaigns(),
-    refetchInterval: 30000,
+    staleTime: 60000,
     enabled: activeGtmTab === 'campaigns' || activeGtmTab === 'overview'
   });
   const campaignsList = campaignsRes?.data || [];
@@ -581,7 +581,7 @@ export default function GtmTrackerPage() {
   const { data: collateralRes, isLoading: isLoadingCollateral } = useQuery({
     queryKey: ['gtm-collaterals'],
     queryFn: () => gtmApi.listCollaterals(),
-    refetchInterval: 30000,
+    staleTime: 60000,
     enabled: activeGtmTab === 'collateral'
   });
   const collateralList = collateralRes?.data || [];
@@ -1973,3 +1973,4 @@ export default function GtmTrackerPage() {
     </div>
   );
 }
+

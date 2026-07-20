@@ -82,7 +82,7 @@ export default function CertificationsPage() {
   const { data, isLoading } = useQuery<PaginatedResponse<Certification>>({
     queryKey: ['certifications', search],
     queryFn: () => certificationsApi.list({ search, limit: 1000 }).then(r => r.data),
-    refetchInterval: 30000,
+    staleTime: 60000,
   });
 
   const create = useMutation({
@@ -210,3 +210,4 @@ export default function CertificationsPage() {
     </div>
   );
 }
+

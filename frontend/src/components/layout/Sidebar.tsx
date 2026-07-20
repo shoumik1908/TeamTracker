@@ -3,8 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Award, FolderKanban,
   Bell, FileBarChart, ChevronLeft, ChevronRight,
-  MessageSquareDiff, Target, Rocket, FolderOpen, History, ShieldCheck, MessageSquare
-} from 'lucide-react';
+  Diff, Target, Rocket, FolderOpen, History, ShieldCheck, } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import { notificationsApi } from '@/lib/api';
@@ -17,7 +16,7 @@ const navItems = [
   { to: '/projects', icon: FolderKanban, label: 'Projects' },
   { to: '/presales', icon: Target, label: 'PreSales' },
   { to: '/gtm', icon: Rocket, label: 'GTM' },
-  { to: '/project-updates', icon: MessageSquareDiff, label: 'Project Updates' },
+  { to: '/project-updates', icon: Diff, label: 'Project Updates' },
   { to: '/notifications', icon: Bell, label: 'Notifications' },
   { to: '/tasks', icon: Target, label: 'Tasks' },
   { to: '/reports', icon: FileBarChart, label: 'Reports' },
@@ -38,7 +37,7 @@ export default function Sidebar({
   const { data } = useQuery({
     queryKey: ['notifications-count'],
     queryFn: () => notificationsApi.list({ unreadOnly: 'true', limit: '1' }),
-    refetchInterval: 30000,
+    staleTime: 60000,
   });
   const unreadCount = data?.data?.unreadCount || 0;
   
@@ -133,3 +132,5 @@ export default function Sidebar({
     </>
   );
 }
+
+

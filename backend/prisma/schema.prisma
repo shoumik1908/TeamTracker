@@ -93,6 +93,8 @@ model AssignedCertification {
   editRequests      CertificateEditRequest[]
 
   @@unique([memberId, certificationId])
+  @@index([memberId, status])
+  @@index([deadline])
   @@map("assigned_certifications")
 }
 
@@ -122,6 +124,7 @@ model Project {
   blockers       BlockerRisk[]
   tasks          Task[]
 
+  @@index([status, endDate])
   @@map("projects")
 }
 
@@ -170,6 +173,7 @@ model Notification {
 
   member     TeamMember?      @relation(fields: [memberId], references: [id], onDelete: SetNull)
 
+  @@index([memberId, createdAt])
   @@map("notifications")
 }
 
@@ -193,6 +197,8 @@ model Task {
   projectId    String?
   project      Project?   @relation(fields: [projectId], references: [id], onDelete: SetNull)
 
+  @@index([assigneeId, status])
+  @@index([dueDate])
   @@map("tasks")
 }
 
@@ -239,6 +245,8 @@ model MeetingRecord {
   resolvedBlockers  BlockerRisk[]         @relation("ResolvedInMeeting")
   attendees         MeetingAttendee[]
 
+  @@index([projectId, meetingDate])
+  @@index([opportunityId])
   @@map("meeting_records")
 }
 

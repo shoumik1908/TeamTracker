@@ -31,7 +31,7 @@ export default function NotificationsPage() {
   const { data, isLoading } = useQuery<{ data: Notification[]; unreadCount: number; pagination: { total: number } }>({
     queryKey: ['notifications'],
     queryFn: () => notificationsApi.list({ limit: 50 }).then(r => r.data),
-    refetchInterval: 15000,
+    staleTime: 60000,
   });
 
   const markRead = useMutation({
@@ -120,3 +120,4 @@ export default function NotificationsPage() {
     </div>
   );
 }
+

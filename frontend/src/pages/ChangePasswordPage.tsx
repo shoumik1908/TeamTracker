@@ -7,7 +7,7 @@ import api from '@/lib/api';
 
 export default function ChangePasswordPage() {
   const navigate = useNavigate();
-  const { login, user, token } = useAuth();
+  const { login, user } = useAuth();
 
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');

@@ -61,7 +61,7 @@ export default function DeadlinesPage() {
   const { data, isLoading } = useQuery<DeadlineTrackerData>({
     queryKey: ['deadlines'],
     queryFn: () => searchApi.deadlines().then(r => r.data),
-    refetchInterval: 60000,
+    staleTime: 60000,
   });
 
   if (isLoading) {
@@ -111,3 +111,4 @@ export default function DeadlinesPage() {
     </div>
   );
 }
+

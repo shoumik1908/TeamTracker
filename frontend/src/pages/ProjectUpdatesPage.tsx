@@ -280,7 +280,7 @@ export default function ProjectUpdatesPage() {
   const { data: updatesData, isLoading } = useQuery<{ data: ProjectUpdate[]; total: number }>({
     queryKey: ['project-updates', filterProjectId],
     queryFn: () => projectUpdatesApi.list(filterProjectId ? { projectId: filterProjectId } : undefined).then(r => r.data),
-    refetchInterval: 15000,
+    staleTime: 60000,
   });
 
   const { data: projectsData } = useQuery<{ data: Project[] }>({
@@ -513,3 +513,4 @@ export default function ProjectUpdatesPage() {
     </div>
   );
 }
+

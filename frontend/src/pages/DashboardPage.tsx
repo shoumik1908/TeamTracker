@@ -20,19 +20,19 @@ export default function DashboardPage() {
   const { data: stats, isLoading: statsLoading } = useQuery<DashboardStats>({
     queryKey: ['dashboard-stats'],
     queryFn: () => dashboardApi.stats().then(r => r.data),
-    refetchInterval: 30000,
+    staleTime: 60000,
   });
 
   const { data: recentActivities } = useQuery<Notification[]>({
     queryKey: ['recent-activities'],
     queryFn: () => dashboardApi.recentActivities().then(r => r.data),
-    refetchInterval: 30000,
+    staleTime: 60000,
   });
 
   const { data: upcomingData } = useQuery({
     queryKey: ['upcoming-deadlines-widget'],
     queryFn: () => dashboardApi.upcomingDeadlines().then(r => r.data),
-    refetchInterval: 30000,
+    staleTime: 60000,
   });
 
   const notifTypeIcon: Record<string, string> = {
@@ -221,3 +221,4 @@ export default function DashboardPage() {
     </div>
   );
 }
+

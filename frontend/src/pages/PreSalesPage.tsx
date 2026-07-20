@@ -79,7 +79,7 @@ export default function PreSalesPage() {
   const { data: response, isLoading } = useQuery({
     queryKey: ['presales-opportunities'],
     queryFn: () => presalesApi.list(),
-    refetchInterval: 30000,
+    staleTime: 60000,
   });
 
   const opportunities = response?.data || [];
@@ -757,3 +757,4 @@ export default function PreSalesPage() {
     </div>
   );
 }
+
