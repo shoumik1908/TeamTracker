@@ -25,6 +25,7 @@ const FilesPage = React.lazy(() => import('./pages/FilesPage'));
 const LogsPage = React.lazy(() => import('./pages/LogsPage'));
 const TasksPage = React.lazy(() => import('./pages/tasks/TasksPage'));
 const ChangePasswordPage = React.lazy(() => import('./pages/ChangePasswordPage'));
+const CvGenerationPage = React.lazy(() => import('./pages/CvGenerationPage'));
 
 function DashboardRouter() {
   const { hasPermission } = useAuth();
@@ -47,6 +48,7 @@ export default function App() {
               <Route path="admin/credentials" element={<Suspense fallback={<div>Loading...</div>}><AdminCredentialsPage /></Suspense>} />
               <Route path="members" element={<Suspense fallback={<div>Loading...</div>}><MembersPage /></Suspense>} />
               <Route path="members/:id" element={<Suspense fallback={<div>Loading...</div>}><MemberProfilePage /></Suspense>} />
+              <Route path="cv-generation" element={<Suspense fallback={<div>Loading...</div>}><CvGenerationPage /></Suspense>} />
               <Route path="certifications" element={<Suspense fallback={<div>Loading...</div>}><CertificationsPage /></Suspense>} />
               <Route path="tracker" element={<Suspense fallback={<div>Loading...</div>}><TrackerPage /></Suspense>} />
               <Route path="projects" element={<Suspense fallback={<div>Loading...</div>}><ProjectsPage /></Suspense>} />

@@ -85,6 +85,18 @@ export const membersApi = {
   uploadCv: (id: string, formData: FormData) =>
     api.post(`/members/${id}/upload-cv`, formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
   deleteCv: (id: string) => api.delete(`/members/${id}/cv`),
+  getWithResumes: () => api.get('/members/with-resumes'),
+  getResumeProfile: (id: string) => api.get(`/members/${id}/resume-profile`),
+};
+
+// ---- Resume Generation ----
+export const resumeGenerationApi = {
+  generateFixed: (id: string) => api.post(`/resume-generation/${id}/generate`),
+  generateTailored: (id: string, data: FormData) => api.post(`/resume-generation/${id}/generate-tailored`, data, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  generateTailoredFromFile: (data: FormData) => api.post(`/resume-generation/generate-tailored-from-file`, data, { 
+    headers: { 'Content-Type': 'multipart/form-data' },
+    responseType: 'blob' 
+  })
 };
 
 // ---- Certifications ----

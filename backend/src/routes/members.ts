@@ -30,7 +30,21 @@ const prisma = new PrismaClient();
 
 router.use(authenticateToken);
 
-// GET /api/members - List all members with search & pagination
+// GET /api/members/with-resumes - List members who have at least one resume profile or a cvBlobUrl
+router.get('/with-resumes', async (req: Request, res: Response) => {
+  const members = await prisma.teamMember.findMany({
+    where: {
+      OR: [
+        { resumeProfiles: { some: {} } },
+        { cvBlobUrl: { not: null } }
+      ]
+    },
+    select: { id: true, name: true, designation: true },
+    orderBy: { name: 'asc' }
+  });
+  res.json(members);
+});
+
 router.get('/', async (req: Request, res: Response) => {
   const { search, projectId, page = '1', limit = '10', sortBy = 'name', sortOrder = 'asc' } = req.query;
 
@@ -328,6 +342,26 @@ router.put('/:id', uploadImage.single('profilePicture'), async (req: Request, re
   res.json(member);
 });
 
+// GET /api/members/:id/resume-profile
+router.get('/:id/resume-profile', async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const resumeProfile = await prisma.resumeProfile.findFirst({
+    where: { memberId: id },
+    orderBy: { uploadedAt: 'desc' },
+  });
+  
+  if (!resumeProfile) {
+    return res.status(404).json({ error: 'No resume profile found for this member' });
+  }
+
+  const generatedResumes = await prisma.generatedResume.findMany({
+    where: { memberId: id },
+    orderBy: { createdAt: 'desc' }
+  });
+
+  res.json({ resumeProfile, generatedResumes });
+});
+
 // DELETE /api/members/:id - Delete member
 router.delete('/:id', async (req: Request, res: Response) => {
   const user = (req as AuthRequest).user;
@@ -436,6 +470,8 @@ router.post('/:id/upload-cv', cvUpload.single('cv'), async (req: Request, res: R
       atsScore: extracted.ats_score.total,
       atsScoreBreakdown: extracted.ats_score.breakdown,
       atsSuggestions: extracted.feedback as any,
+      skillsGrouped: extracted.skillsGrouped as any,
+      projectsExtracted: extracted.projects as any,
       cvBlobUrl,
       cvOriginalFilename: req.file.originalname,
       cvUploadedAt: new Date(),
@@ -448,6 +484,25 @@ router.post('/:id/upload-cv', cvUpload.single('cv'), async (req: Request, res: R
         ],
       },
     },
+  });
+
+  // 5. Create ResumeProfile historical record
+  await prisma.resumeProfile.create({
+    data: {
+      memberId: id,
+      atsScore: extracted.ats_score.total,
+      atsBreakdown: extracted.ats_score.breakdown,
+      atsSuggestions: extracted.feedback as any,
+      summary: extracted.summary,
+      skills: extracted.skills,
+      primaryRole: extracted.primary_role,
+      yearsOfExperience: extracted.years_of_experience,
+      certifications: extracted.certifications_mentioned,
+      skillsGrouped: extracted.skillsGrouped as any,
+      projects: extracted.projects as any,
+      rawExtractedText: plainText,
+      uploadedAt: new Date(),
+    }
   });
 
   await prisma.activityLog.create({

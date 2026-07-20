@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { membersApi, certificationsApi, projectsApi } from '@/lib/api';
+import { membersApi, certificationsApi, projectsApi, resumeGenerationApi } from '@/lib/api';
 import type { TeamMemberProfile, AssignedCertification, ProjectMemberWithProject } from '@/types';
-import { ArrowLeft, Phone, Award, FolderKanban, TrendingUp, Pencil, Upload, X, Loader2, FileText, Plus, MoreVertical, Trash2, BrainCircuit, CheckCircle2, RefreshCw, ChevronDown, ChevronUp, ThumbsUp, AlertTriangle, Lightbulb } from 'lucide-react';
+import { ArrowLeft, Phone, Award, FolderKanban, TrendingUp, Pencil, Upload, X, Loader2, FileText, Plus, MoreVertical, Trash2, BrainCircuit, CheckCircle2, RefreshCw, ChevronDown, ChevronUp, ThumbsUp, AlertTriangle, Lightbulb, Wand2, Download } from 'lucide-react';
 import { cn, formatDate, getInitials, formatStatus, getStatusColor, getProgressColor } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 
@@ -231,6 +231,28 @@ export default function MemberProfilePage() {
   const [cvSuccess, setCvSuccess] = useState(false);
   const cvFileRef = useRef<HTMLInputElement>(null);
 
+  // CV Generation State
+  const [showJdModal, setShowJdModal] = useState(false);
+  const [jdText, setJdText] = useState('');
+
+  const generateFixedMutation = useMutation({
+    mutationFn: (memberId: string) => resumeGenerationApi.generateFixed(memberId).then(r => r.data),
+    onSuccess: (data) => {
+      if (data.pdfUrl) window.open(data.pdfUrl, '_blank');
+      invalidate();
+    }
+  });
+
+  const generateTailoredMutation = useMutation({
+    mutationFn: ({ memberId, jd }: { memberId: string, jd: string }) => resumeGenerationApi.generateTailored(memberId, jd).then(r => r.data),
+    onSuccess: (data) => {
+      setShowJdModal(false);
+      setJdText('');
+      if (data.pdfUrl) window.open(data.pdfUrl, '_blank');
+      invalidate();
+    }
+  });
+
   const uploadCvMutation = useMutation({
     mutationFn: (file: File) => {
       const fd = new FormData();
@@ -325,6 +347,14 @@ export default function MemberProfilePage() {
     queryFn: () => membersApi.get(id!).then(r => r.data),
     enabled: !!id,
   });
+
+  const { data: resumeData } = useQuery({
+    queryKey: ['resume-profile', id],
+    queryFn: () => membersApi.getResumeProfile(id!).then(r => r.data).catch(() => null),
+    enabled: !!id,
+  });
+  const resumeProfile = resumeData?.resumeProfile;
+  const generatedResumes = resumeData?.generatedResumes || [];
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ['member'] });
@@ -660,6 +690,27 @@ export default function MemberProfilePage() {
                       {member.cvOriginalFilename || 'View CV Document'}
                     </span>
                   </a>
+                  
+                  {/* CV Generation Actions */}
+                  {resumeProfile && (
+                    <div className="pt-3 border-t border-white/5 mt-3 flex items-center gap-3">
+                      <button
+                        onClick={() => generateFixedMutation.mutate(member.id)}
+                        disabled={generateFixedMutation.isPending}
+                        className="flex-1 flex justify-center items-center gap-2 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
+                      >
+                        {generateFixedMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                        Generate CV
+                      </button>
+                      <button
+                        onClick={() => setShowJdModal(true)}
+                        className="flex-1 flex justify-center items-center gap-2 px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-medium transition-colors"
+                      >
+                        <Wand2 className="w-3.5 h-3.5" />
+                        Tailored CV
+                      </button>
+                    </div>
+                  )}
                 </div>
                 
                 {/* ATS Breakdown Details */}
@@ -801,6 +852,7 @@ export default function MemberProfilePage() {
                 <Award className="w-4 h-4 text-azure-400" />
                 <h3 className="font-semibold text-sm">Skills & Expertise</h3>
               </div>
+              
               {!isEditingSkills ? (
                 canEdit && (
                   <button
@@ -834,6 +886,15 @@ export default function MemberProfilePage() {
               )}
             </div>
 
+            {resumeProfile?.summary && (
+              <div className="mb-2">
+                <span className="text-[10px] font-bold text-white/50 uppercase tracking-wider block mb-1">Resume Summary</span>
+                <p className="text-xs text-white/70 leading-relaxed italic border-l-2 border-azure-500/30 pl-3 py-1">
+                  "{resumeProfile.summary}"
+                </p>
+              </div>
+            )}
+
             {skillsError && (
               <div className="text-xs text-red-400 p-2.5 bg-red-950/20 border border-red-800/30 rounded-lg">
                 {skillsError}
@@ -853,9 +914,9 @@ export default function MemberProfilePage() {
                   placeholder="React, Node.js, TypeScript, Docker..."
                 />
               </div>
-            ) : member.skills.length > 0 ? (
+            ) : (resumeProfile?.skills || member.skills).length > 0 ? (
               <div className="flex flex-wrap gap-1.5">
-                {member.skills.map((skill, i) => (
+                {(resumeProfile?.skills || member.skills).map((skill: string, i: number) => (
                   <span key={i} className="px-2.5 py-0.5 bg-azure-950/40 text-azure-300 border border-azure-800/40 rounded-full text-xs font-medium">
                     {skill}
                   </span>
@@ -1032,6 +1093,46 @@ export default function MemberProfilePage() {
               <button onClick={() => updateRole.mutate({ pm: editRolePm, role: roleInput })} disabled={updateRole.isPending}
                 className="flex-1 px-4 py-2 text-sm bg-azure-500 text-white rounded-lg hover:bg-azure-600 disabled:opacity-60 flex items-center justify-center gap-2">
                 {updateRole.isPending && <Loader2 className="w-4 h-4 animate-spin" />} Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* JD Modal for Tailored CV Generation */}
+      {showJdModal && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-[#1c1926]/80 backdrop-blur-md rounded-2xl shadow-2xl w-full max-w-lg border border-white/5">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-white/5">
+              <div>
+                <h2 className="font-semibold text-lg flex items-center gap-2">
+                  <Wand2 className="w-5 h-5 text-purple-400" />
+                  Tailor CV to Job Description
+                </h2>
+                <p className="text-xs text-white/50 mt-1">Paste the target JD below. The AI will curate and re-weight existing skills to match.</p>
+              </div>
+              <button onClick={() => setShowJdModal(false)} className="text-white/50 hover:text-foreground"><X className="w-5 h-5" /></button>
+            </div>
+            <div className="p-6">
+              <textarea
+                value={jdText}
+                onChange={e => setJdText(e.target.value)}
+                placeholder="Paste JD here..."
+                className="w-full h-48 bg-zinc-950 border border-white/10 rounded-lg p-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-purple-500/50 resize-none font-mono"
+              />
+            </div>
+            <div className="flex gap-3 px-6 py-4 border-t border-white/5">
+              <button onClick={() => setShowJdModal(false)} className="flex-1 px-4 py-2 text-sm border border-white/5 rounded-lg hover:bg-muted transition-colors">Cancel</button>
+              <button 
+                onClick={() => member?.id && generateTailoredMutation.mutate({ memberId: member.id, jd: jdText })} 
+                disabled={generateTailoredMutation.isPending || !jdText.trim()}
+                className="flex-1 px-4 py-2 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-60 flex items-center justify-center gap-2 transition-colors"
+              >
+                {generateTailoredMutation.isPending ? (
+                  <><Loader2 className="w-4 h-4 animate-spin" /> Generating...</>
+                ) : (
+                  <><Wand2 className="w-4 h-4" /> Generate PDF</>
+                )}
               </button>
             </div>
           </div>
