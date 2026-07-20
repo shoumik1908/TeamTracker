@@ -138,6 +138,18 @@ httpServer.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
   console.log(`📊 Health check: http://localhost:${PORT}/health`);
   console.log(`💬 Socket.io ready`);
+  
+  // Ponytail: Minimal self-ping to prevent Render sleep. 
+  // No external dependencies, just built-in fetch on a timer.
+  const renderUrl = process.env.RENDER_EXTERNAL_URL;
+  if (renderUrl) {
+    console.log(`⏱️ Self-ping enabled for ${renderUrl}/health every 10m`);
+    setInterval(() => {
+      fetch(`${renderUrl}/health`)
+        .then(res => console.log(`[Self-Ping] OK - Status: ${res.status}`))
+        .catch(err => console.error(`[Self-Ping] Error: ${err.message}`));
+    }, 10 * 60 * 1000); // 10 minutes
+  }
 });
 
 export default app;
