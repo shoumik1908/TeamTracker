@@ -244,7 +244,11 @@ export default function MemberProfilePage() {
   });
 
   const generateTailoredMutation = useMutation({
-    mutationFn: ({ memberId, jd }: { memberId: string, jd: string }) => resumeGenerationApi.generateTailored(memberId, jd).then(r => r.data),
+    mutationFn: ({ memberId, jd }: { memberId: string, jd: string }) => {
+      const fd = new FormData();
+      fd.append('jobDescription', jd);
+      return resumeGenerationApi.generateTailored(memberId, fd).then(r => r.data);
+    },
     onSuccess: (data) => {
       setShowJdModal(false);
       setJdText('');
@@ -354,7 +358,7 @@ export default function MemberProfilePage() {
     enabled: !!id,
   });
   const resumeProfile = resumeData?.resumeProfile;
-  const generatedResumes = resumeData?.generatedResumes || [];
+  // const generatedResumes = resumeData?.generatedResumes || [];
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ['member'] });
