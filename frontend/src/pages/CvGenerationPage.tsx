@@ -39,7 +39,7 @@ export default function CvGenerationPage() {
       a.href = url;
       // Get filename from header if possible
       let filename = 'Tailored_CV.docx';
-      const disposition = response.headers?.['content-disposition'];
+      const disposition = (response.headers as any)?.['content-disposition'];
       if (disposition && disposition.includes('filename=')) {
         filename = disposition.split('filename=')[1].replace(/"/g, '');
       }
