@@ -34,7 +34,7 @@ export default function AdminCredentialsPage() {
   const resetPasswordMutation = useMutation({
     mutationFn: (userId: string) => adminApi.resetPassword(userId),
     onSuccess: () => {
-      alert('Password reset successfully to the default (firstname@123)');
+      alert('Password reset successfully to the default (firstname+xebia)');
       setSelectedUser(null);
     }
   });
