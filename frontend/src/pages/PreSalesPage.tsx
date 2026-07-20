@@ -436,8 +436,13 @@ export default function PreSalesPage() {
                     <ChevronRight className="w-4 h-4 text-white/50 transition-transform group-open/opp-card:rotate-90" />
                     <div className="flex flex-col gap-0.5">
                       <h3 
-                        className="font-extrabold text-sm text-foreground leading-snug"
-                        title={grouped.name}
+                        className="font-extrabold text-sm text-foreground leading-snug hover:text-azure-400 transition-colors cursor-pointer"
+                        title="Click to view full details"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          if (oppId) navigate(`/presales/${oppId}`);
+                        }}
                       >
                         {grouped.name}
                       </h3>
