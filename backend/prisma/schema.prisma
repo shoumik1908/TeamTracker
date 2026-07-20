@@ -598,6 +598,5 @@ model User {
   role               Role        @relation(fields: [roleId], references: [id])
   teamMember         TeamMember? @relation(fields: [teamMemberId], references: [id], onDelete: SetNull)
   tasks              Task[]
-
   @@map("users")
 }

@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
-import { v4 as uuidv4 } from 'uuid';
+import crypto from 'crypto';
 import { deleteFile, generateSasUrl, extractBlobName, CONTAINERS, accountName } from '../services/blobStorage';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
 import { AppError } from '../middleware/errorHandler';
@@ -370,7 +370,7 @@ router.post('/collaterals/upload-url', async (req: Request, res: Response) => {
     return res.status(400).json({ error: 'fileName is required.' });
   }
 
-  const blobName = `gtm-collateral/${uuidv4()}-${fileName.replace(/[^a-zA-Z0-9.\-_]/g, '_')}`;
+  const blobName = `gtm-collateral/${crypto.randomUUID()}-${fileName.replace(/[^a-zA-Z0-9.\-_]/g, '_')}`;
 
   const uploadUrl = generateSasUrl({
     containerName: CONTAINERS.PROJECT_DOCS,

@@ -1,9 +1,4 @@
-import axios from 'axios';
-
-const api = axios.create({
-  baseURL: (import.meta as any).env.VITE_API_URL || '/api',
-  headers: { 'Content-Type': 'application/json' },
-});
+const baseURL = (import.meta as any).env.VITE_API_URL || '/api';
 
 // Typed error for duplicate-certificate 409 responses
 export class DuplicateCertificateError extends Error {
@@ -15,32 +10,67 @@ export class DuplicateCertificateError extends Error {
   }
 }
 
-api.interceptors.request.use(config => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
-
-api.interceptors.response.use(
-  res => res,
-  err => {
-    if (
-      err.response?.status === 409 &&
-      err.response?.data?.error === 'DUPLICATE_CERTIFICATE'
-    ) {
-      return Promise.reject(
-        new DuplicateCertificateError(
-          err.response.data.message,
-          err.response.data.existingAssignmentId
-        )
-      );
+async function fetchApi(method: string, url: string, data?: any, config?: any) {
+  let fullUrl = url.startsWith('http') ? url : `${baseURL}${url}`;
+  
+  if (config?.params) {
+    const searchParams = new URLSearchParams();
+    for (const key in config.params) {
+      if (config.params[key] !== undefined && config.params[key] !== null) {
+        searchParams.append(key, String(config.params[key]));
+      }
     }
-    const message = err.response?.data?.error || err.message || 'Something went wrong';
-    return Promise.reject(new Error(message));
+    const query = searchParams.toString();
+    if (query) fullUrl += (fullUrl.includes('?') ? '&' : '?') + query;
   }
-);
+
+  const headers = new Headers();
+  if (!(data instanceof FormData)) {
+    headers.set('Content-Type', 'application/json');
+  }
+  
+  const token = localStorage.getItem('token');
+  if (token) headers.set('Authorization', `Bearer ${token}`);
+  
+  if (config?.headers) {
+    for (const key in config.headers) {
+      if (config.headers[key] === 'multipart/form-data') continue; // Let browser set boundary
+      headers.set(key, config.headers[key]);
+    }
+  }
+
+  const options: RequestInit = { method, headers };
+  if (data && data instanceof FormData) options.body = data;
+  else if (data) options.body = JSON.stringify(data);
+
+  const res = await fetch(fullUrl, options);
+
+  if (config?.responseType === 'blob') {
+    if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+    return res; // Fetch blob response is handled by caller via res.blob() or just return res
+  }
+
+  const text = await res.text();
+  const resData = text ? JSON.parse(text) : {};
+
+  if (!res.ok) {
+    if (res.status === 409 && resData.error === 'DUPLICATE_CERTIFICATE') {
+      throw new DuplicateCertificateError(resData.message, resData.existingAssignmentId);
+    }
+    const message = resData.error || resData.message || 'Something went wrong';
+    throw new Error(message);
+  }
+
+  return { data: resData, status: res.status, headers: res.headers };
+}
+
+const api = {
+  get: <T = any>(url: string, config?: any) => fetchApi('GET', url, undefined, config) as Promise<{data: T, status: number, headers: Headers}>,
+  post: <T = any>(url: string, data?: any, config?: any) => fetchApi('POST', url, data, config) as Promise<{data: T, status: number, headers: Headers}>,
+  put: <T = any>(url: string, data?: any, config?: any) => fetchApi('PUT', url, data, config) as Promise<{data: T, status: number, headers: Headers}>,
+  patch: <T = any>(url: string, data?: any, config?: any) => fetchApi('PATCH', url, data, config) as Promise<{data: T, status: number, headers: Headers}>,
+  delete: <T = any>(url: string, config?: any) => fetchApi('DELETE', url, undefined, config) as Promise<{data: T, status: number, headers: Headers}>,
+};
 
 export default api;
 

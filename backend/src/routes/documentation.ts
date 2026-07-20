@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
-import { v4 as uuidv4 } from 'uuid';
+import crypto from 'crypto';
 import { deleteFile, generateSasUrl, extractBlobName, CONTAINERS, accountName } from '../services/blobStorage';
 import { AppError } from '../middleware/errorHandler';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
@@ -93,7 +93,7 @@ router.post('/upload-url', async (req: Request, res: Response) => {
   }
 
   const ext = fileName.split('.').pop() || '';
-  const blobName = `${uuidv4()}-${fileName.replace(/[^a-zA-Z0-9.\-_]/g, '_')}`;
+  const blobName = `${crypto.randomUUID()}-${fileName.replace(/[^a-zA-Z0-9.\-_]/g, '_')}`;
 
   const uploadUrl = generateSasUrl({
     containerName: projectId ? CONTAINERS.PROJECT_DOCS : CONTAINERS.PRESALES_DOCS,

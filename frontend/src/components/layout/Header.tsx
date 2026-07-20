@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Bell, X, Loader2, Menu, LogOut, User as UserIcon } from 'lucide-react';
+import { Search, Bell, X, Loader2, Menu, LogOut, User as UserIcon, KeyRound } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/context/AuthContext';
 import { searchApi, notificationsApi } from '@/lib/api';
@@ -246,6 +246,16 @@ export default function Header({
                 >
                   <UserIcon className="w-4 h-4 text-muted-foreground" />
                   My Profile
+                </button>
+                <button
+                  onClick={() => {
+                    setShowProfile(false);
+                    navigate('/change-password');
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted rounded-md transition-colors"
+                >
+                  <KeyRound className="w-4 h-4 text-muted-foreground" />
+                  Change Password
                 </button>
                 <button
                   onClick={() => {

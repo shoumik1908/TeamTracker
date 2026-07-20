@@ -3,7 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Award, FolderKanban,
   Bell, FileBarChart, ChevronLeft, ChevronRight,
-  MessageSquareDiff, Target, Rocket, FolderOpen, History, ShieldCheck
+  MessageSquareDiff, Target, Rocket, FolderOpen, History, ShieldCheck, MessageSquare
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
@@ -83,6 +83,7 @@ export default function Sidebar({
         {filteredNavItems.map(({ to, icon: Icon, label }) => {
           const isActive = to === '/' ? location.pathname === '/' : location.pathname.startsWith(to);
           const isNotifications = to === '/notifications';
+          const badge = isNotifications ? unreadCount : 0;
 
           return (
             <NavLink
@@ -97,9 +98,9 @@ export default function Sidebar({
             >
               <div className="relative flex-shrink-0">
                 <Icon className="w-5 h-5" />
-                {isNotifications && unreadCount > 0 && (
+                {badge > 0 && (
                   <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-[10px] font-bold text-white flex items-center justify-center">
-                    {unreadCount > 9 ? '9+' : unreadCount}
+                    {badge > 9 ? '9+' : badge}
                   </span>
                 )}
               </div>

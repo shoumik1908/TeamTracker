@@ -1,6 +1,9 @@
 import 'dotenv/config';
 import 'express-async-errors';
 import express from 'express';
+import http from 'http';
+import { Server } from 'socket.io';
+import jwt from 'jsonwebtoken';
 import cors from 'cors';
 import morgan from 'morgan';
 import compression from 'compression';
@@ -11,8 +14,6 @@ validateAiConfig();
 
 import authRouter from './routes/auth';
 import adminRouter from './routes/admin';
-
-
 import membersRouter from './routes/members';
 import certificationsRouter from './routes/certifications';
 import projectsRouter from './routes/projects';
@@ -36,16 +37,58 @@ import { initLogCleanupJob } from './jobs/logCleanup';
 import { initMeetingMinutesRetryJob } from './jobs/meetingMinutesRetry';
 
 const app = express();
+const httpServer = http.createServer(app);
 
 // Initialize scheduled jobs
 initLogCleanupJob();
 initMeetingMinutesRetryJob();
 
 const PORT = process.env.PORT || 3001;
+const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-key-do-not-use-in-prod';
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
+
+// Socket.io
+const io = new Server(httpServer, {
+  cors: { origin: [FRONTEND_URL, 'http://localhost:5174'], credentials: true },
+});
+
+// JWT auth for sockets
+io.use((socket, next) => {
+  const token = socket.handshake.auth.token;
+  if (!token) return next(new Error('No token'));
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as any;
+    (socket as any).userId = decoded.id;
+    (socket as any).userName = decoded.name;
+    next();
+  } catch {
+    next(new Error('Invalid token'));
+  }
+});
+
+io.on('connection', (socket) => {
+  const userId = (socket as any).userId;
+  socket.join(`user:${userId}`);
+
+  socket.on('typing', ({ toUserId }: { toUserId: string }) => {
+    socket.to(`user:${toUserId}`).emit('typing', { fromUserId: userId });
+  });
+
+  socket.on('stop_typing', ({ toUserId }: { toUserId: string }) => {
+    socket.to(`user:${toUserId}`).emit('stop_typing', { fromUserId: userId });
+  });
+
+  socket.on('disconnect', () => {
+    io.emit('user_offline', { userId });
+  });
+});
+
+// Expose io on app so routes can use it
+app.set('io', io);
 
 // Middleware
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: [FRONTEND_URL, 'http://localhost:5174'],
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
@@ -91,9 +134,10 @@ app.use((_req, res) => {
 // Error handler
 app.use(errorHandler);
 
-app.listen(PORT, () => {
+httpServer.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
   console.log(`📊 Health check: http://localhost:${PORT}/health`);
+  console.log(`💬 Socket.io ready`);
 });
 
 export default app;

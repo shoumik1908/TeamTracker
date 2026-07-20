@@ -24,6 +24,7 @@ const ProjectDetailPage = React.lazy(() => import('./pages/ProjectDetailPage'));
 const FilesPage = React.lazy(() => import('./pages/FilesPage'));
 const LogsPage = React.lazy(() => import('./pages/LogsPage'));
 const TasksPage = React.lazy(() => import('./pages/tasks/TasksPage'));
+const ChangePasswordPage = React.lazy(() => import('./pages/ChangePasswordPage'));
 
 function DashboardRouter() {
   const { hasPermission } = useAuth();
@@ -60,6 +61,7 @@ export default function App() {
               <Route path="files" element={<Suspense fallback={<div>Loading...</div>}><FilesPage /></Suspense>} />
               <Route path="logs" element={<Suspense fallback={<div>Loading...</div>}><LogsPage /></Suspense>} />
               <Route path="tasks" element={<Suspense fallback={<div>Loading...</div>}><TasksPage /></Suspense>} />
+              <Route path="change-password" element={<Suspense fallback={<div>Loading...</div>}><ChangePasswordPage /></Suspense>} />
             </Route>
           </Route>
         </Routes>

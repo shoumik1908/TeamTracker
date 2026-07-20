@@ -28,7 +28,11 @@ router.get('/', async (req: Request, res: Response) => {
 
   // Only fetch targeted notifications
 
-  where.OR = orConditions;
+  if (orConditions.length > 0) {
+    where.OR = orConditions;
+  } else {
+    where.id = 'NO_RESULTS';
+  }
 
   if (unreadOnly === 'true') where.read = false;
 

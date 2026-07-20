@@ -1,6 +1,6 @@
 import { BlobServiceClient, ContainerClient, StorageSharedKeyCredential, generateBlobSASQueryParameters, BlobSASPermissions } from '@azure/storage-blob';
 import { DataLakeServiceClient } from '@azure/storage-file-datalake';
-import { v4 as uuidv4 } from 'uuid';
+import crypto from 'crypto';
 
 const connectionString = (process.env.AZURE_STORAGE_CONNECTION_STRING || '').trim();
 
@@ -76,7 +76,7 @@ export async function uploadFile(
   customBlobPrefix?: string
 ): Promise<{ url: string; blobName: string }> {
   const ext = originalName.split('.').pop() || '';
-  const uniqueName = `${uuidv4()}.${ext}`;
+  const uniqueName = `${crypto.randomUUID()}.${ext}`;
 
   if (containerName === CONTAINERS.CERTIFICATES || containerName === CONTAINERS.PROJECT_RECORDINGS) {
     console.log(`[ADLS Gen2] Directing upload to Data Lake for container: ${containerName}`);

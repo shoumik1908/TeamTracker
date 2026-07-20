@@ -1,18 +1,5 @@
-import axios from "axios";
 import { CreateTaskInput, TaskRow, UpdateTaskInput } from "../types/tasks";
-
-// Reuse your existing shared axios instance if you have one already
-// (e.g. `import { api } from "@/lib/api"`) instead of this standalone one.
-const api = axios.create({
-  baseURL: (import.meta as any).env.VITE_API_BASE_URL ?? "/api",
-});
-
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
-  if (token) config.headers.Authorization = `Bearer ${token}`;
-  return config;
-});
-
+import api from "../lib/api";
 export async function fetchTasks(params?: {
   assigneeId?: string;
   status?: string;

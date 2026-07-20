@@ -53,7 +53,7 @@ export function getProgressColor(progress: number): string {
 }
 
 export function formatStatus(status: string): string {
-  return status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  return status.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
 }
 
 export function downloadBlob(blob: Blob, filename: string) {

@@ -78,6 +78,7 @@ router.get('/', async (req: Request, res: Response) => {
             projectMembers: true,
           },
         },
+        user: { select: { id: true } },
       },
     }),
     prisma.teamMember.count({ where }),

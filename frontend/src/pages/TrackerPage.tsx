@@ -548,13 +548,13 @@ export default function TrackerPage() {
             className="w-full pl-9 pr-4 py-2 text-sm border border-white/10 rounded-lg bg-black/30 text-white focus:outline-none focus:ring-2 focus:ring-white/20 focus:border-transparent placeholder:text-white/40" />
         </div>
         {[
-          { label: 'Status', value: status, onChange: (v: string) => { setStatus(v); }, options: STATUSES, placeholder: 'All Statuses' },
+          { label: 'Status', value: status, onChange: (v: string) => { setStatus(v); }, options: STATUSES, placeholder: 'All' },
           { label: 'Deadline', value: deadline, onChange: (v: string) => { setDeadline(v); }, options: ['overdue', 'today', 'week'], placeholder: 'All Deadlines' },
         ].map(({ value, onChange, options, placeholder }) => (
           <select key={placeholder} value={value} onChange={e => onChange(e.target.value)}
             className="px-3 py-2 text-sm border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20 bg-[#1c1926] text-white/90">
             <option value="">{placeholder}</option>
-            {options.map(o => <option key={o} value={o}>{typeof o === 'string' ? (o.includes('_') ? formatStatus(o) : o.charAt(0).toUpperCase() + o.slice(1)) : o}</option>)}
+            {options.map(o => <option key={o} value={o}>{typeof o === 'string' ? formatStatus(o) : o}</option>)}
           </select>
         ))}
       </div>

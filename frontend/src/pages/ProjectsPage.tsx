@@ -224,7 +224,7 @@ export default function ProjectsPage() {
         </div>
         <select value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
           className="px-3 py-2 text-sm border border-white/5 rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30 bg-[#1c1926]/80 backdrop-blur-md">
-          <option value="">All Statuses</option>
+          <option value="">All</option>
           {STATUSES.map(s => <option key={s} value={s}>{formatStatus(s)}</option>)}
         </select>
       </div>
