@@ -2,7 +2,7 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { authenticateToken } from '../middleware/auth';
 import { AppError } from '../middleware/errorHandler';
-import { tailorResumeForJD } from '../services/aiExtractor';
+import { tailorResumeForJD, extractCvWithAI } from '../services/aiExtractor';
 import { uploadFile, CONTAINERS, sanitizeDirectoryName } from '../services/blobStorage';
 import multer from 'multer';
 
