@@ -68,7 +68,7 @@ export default function Sidebar({
       >
       {/* Logo */}
       <div className={cn('flex items-center gap-3 px-4 py-5 border-b border-white/5', collapsed && 'justify-center px-2')}>
-        <img src="/logo.svg" alt="Logo" className="flex-shrink-0 w-8 h-8 shadow-lg shadow-black/20" />
+        <img src="/logo.png" alt="Logo" className="flex-shrink-0 w-8 h-8 shadow-lg shadow-black/20" />
         {!collapsed && (
           <div className="animate-fade-in overflow-hidden">
             <p className="text-foreground font-bold text-sm leading-tight">Team Tracker</p>

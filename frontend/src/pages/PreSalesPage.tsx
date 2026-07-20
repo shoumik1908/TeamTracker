@@ -436,13 +436,8 @@ export default function PreSalesPage() {
                     <ChevronRight className="w-4 h-4 text-white/50 transition-transform group-open/opp-card:rotate-90" />
                     <div className="flex flex-col gap-0.5">
                       <h3 
-                        className="font-extrabold text-sm text-foreground leading-snug hover:text-azure-400 transition-colors"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          if (oppId) navigate(`/presales/${oppId}`);
-                        }}
-                        title="Click to view full details"
+                        className="font-extrabold text-sm text-foreground leading-snug"
+                        title={grouped.name}
                       >
                         {grouped.name}
                       </h3>
@@ -452,10 +447,24 @@ export default function PreSalesPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5">
+                    {/* View Details button */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        if (oppId) navigate(`/presales/${oppId}`);
+                      }}
+                      className="flex items-center gap-1 px-2 py-1 text-[10px] font-semibold text-white/80 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition-colors"
+                      title="View full details"
+                    >
+                      <Briefcase className="w-3 h-3" />
+                      Details
+                    </button>
                     {/* View Docs button */}
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
+                        e.preventDefault();
                         setOpenMenuKey(null);
                         setDocsTarget(grouped);
                       }}
@@ -469,6 +478,7 @@ export default function PreSalesPage() {
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
+                        e.preventDefault();
                         setOpenMenuKey(null);
                         setAnalyzerTarget(grouped);
                       }}
@@ -483,6 +493,7 @@ export default function PreSalesPage() {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
+                            e.preventDefault();
                             const key = `${grouped.clientName}::${grouped.name}`;
                             setOpenMenuKey(openMenuKey === key ? null : key);
                           }}

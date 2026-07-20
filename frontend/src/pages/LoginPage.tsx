@@ -57,7 +57,7 @@ export default function LoginPage() {
       <div className="brand">
         <div className="brand-top">
           <div className="mark">
-            <img src="/logo.svg" alt="Team Tracker Logo" />
+            <img src="/logo.png" alt="Team Tracker Logo" />
           </div>
           <span className="brand-name">Team Tracker</span>
         </div>
