@@ -17,12 +17,13 @@ const CURRENT_USER_KEY = ["current-user"];
 // changing its status stay in sync across separate browser sessions
 // without a full page reload. 15s keeps this cheap while still feeling
 // "live" for a small internal team.
-export function useTasks(filters?: { assigneeId?: string; status?: string }) {
+export function useTasks(filters?: { assigneeId?: string; status?: string }, enabled: boolean = true) {
   return useQuery({
     queryKey: [...TASKS_KEY, filters],
     queryFn: () => fetchTasks(filters),
-    refetchInterval: 2000,
     refetchOnWindowFocus: true,
+    staleTime: 5000,
+    enabled,
   });
 }
 

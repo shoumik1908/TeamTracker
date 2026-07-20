@@ -37,7 +37,7 @@ interface TaskCardProps {
   onToggleDone: (id: string) => void;
 }
 
-export function TaskCard({ task, isAdmin, onDragStart, onEdit, onDelete, onToggleDone }: TaskCardProps) {
+export const TaskCard = React.memo(function TaskCard({ task, isAdmin, onDragStart, onEdit, onDelete, onToggleDone }: TaskCardProps) {
   const p = PRIORITIES[task.priority];
   const overdue = task.dueDate && new Date(task.dueDate).getTime() < new Date().setHours(0, 0, 0, 0) && task.status !== "DONE";
 
@@ -121,4 +121,4 @@ export function TaskCard({ task, isAdmin, onDragStart, onEdit, onDelete, onToggl
       )}
     </div>
   );
-}
+});

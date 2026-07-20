@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useCallback } from "react";
 import { Plus, Search } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -31,7 +31,13 @@ export default function TasksPage() {
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [query, setQuery] = useState("");
 
-  const { data: tasks, isLoading, isError } = useTasks();
+  const queryArgs = !userLoading && !isAdmin && currentUser?.teamMemberId 
+    ? { assigneeId: currentUser.teamMemberId } 
+    : undefined;
+
+  const { data: tasks, isLoading: tasksLoading, isError } = useTasks(queryArgs, !userLoading);
+
+  const isLoading = userLoading || tasksLoading;
 
   const createTask = useCreateTask();
   const updateTask = useUpdateTask();
@@ -40,9 +46,6 @@ export default function TasksPage() {
   const filteredTasks = useMemo(() => {
     if (!tasks) return [];
     return tasks.filter((t) => {
-      // Members only see their own tasks. Admins see all tasks.
-      if (!isAdmin && t.assignee.id !== currentUser?.teamMemberId) return false;
-      
       if (priorityFilter !== "all" && t.priority.toLowerCase() !== priorityFilter.toLowerCase()) return false;
       
       if (query) {
@@ -53,11 +56,11 @@ export default function TasksPage() {
     });
   }, [tasks, priorityFilter, query, isAdmin, currentUser?.id]);
 
-  function handleDragStart(e: React.DragEvent, id: string) {
+  const handleDragStart = useCallback((e: React.DragEvent, id: string) => {
     e.dataTransfer.setData("text/plain", id);
-  }
+  }, []);
 
-  function handleDrop(e: React.DragEvent, colId: TaskStatus) {
+  const handleDrop = useCallback((e: React.DragEvent, colId: TaskStatus) => {
     e.preventDefault();
     const id = e.dataTransfer.getData("text/plain");
     setDragOverCol(null);
@@ -69,9 +72,9 @@ export default function TasksPage() {
         onError: (err) => toast.error(err instanceof Error ? err.message : "Couldn't update task"),
       }
     );
-  }
+  }, [updateTask]);
 
-  function toggleDone(id: string) {
+  const toggleDone = useCallback((id: string) => {
     const task = tasks?.find(t => t.id === id);
     if (!task) return;
     
@@ -82,15 +85,15 @@ export default function TasksPage() {
         onError: (err) => toast.error(err instanceof Error ? err.message : "Couldn't update task"),
       }
     );
-  }
+  }, [tasks, updateTask]);
 
-  function handleDelete(id: string) {
+  const handleDelete = useCallback((id: string) => {
     if (!window.confirm("Delete this task? This can't be undone.")) return;
     deleteTask.mutate(id, {
       onSuccess: () => toast.success("Task deleted"),
       onError: (err) => toast.error(err instanceof Error ? err.message : "Couldn't delete task"),
     });
-  }
+  }, [deleteTask]);
 
   function handleSave(taskData: any) {
     if (!modalTask) {
