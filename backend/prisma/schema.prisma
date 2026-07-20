@@ -27,6 +27,8 @@ model TeamMember {
 
   // CV fields (populated after CV upload + Groq extraction)
   skillsExtracted        Json?                   // Array of strings from Groq
+  skillsGrouped          Json?                   // Array of grouped skills
+  projectsExtracted      Json?                   // Array of projects
   yearsOfExperience      Int?
   cvSummary              String?
   atsScore               Int?
@@ -50,6 +52,9 @@ model TeamMember {
   manager                TeamMember?             @relation("TeamManager", fields: [managerId], references: [id], onDelete: SetNull)
   subordinates           TeamMember[]            @relation("TeamManager")
   user                   User?
+
+  resumeProfiles         ResumeProfile[]
+  generatedResumes       GeneratedResume[]
 
   @@map("team_members")
 }
@@ -607,4 +612,43 @@ model User {
   teamMember         TeamMember? @relation(fields: [teamMemberId], references: [id], onDelete: SetNull)
   tasks              Task[]
   @@map("users")
+}
+
+model ResumeProfile {
+  id               String     @id @default(cuid())
+  memberId         String
+  member           TeamMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  
+  atsScore         Int?
+  atsBreakdown     Json?
+  atsSuggestions   Json?
+  
+  summary          String?
+  skills           Json?
+  skillsGrouped    Json?
+  projects         Json?
+  primaryRole      String?
+  yearsOfExperience Int?
+  certifications   Json?
+  rawExtractedText String?
+  
+  uploadedAt       DateTime   @default(now())
+  
+  @@index([memberId])
+  @@map("resume_profiles")
+}
+
+model GeneratedResume {
+  id               String     @id @default(cuid())
+  memberId         String
+  member           TeamMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  
+  jobDescription   String?
+  tailoredContent  Json
+  pdfUrl           String?
+  
+  createdAt        DateTime   @default(now())
+  
+  @@index([memberId])
+  @@map("generated_resumes")
 }
