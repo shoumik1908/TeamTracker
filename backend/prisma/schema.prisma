@@ -398,6 +398,7 @@ model PreSalesOpportunity {
   outOfScope              String?   @db.Text
   timelines               String?   @db.Text
   commercials             String?   @db.Text
+  others                  String?   @db.Text
   sourceDocuments         Json?     // array of { fileName, blobUrl, uploadedAt }
   descriptionGeneratedAt  DateTime?
   // ────────────────────────────────────────────────────────────────────────────

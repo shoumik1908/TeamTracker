@@ -6,7 +6,6 @@ import { presalesDocumentationApi, membersApi, presalesMeetingRecordsApi } from 
 import { useAuth } from '@/context/AuthContext';
 import { presalesApi } from '@/lib/presalesApi';
 import axios from 'axios';
-import { MeetingNotesModal } from '@/components/MeetingNotesModal';
 
 const formatBoldText = (text: string) => {
   const parts = text.split(/(\*\*.*?\*\*)/g);
@@ -685,7 +684,8 @@ export default function PreSalesDetailPage() {
           opportunity.assumptions || 
           opportunity.outOfScope || 
           opportunity.timelines || 
-          opportunity.commercials) ? (
+          opportunity.commercials ||
+          opportunity.others) ? (
           <div className="space-y-3">
             {([
               ['Executive Summary',       opportunity.executiveSummary, 'executiveSummary'],
@@ -697,6 +697,7 @@ export default function PreSalesDetailPage() {
               ['Out of Scope',            opportunity.outOfScope, 'outOfScope'],
               ['Timelines',               opportunity.timelines, 'timelines'],
               ['Commercials',             opportunity.commercials, 'commercials'],
+              ['Others',                  opportunity.others, 'others'],
             ] as [string, string | null, string][]).map(([label, content, key], idx) => {
               const isBlank = !content || content === 'Not specified in provided documents.';
               const isEditing = editingSectionKey === key;

@@ -30,6 +30,7 @@ export interface ProposalSummary {
   out_of_scope?: string;
   timelines?: string;
   commercials?: string;
+  others?: string;
 }
 
 function repairTruncatedJson(str: string): string {
@@ -519,6 +520,7 @@ Structure the sections as follows:
 - out_of_scope: Short bulleted list of explicit exclusions.
 - timelines: Phases/milestones with dates or durations if mentioned.
 - commercials: Pricing model, budget range, commercial terms, and legal/compliance declarations if mentioned.
+- others: Every substantive requirement, detail, or commitment in the source documents that does NOT fit into any of the above nine sections. This must include at minimum: (1) Evaluation criteria and scoring — the full weighted criteria table with percentage weights for each category. (2) Vendor team composition — required roles, experience thresholds, and minimum completed-projects requirement. (3) Business context and stakeholders — domain and all listed stakeholder groups. (4) Current-state architecture reference — existing ODS architecture details that the new platform will replace/modernize. (5) Gold-layer consumer systems — all downstream systems the curated Gold datasets must serve. (6) Legal/risk/contractual terms not already captured — penalties/liquidated damages for SLA breaches, exit/transition support, IP ownership, confidentiality. (7) Proposal submission format checklist items not elsewhere summarized — cover letter, value-adds, differentiators, references, case studies. (8) Any other clause, annexure item (e.g., Bidder Compliance Matrix, NFR Checklist), or footnote from the source document. Format as concise single-line bullets. Do NOT repeat content already in the other nine sections.
 
 If a section genuinely has no supporting content anywhere in the source documents, return an empty string "" for it — never padded, never invented, never a filler sentence.
 
@@ -535,7 +537,8 @@ Return ONLY valid JSON with these exact keys, no markdown wrapper around the JSO
   "assumptions": "Bulleted list of assumptions",
   "out_of_scope": "Bulleted list of exclusions",
   "timelines": "Project milestones, estimated durations, key dates",
-  "commercials": "Pricing model, budget range, commercial terms, and legal/compliance declarations"
+  "commercials": "Pricing model, budget range, commercial terms, and legal/compliance declarations",
+  "others": "Bulleted list of everything not captured in the nine sections above"
 }
 
 COMBINED DOCUMENT TEXT:
@@ -583,6 +586,7 @@ ${promptText}`;
       out_of_scope: clean(parsed.out_of_scope),
       timelines: clean(parsed.timelines),
       commercials: clean(parsed.commercials),
+      others: clean(parsed.others),
     };
   } catch {
     throw new Error('GPT-5 mini returned invalid JSON for proposal summary. Please try again.');
