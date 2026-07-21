@@ -45,8 +45,8 @@ router.get('/stats', async (req: Request, res: Response) => {
     prisma.assignedCertification.count({
       where: { ...certWhere, deadline: { gte: today, lt: nextWeek }, status: { not: 'COMPLETED' } },
     }),
-    prisma.task.count({ where: { ...(isAdmin ? {} : { assigneeId: teamMemberId as string }), status: { not: 'DONE' } } }),
-    prisma.task.count({ where: { ...(isAdmin ? {} : { assigneeId: teamMemberId as string }), status: 'DONE' } }),
+    prisma.task.count({ where: isAdmin ? { status: { not: 'DONE' } } : { assignments: { some: { memberId: teamMemberId as string, status: { not: 'DONE' } } } } }),
+    prisma.task.count({ where: isAdmin ? { status: 'DONE' } : { assignments: { some: { memberId: teamMemberId as string, status: 'DONE' } } } }),
   ]);
 
   res.json({
@@ -203,15 +203,16 @@ router.get('/upcoming-deadlines', async (req: Request, res: Response) => {
       select: { id: true, name: true, endDate: true, status: true, progress: true, priority: true },
     }),
     prisma.task.findMany({
-      where: {
-        ...(isAdmin ? {} : { assigneeId: teamMemberId as string }),
-        dueDate: { gte: now, lte: nextMonth },
-        status: { not: 'DONE' },
-      },
+      where: isAdmin
+        ? { dueDate: { gte: now, lte: nextMonth }, status: { not: 'DONE' } }
+        : { 
+            assignments: { some: { memberId: teamMemberId as string, status: { not: 'DONE' } } },
+            dueDate: { gte: now, lte: nextMonth }
+          },
       orderBy: { dueDate: 'asc' },
       take: 5,
       include: {
-        assignee: { select: { name: true } },
+        assignments: { include: { member: { select: { name: true } } } },
       },
     }),
   ]);

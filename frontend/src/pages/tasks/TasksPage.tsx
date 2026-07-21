@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useCallback } from "react";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, InboxIcon, SendIcon } from "lucide-react";
 import { toast } from "sonner";
 import {
   useAssignableMembers,
@@ -12,7 +12,8 @@ import {
 import { TaskRow, TaskStatus } from "../../types/tasks";
 import { TaskCard } from "./TaskCard";
 import { TaskFormDialog } from "./TaskFormDialog";
-
+import { TaskDetailModal } from "./TaskDetailModal";
+import { FeedbackModal } from "./FeedbackModal";
 
 const COLUMNS: { id: TaskStatus; label: string }[] = [
   { id: "TODO", label: "To do" },
@@ -20,23 +21,25 @@ const COLUMNS: { id: TaskStatus; label: string }[] = [
   { id: "DONE", label: "Done" },
 ];
 
+type TabId = "assigned-to-me" | "assigned-by-me";
+
 export default function TasksPage() {
   const { data: currentUser, isLoading: userLoading } = useCurrentUser();
   const isAdmin = currentUser?.permissions?.["tasks:manage"] === true || currentUser?.permissions?.["manageTeam"] === true;
+  const currentMemberId = currentUser?.teamMemberId as string | undefined;
+  const currentUserId = currentUser?.id as string | undefined;
 
   const { data: members } = useAssignableMembers();
 
-  const [modalTask, setModalTask] = useState<TaskRow | null | undefined>(undefined); // undefined = closed, null = new, object = edit
+  const [tab, setTab] = useState<TabId>("assigned-to-me");
+  const [editModalTask, setEditModalTask] = useState<TaskRow | null | undefined>(undefined);
+  const [detailModalTask, setDetailModalTask] = useState<TaskRow | null>(null);
   const [dragOverCol, setDragOverCol] = useState<TaskStatus | null>(null);
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [query, setQuery] = useState("");
+  const [feedbackTask, setFeedbackTask] = useState<TaskRow | null>(null);
 
-  const queryArgs = !userLoading && !isAdmin && currentUser?.teamMemberId 
-    ? { assigneeId: currentUser.teamMemberId } 
-    : undefined;
-
-  const { data: tasks, isLoading: tasksLoading, isError } = useTasks(queryArgs, !userLoading);
-
+  const { data: tasks, isLoading: tasksLoading, isError } = useTasks(!userLoading);
   const isLoading = userLoading || tasksLoading;
 
   const createTask = useCreateTask();
@@ -45,16 +48,37 @@ export default function TasksPage() {
 
   const filteredTasks = useMemo(() => {
     if (!tasks) return [];
-    return tasks.filter((t) => {
+    return tasks.filter((t: TaskRow) => {
+      // Tab filter
+      if (tab === "assigned-to-me") {
+        // Show tasks where current member is an assignee
+        const isAssigned = currentMemberId
+          ? t.assignments?.some((a) => a.memberId === currentMemberId)
+          : false;
+        // Admins with no teamMemberId fall back to showing all tasks in this tab
+        if (currentMemberId && !isAssigned) return false;
+      } else {
+        // "assigned-by-me": tasks the current user created themselves,
+        // OR tasks assigned on behalf of the current user by someone else.
+        const createdByMe = currentUserId && t.assignedBy?.id === currentUserId;
+        const onBehalfOfMe = currentMemberId && t.onBehalfOf?.id === currentMemberId;
+        if (!createdByMe && !onBehalfOfMe) return false;
+      }
+
       if (priorityFilter !== "all" && t.priority.toLowerCase() !== priorityFilter.toLowerCase()) return false;
-      
       if (query) {
         const q = query.toLowerCase();
-        if (!t.title.toLowerCase().includes(q) && !t.assignee.name.toLowerCase().includes(q)) return false;
+        const nameMatch = t.assignments?.some((a) => a.member.name.toLowerCase().includes(q));
+        if (!t.title.toLowerCase().includes(q) && !nameMatch) return false;
       }
       return true;
     });
-  }, [tasks, priorityFilter, query, isAdmin, currentUser?.id]);
+  }, [tasks, tab, priorityFilter, query, currentMemberId, currentUserId]);
+
+  function hasFeedback(task: TaskRow): boolean {
+    if (!currentMemberId) return false;
+    return task.feedbacks?.some((f) => f.assigneeId === currentMemberId) ?? false;
+  }
 
   const handleDragStart = useCallback((e: React.DragEvent, id: string) => {
     e.dataTransfer.setData("text/plain", id);
@@ -64,28 +88,32 @@ export default function TasksPage() {
     e.preventDefault();
     const id = e.dataTransfer.getData("text/plain");
     setDragOverCol(null);
-    
-    // Optimistic update via useUpdateTask
+
+    const task = tasks?.find((t: TaskRow) => t.id === id);
+    if (!task || task.status === colId) return;
+
+    if (colId === "DONE" && !isAdmin) {
+      if (!hasFeedback(task)) { setFeedbackTask(task); return; }
+    }
+
     updateTask.mutate(
       { id, input: { status: colId } },
-      {
-        onError: (err) => toast.error(err instanceof Error ? err.message : "Couldn't update task"),
-      }
+      { onError: (err) => toast.error(err instanceof Error ? err.message : "Couldn't update task") }
     );
-  }, [updateTask]);
+  }, [updateTask, tasks, isAdmin, currentMemberId]);
 
   const toggleDone = useCallback((id: string) => {
-    const task = tasks?.find(t => t.id === id);
+    const task = tasks?.find((t: TaskRow) => t.id === id);
     if (!task) return;
-    
     const newStatus: TaskStatus = task.status === "DONE" ? "TODO" : "DONE";
+    if (newStatus === "DONE" && !isAdmin && !hasFeedback(task)) {
+      setFeedbackTask(task); return;
+    }
     updateTask.mutate(
       { id, input: { status: newStatus } },
-      {
-        onError: (err) => toast.error(err instanceof Error ? err.message : "Couldn't update task"),
-      }
+      { onError: (err) => toast.error(err instanceof Error ? err.message : "Couldn't update task") }
     );
-  }, [tasks, updateTask]);
+  }, [tasks, updateTask, isAdmin, currentMemberId]);
 
   const handleDelete = useCallback((id: string) => {
     if (!window.confirm("Delete this task? This can't be undone.")) return;
@@ -95,45 +123,31 @@ export default function TasksPage() {
     });
   }, [deleteTask]);
 
-  function handleSave(taskData: any) {
-    if (!modalTask) {
-      // Create mode
+  function handleSaveTask(taskData: any) {
+    if (!editModalTask) {
       createTask.mutate(
         {
           title: taskData.title.trim(),
           description: taskData.description?.trim() || undefined,
-          assigneeId: taskData.assigneeId,
+          assigneeIds: taskData.assigneeIds,
           priority: taskData.priority,
           dueDate: taskData.due || null,
+          onBehalfOfId: taskData.onBehalfOfId || undefined,
         },
         {
-          onSuccess: () => {
-            toast.success("Task created");
-            setModalTask(undefined);
-          },
+          onSuccess: () => { toast.success("Task created"); setEditModalTask(undefined); },
           onError: (err) => toast.error(err instanceof Error ? err.message : "Couldn't create task"),
         }
       );
     } else {
-      // Edit mode
       const input = isAdmin
-        ? {
-            title: taskData.title.trim(),
-            description: taskData.description?.trim() || undefined,
-            assigneeId: taskData.assigneeId,
-            priority: taskData.priority,
-            dueDate: taskData.due || null,
-            status: taskData.status,
-          }
+        ? { title: taskData.title.trim(), description: taskData.description?.trim() || undefined, priority: taskData.priority, dueDate: taskData.due || null, status: taskData.status }
         : { status: taskData.status };
 
       updateTask.mutate(
-        { id: modalTask.id, input },
+        { id: editModalTask.id, input },
         {
-          onSuccess: () => {
-            toast.success("Task updated");
-            setModalTask(undefined);
-          },
+          onSuccess: () => { toast.success("Task updated"); setEditModalTask(undefined); },
           onError: (err) => toast.error(err instanceof Error ? err.message : "Couldn't update task"),
         }
       );
@@ -148,31 +162,48 @@ export default function TasksPage() {
     );
   }
 
+  const tabs: { id: TabId; label: string; icon: React.ReactNode }[] = [
+    { id: "assigned-to-me", label: "Assigned to me", icon: <InboxIcon className="h-3.5 w-3.5" /> },
+    { id: "assigned-by-me", label: "Assigned by me", icon: <SendIcon className="h-3.5 w-3.5" /> },
+  ];
+
   return (
     <div className="min-h-full bg-transparent p-8 text-neutral-100">
       <div className="mx-auto max-w-6xl">
-        {/* header */}
         <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-semibold text-white">
-              {isAdmin ? "Team tasks" : "My tasks"}
-            </h1>
+            <h1 className="text-2xl font-semibold text-white">Tasks</h1>
             <p className="mt-1 text-sm text-neutral-400">
-              {isAdmin ? "Manage and track work across the team." : "Everything on your plate, in one place."}
+              Track work assigned to you and tasks you've delegated.
             </p>
           </div>
-          {isAdmin && (
-            <button
-              onClick={() => setModalTask(null)}
-              className="flex items-center gap-1.5 rounded-lg bg-white/10 border border-white/10 px-3.5 py-2 text-sm font-medium text-white hover:bg-white/20 transition-colors shadow-sm"
-            >
-              <Plus className="h-4 w-4" />
-              New task
-            </button>
-          )}
+          <button
+            onClick={() => setEditModalTask(null)}
+            className="flex items-center gap-1.5 rounded-lg bg-white/10 border border-white/10 px-3.5 py-2 text-sm font-medium text-white hover:bg-white/20 transition-colors shadow-sm"
+          >
+            <Plus className="h-4 w-4" />
+            New task
+          </button>
         </div>
 
-        {/* filters */}
+        {/* Tabs */}
+        <div className="mb-5 flex items-center gap-1 rounded-xl border border-white/5 bg-[#1c1926]/60 p-1 w-fit">
+          {tabs.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all ${
+                tab === t.id
+                  ? "bg-indigo-600 text-white shadow-md"
+                  : "text-neutral-400 hover:text-white hover:bg-white/5"
+              }`}
+            >
+              {t.icon}
+              {t.label}
+            </button>
+          ))}
+        </div>
+
         <div className="mb-6 flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-2 rounded-lg border border-white/5 bg-[#1c1926]/80 backdrop-blur-md px-3 py-1.5">
             <Search className="h-3.5 w-3.5 text-neutral-500" />
@@ -198,17 +229,22 @@ export default function TasksPage() {
           </div>
         </div>
 
-        {isError && (
-          <p className="text-sm text-rose-400 mb-4">
-            Couldn't load tasks. Try refreshing the page.
-          </p>
-        )}
+        {isError && <p className="text-sm text-rose-400 mb-4">Couldn't load tasks. Try refreshing the page.</p>}
 
-        {/* board */}
         {!isError && (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             {COLUMNS.map((col) => {
-              const colTasks = filteredTasks.filter((t) => t.status === col.id);
+              const colTasks = filteredTasks.filter((t: TaskRow) => {
+                if (tab === "assigned-to-me") {
+                  // Use the member's personal assignment status
+                  const memberStatus = currentMemberId
+                    ? t.assignments?.find(a => a.memberId === currentMemberId)?.status
+                    : undefined;
+                  return (memberStatus || t.status) === col.id;
+                }
+                // "assigned-by-me" — use aggregate task status
+                return t.status === col.id;
+              });
               const isOver = dragOverCol === col.id;
               return (
                 <div
@@ -221,9 +257,7 @@ export default function TasksPage() {
                   }`}
                 >
                   <div className="mb-3 flex items-center justify-between px-1">
-                    <span className="text-xs font-semibold uppercase tracking-wide text-neutral-400">
-                      {isAdmin && col.id === "TODO" ? "Task list" : col.label}
-                    </span>
+                    <span className="text-xs font-semibold uppercase tracking-wide text-neutral-400">{col.label}</span>
                     <span className="rounded-full bg-neutral-800 px-1.5 py-0.5 text-[11px] text-neutral-400">
                       {isLoading ? "…" : colTasks.length}
                     </span>
@@ -231,21 +265,21 @@ export default function TasksPage() {
 
                   <div className="space-y-2 min-h-[120px]">
                     {isLoading ? (
-                      <div className="rounded-lg border border-dashed border-white/10 px-3 py-6 text-center text-sm text-white/40">
-                        Loading...
-                      </div>
+                      <div className="rounded-lg border border-dashed border-white/10 px-3 py-6 text-center text-sm text-white/40">Loading...</div>
                     ) : colTasks.length === 0 ? (
                       <div className="rounded-lg border border-dashed border-white/10 px-3 py-6 text-center text-sm text-white/40">
                         No tasks {query || priorityFilter !== "all" ? "match this filter." : "pending."}
                       </div>
                     ) : (
-                      colTasks.map((t) => (
+                      colTasks.map((t: TaskRow) => (
                         <TaskCard
                           key={t.id}
                           task={t}
                           isAdmin={isAdmin}
+                          currentMemberId={currentMemberId}
                           onDragStart={handleDragStart}
-                          onEdit={setModalTask}
+                          onEdit={isAdmin || tab === "assigned-by-me" ? setEditModalTask : undefined}
+                          onView={setDetailModalTask}
                           onDelete={handleDelete}
                           onToggleDone={toggleDone}
                         />
@@ -259,15 +293,35 @@ export default function TasksPage() {
         )}
       </div>
 
-      {modalTask !== undefined && (
+      {editModalTask !== undefined && (
         <TaskFormDialog
-          initial={modalTask}
+          initial={editModalTask}
           members={members || []}
           isAdmin={isAdmin}
-          onClose={() => setModalTask(undefined)}
-          onSave={handleSave}
+          onClose={() => setEditModalTask(undefined)}
+          onSave={handleSaveTask}
+        />
+      )}
+
+      {detailModalTask && (
+        <TaskDetailModal
+          taskId={detailModalTask.id}
+          onClose={() => setDetailModalTask(null)}
+          onEditTask={isAdmin ? (task) => {
+            setDetailModalTask(null);
+            setEditModalTask(task);
+          } : undefined}
+        />
+      )}
+
+      {feedbackTask && (
+        <FeedbackModal
+          task={feedbackTask}
+          onClose={() => setFeedbackTask(null)}
+          onFeedbackSubmitted={() => setFeedbackTask(null)}
         />
       )}
     </div>
   );
 }
+

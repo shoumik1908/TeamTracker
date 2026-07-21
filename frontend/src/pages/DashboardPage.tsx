@@ -203,7 +203,7 @@ export default function DashboardPage() {
               {
                 title: taskData.title.trim(),
                 description: taskData.description?.trim() || undefined,
-                assigneeId: taskData.assigneeId,
+                assigneeIds: taskData.assigneeIds,
                 priority: taskData.priority,
                 dueDate: taskData.due || null,
               },

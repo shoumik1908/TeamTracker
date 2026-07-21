@@ -64,6 +64,7 @@ export const CONTAINERS = {
   CVS: process.env.AZURE_CONTAINER_CVS || 'resume',
   PRESALES_DOCS: process.env.AZURE_CONTAINER_PRESALES_DOCS || 'presales-documents',
   PROJECT_RECORDINGS: process.env.AZURE_CONTAINER_PROJECT_RECORDINGS || 'project-recordings',
+  TASK_FILES: process.env.AZURE_CONTAINER_TASK_FILES || 'task-files',
 };
 
 export async function uploadFile(
@@ -75,8 +76,8 @@ export async function uploadFile(
   memberName?: string,
   customBlobPrefix?: string
 ): Promise<{ url: string; blobName: string }> {
-  const ext = originalName.split('.').pop() || '';
-  const uniqueName = `${crypto.randomUUID()}.${ext}`;
+  // Sanitize original name to prevent path issues but keep it otherwise unchanged
+  const targetName = originalName.replace(/[^a-zA-Z0-9.\-_ \(\)]/g, '_');
 
   if (containerName === CONTAINERS.CERTIFICATES || containerName === CONTAINERS.PROJECT_RECORDINGS) {
     console.log(`[ADLS Gen2] Directing upload to Data Lake for container: ${containerName}`);
@@ -98,7 +99,7 @@ export async function uploadFile(
     await directoryClient.createIfNotExists();
 
     // Upload file
-    const fileClient = directoryClient.getFileClient(uniqueName);
+    const fileClient = directoryClient.getFileClient(targetName);
     await fileClient.create();
     await fileClient.append(fileBuffer, 0, fileBuffer.length);
     await fileClient.flush(fileBuffer.length);
@@ -106,14 +107,14 @@ export async function uploadFile(
       contentType: mimeType
     });
 
-    const url = `https://${accountName}.blob.core.windows.net/${containerName}/${folderName}/${uniqueName}`;
-    const blobName = `${folderName}/${uniqueName}`;
+    const url = `https://${accountName}.blob.core.windows.net/${containerName}/${folderName}/${targetName}`;
+    const blobName = `${folderName}/${targetName}`;
     return { url, blobName };
   } else {
     // Normal blob client
     const containerClient = await getContainerClient(containerName);
     await containerClient.createIfNotExists();
-    const finalBlobName = customBlobPrefix ? `${customBlobPrefix}/${uniqueName}` : uniqueName;
+    const finalBlobName = customBlobPrefix ? `${customBlobPrefix}/${targetName}` : targetName;
     const blockBlobClient = containerClient.getBlockBlobClient(finalBlobName);
 
     await blockBlobClient.uploadData(fileBuffer, {

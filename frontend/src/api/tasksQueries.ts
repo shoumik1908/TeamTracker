@@ -4,10 +4,12 @@ import {
   deleteTask,
   fetchAssignableMembers,
   fetchCurrentUser,
+  fetchTask,
   fetchTasks,
   updateTask,
 } from "./tasksApi";
-import { CreateTaskInput, TaskRow, UpdateTaskInput } from "../types/tasks";
+import { CreateTaskInput, SubmitFeedbackInput, TaskRow, UpdateTaskInput } from "../types/tasks";
+import api from "../lib/api";
 
 const TASKS_KEY = ["tasks"];
 const MEMBERS_KEY = ["assignable-members"];
@@ -17,12 +19,20 @@ const CURRENT_USER_KEY = ["current-user"];
 // changing its status stay in sync across separate browser sessions
 // without a full page reload. 15s keeps this cheap while still feeling
 // "live" for a small internal team.
-export function useTasks(filters?: { assigneeId?: string; status?: string }, enabled: boolean = true) {
+export function useTasks(enabled: boolean = true) {
   return useQuery({
-    queryKey: [...TASKS_KEY, filters],
-    queryFn: () => fetchTasks(filters),
+    queryKey: TASKS_KEY,
+    queryFn: () => fetchTasks(),
+    refetchInterval: 15_000,
     refetchOnWindowFocus: true,
-    staleTime: 5000,
+    enabled,
+  });
+}
+
+export function useTask(id: string, enabled = true) {
+  return useQuery({
+    queryKey: ['task', id],
+    queryFn: () => fetchTask(id),
     enabled,
   });
 }
@@ -66,7 +76,7 @@ export function useUpdateTask() {
         queryKey: ['dashboard-tasks'],
       });
 
-      const { assigneeId, ...patchable } = input;
+      const patchable = { ...input };
 
       queryClient.setQueriesData<TaskRow[]>({ queryKey: TASKS_KEY }, (old) =>
         old?.map((t) => (t.id === id ? { ...t, ...patchable } : t))
@@ -111,5 +121,37 @@ export function useDeleteTask() {
   return useMutation({
     mutationFn: (id: string) => deleteTask(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: TASKS_KEY }),
+  });
+}
+
+export function useSubmitFeedback(taskId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: SubmitFeedbackInput) => {
+      const formData = new FormData();
+      formData.append("feedbackText", input.feedbackText);
+      if (input.rating) formData.append("rating", String(input.rating));
+      if (input.files && input.files.length > 0) {
+        input.files.forEach((file) => {
+          formData.append("files", file);
+        });
+      }
+      
+      return api.post(`/tasks/${taskId}/feedback`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      }).then((r) => r.data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: TASKS_KEY });
+      queryClient.invalidateQueries({ queryKey: ['task-feedbacks', taskId] });
+    },
+  });
+}
+
+export function useTaskFeedbacks(taskId: string, enabled = true) {
+  return useQuery({
+    queryKey: ['task-feedbacks', taskId],
+    queryFn: () => api.get(`/tasks/${taskId}/feedback`).then((r) => r.data),
+    enabled,
   });
 }

@@ -59,6 +59,7 @@ export default function PreSalesPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [oppToDelete, setOppToDelete] = useState<DeletionTarget | null>(null);
   const [oppToReset, setOppToReset] = useState<PreSalesOpportunity | null>(null);
+  const [oppToConvert, setOppToConvert] = useState<PreSalesOpportunity | null>(null);
   const [oppToEdit, setOppToEdit] = useState<GroupedOpportunity | null>(null);
   const [openMenuKey, setOpenMenuKey] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'info' | 'success' } | null>(null);
@@ -125,6 +126,20 @@ export default function PreSalesPage() {
     onError: (err: any) => {
       showToast(err.message || 'Failed to reset progress.', 'info');
       setOppToReset(null);
+    }
+  });
+
+  // Mutation to convert to project
+  const convertMutation = useMutation({
+    mutationFn: (id: string) => presalesApi.convert(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['presales-opportunities'] });
+      showToast('Converted to project successfully.', 'success');
+      setOppToConvert(null);
+    },
+    onError: (err: any) => {
+      showToast(err.message || 'Failed to convert to project.', 'info');
+      setOppToConvert(null);
     }
   });
 
@@ -539,6 +554,19 @@ export default function PreSalesPage() {
                               </button>
                             )}
 
+                            {isAdmin && grouped.pnbOpp && (
+                              <button
+                                onClick={() => {
+                                  setOppToConvert(grouped.pnbOpp!);
+                                  setOpenMenuKey(null);
+                                }}
+                                className="w-full text-left px-3.5 py-2 text-xs hover:bg-zinc-800 text-foreground transition-colors flex items-center gap-1.5"
+                              >
+                                <Briefcase className="w-3.5 h-3.5" />
+                                Convert to Project (PNB)
+                              </button>
+                            )}
+
                             {grouped.tnmOpp && (
                               <button
                                 onClick={() => {
@@ -549,6 +577,19 @@ export default function PreSalesPage() {
                               >
                                 <RefreshCcw className="w-3.5 h-3.5" />
                                 Reset TNM
+                              </button>
+                            )}
+
+                            {isAdmin && grouped.tnmOpp && (
+                              <button
+                                onClick={() => {
+                                  setOppToConvert(grouped.tnmOpp!);
+                                  setOpenMenuKey(null);
+                                }}
+                                className="w-full text-left px-3.5 py-2 text-xs hover:bg-zinc-800 text-foreground transition-colors flex items-center gap-1.5"
+                              >
+                                <Briefcase className="w-3.5 h-3.5" />
+                                Convert to Project (TNM)
                               </button>
                             )}
 
@@ -729,9 +770,25 @@ export default function PreSalesPage() {
           </>
         }
         subMessage="This will reset the progress back to 0%. This action will be logged in history."
-        isPending={resetMutation.isPending}
         onClose={() => setOppToReset(null)}
         onConfirm={() => oppToReset && resetMutation.mutate(oppToReset.id)}
+        isPending={resetMutation.isPending}
+      />
+
+      {/* Confirm Convert Modal */}
+      <ConfirmationModal
+        isOpen={oppToConvert !== null}
+        opportunityName={`${oppToConvert?.account} track`}
+        stageName="Project Planning"
+        title="Confirm Conversion to Project"
+        message={
+          <>
+            Are you sure you want to convert <strong className="text-foreground font-semibold">{oppToConvert?.account}</strong> track for <strong className="text-foreground">"{oppToConvert?.name}"</strong> into a Project?
+          </>
+        }
+        onConfirm={() => oppToConvert && convertMutation.mutate(oppToConvert.id)}
+        onClose={() => setOppToConvert(null)}
+        isPending={convertMutation.isPending}
       />
 
       {/* AI Document Analyzer Modal */}
