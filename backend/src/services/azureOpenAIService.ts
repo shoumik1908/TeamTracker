@@ -460,6 +460,7 @@ ${JSON.stringify(parsed.action_items, null, 2)}`;
 
 export async function generateProposalSummary(
   combinedText: string,
+  clientName: string,
   retries = 1
 ): Promise<ProposalSummary> {
   // Credentials validated by aiProvider
@@ -492,43 +493,49 @@ export async function generateProposalSummary(
 
   console.log(`[generateProposalSummary] Sending prompt payload. Original length: ${combinedText.length} chars, Sliced length: ${promptText.length} chars`);
 
-  const prompt = `You are a senior presales solution architect. Based solely on the provided documents, generate a structured proposal summary for this business opportunity.
+  const prompt = `You are an elite presales solution architect. Based solely on the provided documents, generate a highly polished, structured proposal summary for this business opportunity.
 
-Include all the key points and relevant details from the source documents to ensure comprehensive coverage. However, you must meticulously categorize the information so that each detail is placed only in its most appropriate section. DO NOT repeat the same information across multiple sections. Every point should appear exactly once in the final output.
+Name the client as ${clientName} throughout the summary. Replace any placeholders like [Client] with the actual name.
 
-Only include information stated or clearly implied in the source documents. Do not invent, assume, or extrapolate details not present in the source material, even if they would be typical for a project like this.
+CRITICAL INSTRUCTION: Be extremely concise, impactful, and perfectly formatted. Do not include fluff, generic filler, or repetitive details. Distill the information into sharp, high-level bullet points and executive-level summaries. Every point should appear exactly once in the final output in the most logical section.
 
-Extract concrete, named details already present in the source documents — specific technologies, named deliverables, actual figures, dates, team roles, tool names — rather than vague paraphrasing. E.g. name the actual platforms/tools mentioned rather than saying "a hybrid approach will be used."
+Only include information stated or clearly implied in the source documents. Do not invent, assume, or extrapolate details not present in the source material.
 
-Use markdown bullet points within a section where that improves clarity (especially for lists of deliverables, technologies, timelines, or assumptions), rather than forcing everything into a single dense paragraph.
+Extract concrete, named details already present in the source documents — specific technologies, actual figures, dates, team roles — rather than vague paraphrasing. 
+
+Important compliance requirements:
+1. Include explicit NFR and reliability commitments currently underrepresented: RTO/RPO targets, ingestion throughput, latency targets, and pipeline uptime requirements.
+2. Add DG Portal integration requirement: emphasize that the vendor must integrate with the client's existing governance tooling (DSA records, approvals, audit logs).
+
+Use markdown bullet points extensively to keep the output highly readable and strictly concise. Never write long, dense paragraphs.
 
 Structure the sections as follows:
-- executive_summary: The problem, proposed solution, and expected outcome.
-- scope_of_work: Concrete deliverables, as a bulleted list where appropriate.
-- architecture: Actual technical components/platforms and how they fit together.
-- implementation_approach: Methodology/phases for building the solution.
-- delivery_approach: How the solution will be rolled out/deployed.
-- assumptions: Bulleted list of assumptions being made.
-- out_of_scope: Bulleted list of explicit exclusions.
+- executive_summary: Write 3–4 clean, flowing prose sentences (NOT bullet points). Cover: who ${clientName} is, what business problem they are solving, what the proposed solution is, and the expected outcome. This should read like a crisp executive brief — no lists, no sub-bullets, no headings inside it.
+- scope_of_work: Bulleted list of concrete deliverables grouped logically.
+- architecture: Bulleted list of actual technical components, platforms, integration points, and NFRs (RTO/RPO, throughput, latency, uptime).
+- implementation_approach: Numbered phases or methodology, with key steps per phase.
+- delivery_approach: How the solution is deployed/handed over, including the submission format requirements if mentioned (annexures, structure, cover letter, etc.).
+- assumptions: Short bulleted list of assumptions made about the client environment or scope.
+- out_of_scope: Short bulleted list of explicit exclusions.
 - timelines: Phases/milestones with dates or durations if mentioned.
-- commercials: Pricing, cost structure, or commercial terms if mentioned.
+- commercials: Pricing model, budget range, commercial terms, and legal/compliance declarations if mentioned.
 
 If a section genuinely has no supporting content anywhere in the source documents, return an empty string "" for it — never padded, never invented, never a filler sentence.
 
-Self-Check: Before finalizing your response, verify that every statement is directly traceable to the source documents provided. Remove or soften anything not clearly supported by the source material.
+Self-Check: Before finalizing your response, verify that the executive_summary is written as flowing prose (no bullet points), and that every statement is directly traceable to the source documents. Remove or soften anything not clearly supported.
 
 Return ONLY valid JSON with these exact keys, no markdown wrapper around the JSON itself, no preamble, no explanation outside JSON:
 
 {
-  "executive_summary": "Detailed overview of the opportunity, client need, and proposed solution approach",
-  "scope_of_work": "What is included in the engagement — deliverables, systems, processes",
-  "architecture": "Technical stack, infrastructure, integration points, or solution architecture",
-  "implementation_approach": "How the work will be executed — methodologies, phases, teams involved",
-  "delivery_approach": "Deployment, go-live, handover, or delivery model details",
-  "assumptions": "Assumptions made about the client environment, scope, or requirements",
-  "out_of_scope": "What is explicitly excluded from this engagement",
+  "executive_summary": "3-4 sentence executive prose summary of the opportunity and proposed solution",
+  "scope_of_work": "Bulleted list of deliverables",
+  "architecture": "Bulleted list of technical components, platforms, and NFRs",
+  "implementation_approach": "Numbered phases/methodology",
+  "delivery_approach": "Deployment model, handover, and submission format if applicable",
+  "assumptions": "Bulleted list of assumptions",
+  "out_of_scope": "Bulleted list of exclusions",
   "timelines": "Project milestones, estimated durations, key dates",
-  "commercials": "Pricing model, rate cards, budget range, commercial terms"
+  "commercials": "Pricing model, budget range, commercial terms, and legal/compliance declarations"
 }
 
 COMBINED DOCUMENT TEXT:
@@ -545,7 +552,7 @@ ${promptText}`;
   );
 
   const rawText: string = response.content;
-  console.log('[Groq Proposal Raw Response] Entire Response:\n', rawText);
+  console.log('[GPT-5 mini Proposal Raw Response] Entire Response:\n', rawText);
 
   try {
     let jsonString = rawText.trim();
@@ -578,7 +585,7 @@ ${promptText}`;
       commercials: clean(parsed.commercials),
     };
   } catch {
-    throw new Error('Groq returned invalid JSON for proposal summary. Please try again.');
+    throw new Error('GPT-5 mini returned invalid JSON for proposal summary. Please try again.');
   }
 }
 

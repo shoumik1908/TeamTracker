@@ -89,27 +89,27 @@ function ProjectModal({ project, onClose, onSave }: { project?: Project; onClose
           <div>
             <label className="block text-xs font-medium text-white/50 mb-1">Project Name *</label>
             <input required value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
-              className="w-full px-3 py-2 text-sm border border-white/5 rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30"
+              className="w-full px-3 py-2 text-sm bg-white/5 border border-white/5 rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30"
               placeholder="Azure Cloud Migration" />
           </div>
           <div>
             <label className="block text-xs font-medium text-white/50 mb-1">Description</label>
             <textarea rows={2} value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
-              className="w-full px-3 py-2 text-sm border border-white/5 rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30 resize-none"
+              className="w-full px-3 py-2 text-sm bg-white/5 border border-white/5 rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30 resize-none"
               placeholder="Brief description..." />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-medium text-white/50 mb-1">Client</label>
               <input value={form.client} onChange={e => setForm(p => ({ ...p, client: e.target.value }))}
-                className="w-full px-3 py-2 text-sm border border-white/5 rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30"
+                className="w-full px-3 py-2 text-sm bg-white/5 border border-white/5 rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30"
                 placeholder="Acme Corp / Internal" />
             </div>
             <div>
               <label className="block text-xs font-medium text-white/50 mb-1">Priority</label>
               <select value={form.priority} onChange={e => setForm(p => ({ ...p, priority: e.target.value }))}
-                className="w-full px-3 py-2 text-sm border border-white/5 rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30">
-                {PRIORITIES.map(p => <option key={p}>{p}</option>)}
+                className="w-full px-3 py-2 text-sm bg-white/5 border border-white/5 rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30">
+                {PRIORITIES.map(p => <option key={p} className="bg-zinc-900">{p}</option>)}
               </select>
             </div>
           </div>
@@ -117,12 +117,12 @@ function ProjectModal({ project, onClose, onSave }: { project?: Project; onClose
             <div>
               <label className="block text-xs font-medium text-white/50 mb-1">Start Date *</label>
               <input type="date" value={form.startDate} onChange={e => setForm(p => ({ ...p, startDate: e.target.value }))}
-                className="w-full px-3 py-2 text-sm border border-white/5 rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30" />
+                className="w-full px-3 py-2 text-sm bg-white/5 border border-white/5 rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30" />
             </div>
             <div>
               <label className="block text-xs font-medium text-white/50 mb-1">End Date</label>
               <input type="date" value={form.endDate} onChange={e => setForm(p => ({ ...p, endDate: e.target.value }))}
-                className="w-full px-3 py-2 text-sm border border-white/5 rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30" />
+                className="w-full px-3 py-2 text-sm bg-white/5 border border-white/5 rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30" />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -130,7 +130,7 @@ function ProjectModal({ project, onClose, onSave }: { project?: Project; onClose
               <label className="block text-xs font-medium text-white/50 mb-1">Status</label>
               <select value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value }))}
                 className="w-full px-3 py-2 text-sm border border-white/5 rounded-lg bg-[#1c1926]/80 backdrop-blur-md focus:outline-none focus:ring-2 focus:ring-azure-500/30">
-                {STATUSES.map(s => <option key={s} value={s}>{formatStatus(s)}</option>)}
+                {STATUSES.map(s => <option key={s} value={s} className="bg-zinc-900">{formatStatus(s)}</option>)}
               </select>
             </div>
             <div>
