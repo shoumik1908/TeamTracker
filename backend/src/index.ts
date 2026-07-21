@@ -2,7 +2,6 @@ import 'dotenv/config';
 import 'express-async-errors';
 import express from 'express';
 import http from 'http';
-import { Server } from 'socket.io';
 import jwt from 'jsonwebtoken';
 import cors from 'cors';
 import morgan from 'morgan';
@@ -33,13 +32,12 @@ import meetingRecordsRouter from './routes/meetingRecords';
 import meetingReportRouter from './routes/meetingReport';
 import taskRoutes from './routes/taskRoutes';
 import resumeGenerationRouter from './routes/resumeGeneration';
+import taskFeedbackRouter from './routes/taskFeedback';
 import { errorHandler } from './middleware/errorHandler';
 import { initLogCleanupJob } from './jobs/logCleanup';
 import { initMeetingMinutesRetryJob } from './jobs/meetingMinutesRetry';
 
 const app = express();
-const httpServer = http.createServer(app);
-
 // Initialize scheduled jobs
 initLogCleanupJob();
 initMeetingMinutesRetryJob();
@@ -48,44 +46,13 @@ const PORT = process.env.PORT || 3001;
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-key-do-not-use-in-prod';
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 
-// Socket.io
-const io = new Server(httpServer, {
-  cors: { origin: [FRONTEND_URL, 'http://localhost:5174'], credentials: true },
-});
 
-// JWT auth for sockets
-io.use((socket, next) => {
-  const token = socket.handshake.auth.token;
-  if (!token) return next(new Error('No token'));
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET) as any;
-    (socket as any).userId = decoded.id;
-    (socket as any).userName = decoded.name;
-    next();
-  } catch {
-    next(new Error('Invalid token'));
-  }
-});
 
-io.on('connection', (socket) => {
-  const userId = (socket as any).userId;
-  socket.join(`user:${userId}`);
 
-  socket.on('typing', ({ toUserId }: { toUserId: string }) => {
-    socket.to(`user:${toUserId}`).emit('typing', { fromUserId: userId });
-  });
 
-  socket.on('stop_typing', ({ toUserId }: { toUserId: string }) => {
-    socket.to(`user:${toUserId}`).emit('stop_typing', { fromUserId: userId });
-  });
 
-  socket.on('disconnect', () => {
-    io.emit('user_offline', { userId });
-  });
-});
 
-// Expose io on app so routes can use it
-app.set('io', io);
+
 
 // Middleware
 app.use(cors({
@@ -124,6 +91,7 @@ app.use('/api/projects/:projectId/meeting-records', meetingRecordsRouter);
 app.use('/api/projects/:projectId/meeting-report', meetingReportRouter);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/resume-generation', resumeGenerationRouter);
+app.use('/api/tasks/:id/feedback', taskFeedbackRouter);
 app.use('/api/presales/:opportunityId/documentation', documentationRouter);
 app.use('/api/presales/:opportunityId/meeting-records', meetingRecordsRouter);
 app.use('/api', teamsRouter);
@@ -136,11 +104,10 @@ app.use((_req, res) => {
 // Error handler
 app.use(errorHandler);
 
-httpServer.listen(PORT, () => {
+app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
   console.log(`📊 Health check: http://localhost:${PORT}/health`);
-  console.log(`💬 Socket.io ready`);
-  
+
   // Ponytail: Minimal self-ping to prevent Render sleep. 
   // No external dependencies, just built-in fetch on a timer.
   const renderUrl = process.env.RENDER_EXTERNAL_URL;

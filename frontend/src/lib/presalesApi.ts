@@ -63,6 +63,12 @@ export const presalesApi = {
     return res.data;
   },
 
+  // Convert opportunity to Project
+  convert: async (id: string): Promise<{ data: any }> => {
+    const res = await api.post(`/presales/${id}/convert`);
+    return res.data;
+  },
+
   // Upload a document for AI track + incremental progress analysis
   analyzeDoc: async (
     formData: FormData

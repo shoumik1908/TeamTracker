@@ -1,10 +1,12 @@
 import { CreateTaskInput, TaskRow, UpdateTaskInput } from "../types/tasks";
 import api from "../lib/api";
-export async function fetchTasks(params?: {
-  assigneeId?: string;
-  status?: string;
-}): Promise<TaskRow[]> {
+export async function fetchTasks(params?: { status?: string }): Promise<TaskRow[]> {
   const res = await api.get<TaskRow[]>("/tasks", { params });
+  return res.data;
+}
+
+export async function fetchTask(id: string): Promise<TaskRow> {
+  const res = await api.get<TaskRow>(`/tasks/${id}`);
   return res.data;
 }
 

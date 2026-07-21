@@ -9,65 +9,66 @@ datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
-
 }
 
 model TeamMember {
-  id                     String                  @id @default(cuid())
-  name                   String
-  email                  String?                 @unique
-  phone                  String?
-  designation            String?
-  joiningDate            DateTime
-  skills                 String[]
-  profilePictureUrl      String?
-  allocationPercentage   Int                     @default(100)
-  createdAt              DateTime                @default(now())
-  updatedAt              DateTime                @updatedAt
+  id                   String   @id @default(cuid())
+  name                 String
+  email                String?  @unique
+  phone                String?
+  designation          String?
+  joiningDate          DateTime
+  skills               String[]
+  profilePictureUrl    String?
+  allocationPercentage Int      @default(100)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 
   // CV fields (populated after CV upload + Groq extraction)
-  skillsExtracted        Json?                   // Array of strings from Groq
-  skillsGrouped          Json?                   // Array of grouped skills
-  projectsExtracted      Json?                   // Array of projects
-  yearsOfExperience      Int?
-  cvSummary              String?
-  atsScore               Int?
-  atsScoreBreakdown      Json?                   // Detailed breakdown of the ATS score
-  atsSuggestions         Json?                   // Array of string suggestions
-  cvBlobUrl              String?
-  cvOriginalFilename     String?
-  cvUploadedAt           DateTime?
+  skillsExtracted    Json? // Array of strings from Groq
+  skillsGrouped      Json? // Array of grouped skills
+  projectsExtracted  Json? // Array of projects
+  yearsOfExperience  Int?
+  cvSummary          String?
+  atsScore           Int?
+  atsScoreBreakdown  Json? // Detailed breakdown of the ATS score
+  atsSuggestions     Json? // Array of string suggestions
+  cvBlobUrl          String?
+  cvOriginalFilename String?
+  cvUploadedAt       DateTime?
 
   assignedCertifications AssignedCertification[]
   projectMembers         ProjectMember[]
   managedProjects        Project[]               @relation("ProjectManager")
   notifications          Notification[]
-  tasks                  Task[]                  @relation("TaskAssignee")
+  taskAssignments        TaskAssignment[]
+  taskFeedbacks          TaskFeedback[]          @relation("TaskFeedbackAssignee")
   projectUpdates         ProjectUpdate[]
+  tasksRequested         Task[]                  @relation("TaskOnBehalfOf")
   meetingActionItems     MeetingActionItem[]
   keyDecisions           KeyDecision[]
   meetingAttendances     MeetingAttendee[]
 
-  managerId              String?
-  manager                TeamMember?             @relation("TeamManager", fields: [managerId], references: [id], onDelete: SetNull)
-  subordinates           TeamMember[]            @relation("TeamManager")
-  user                   User?
+  managerId    String?
+  manager      TeamMember?  @relation("TeamManager", fields: [managerId], references: [id], onDelete: SetNull)
+  subordinates TeamMember[] @relation("TeamManager")
+  user         User?
 
-  resumeProfiles         ResumeProfile[]
-  generatedResumes       GeneratedResume[]
+  resumeProfiles   ResumeProfile[]
+  generatedResumes GeneratedResume[]
 
   @@map("team_members")
 }
 
 model Certification {
-  id                     String                  @id @default(cuid())
-  name                   String
-  provider               String
-  description            String?
-  duration               String?
-  learningLink           String?
-  createdAt              DateTime                @default(now())
-  updatedAt              DateTime                @updatedAt
+  id           String   @id @default(cuid())
+  name         String
+  provider     String
+  description  String?
+  duration     String?
+  learningLink String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   assignedCertifications AssignedCertification[]
 
@@ -75,27 +76,27 @@ model Certification {
 }
 
 model AssignedCertification {
-  id                String              @id @default(cuid())
-  memberId          String
-  certificationId   String
-  assignedDate      DateTime            @default(now())
-  deadline          DateTime
-  priority          Priority            @default(MEDIUM)
-  notes             String?
-  progress          Int                 @default(0)
-  status            CertificationStatus @default(NOT_STARTED)
-  completionDate    DateTime?
-  expiryDate        DateTime?
-  certificateUrl    String?
-  credentialId      String?
-  originalFilename  String?
-  uploadDate        DateTime?
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
+  id               String              @id @default(cuid())
+  memberId         String
+  certificationId  String
+  assignedDate     DateTime            @default(now())
+  deadline         DateTime
+  priority         Priority            @default(MEDIUM)
+  notes            String?
+  progress         Int                 @default(0)
+  status           CertificationStatus @default(NOT_STARTED)
+  completionDate   DateTime?
+  expiryDate       DateTime?
+  certificateUrl   String?
+  credentialId     String?
+  originalFilename String?
+  uploadDate       DateTime?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
 
-  member            TeamMember          @relation(fields: [memberId], references: [id], onDelete: Cascade)
-  certification     Certification       @relation(fields: [certificationId], references: [id], onDelete: Cascade)
-  editRequests      CertificateEditRequest[]
+  member        TeamMember               @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  certification Certification            @relation(fields: [certificationId], references: [id], onDelete: Cascade)
+  editRequests  CertificateEditRequest[]
 
   @@unique([memberId, certificationId])
   @@index([memberId, status])
@@ -118,10 +119,10 @@ model Project {
 
   members        ProjectMember[]
   managerId      String?
-  manager        TeamMember?   @relation("ProjectManager", fields: [managerId], references: [id], onDelete: SetNull)
+  manager        TeamMember?     @relation("ProjectManager", fields: [managerId], references: [id], onDelete: SetNull)
   projectUpdates ProjectUpdate[]
   teamsMeetings  TeamsMeeting[]
-  teamsChannelId String?       // Optional channel ID for auto-syncing
+  teamsChannelId String? // Optional channel ID for auto-syncing
   files          ProjectFile[]
   links          ProjectLink[]
   notes          ProjectNote[]
@@ -141,114 +142,147 @@ model ProjectMember {
   role          String?
   joinedAt      DateTime @default(now())
 
-  project       Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  opportunity   PreSalesOpportunity? @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
-  member        TeamMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  project     Project?             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  opportunity PreSalesOpportunity? @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  member      TeamMember           @relation(fields: [memberId], references: [id], onDelete: Cascade)
 
   @@unique([projectId, memberId])
   @@map("project_members")
 }
 
 model ProjectUpdate {
-  id            String     @id @default(cuid())
+  id            String   @id @default(cuid())
   projectId     String?
   opportunityId String?
   memberId      String
   updateText    String
-  updateType    String     // Progress / Blocker / Milestone / General
+  updateType    String // Progress / Blocker / Milestone / General
   progressValue Int?
-  createdAt     DateTime   @default(now())
+  createdAt     DateTime @default(now())
 
-  project       Project?    @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  opportunity   PreSalesOpportunity? @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
-  member        TeamMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  project     Project?             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  opportunity PreSalesOpportunity? @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  member      TeamMember           @relation(fields: [memberId], references: [id], onDelete: Cascade)
 
   @@map("project_updates")
 }
 
 model Notification {
   id         String           @id @default(cuid())
-  memberId   String?          // set for member-targeted notifications
-  targetRole String?          // set for role-targeted notifications, e.g. "Admin"
+  memberId   String? // set for member-targeted notifications
+  targetRole String? // set for role-targeted notifications, e.g. "Admin"
   type       NotificationType
   title      String
   message    String
   read       Boolean          @default(false)
   createdAt  DateTime         @default(now())
 
-  member     TeamMember?      @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  member TeamMember? @relation(fields: [memberId], references: [id], onDelete: SetNull)
 
   @@index([memberId, createdAt])
   @@map("notifications")
 }
 
 model Task {
-  id           String     @id @default(cuid())
-  title        String
-  description  String?    @db.Text
-  status       TaskStatus @default(TODO)
-  priority     Priority   @default(MEDIUM)
-  dueDate      DateTime?
-  completedAt  DateTime?
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-
-  assigneeId   String
-  assignee     TeamMember @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: Cascade)
+  id          String     @id @default(cuid())
+  taskNumber  Int        @default(autoincrement())
+  title       String
+  description String?    @db.Text
+  status      TaskStatus @default(TODO)
+  priority    Priority   @default(MEDIUM)
+  dueDate     DateTime?
+  completedAt DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
 
   assignedById String
-  assignedBy   User       @relation(fields: [assignedById], references: [id])
+  assignedBy   User   @relation(fields: [assignedById], references: [id])
 
-  projectId    String?
-  project      Project?   @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  onBehalfOfId String?
+  onBehalfOf   TeamMember? @relation("TaskOnBehalfOf", fields: [onBehalfOfId], references: [id], onDelete: SetNull)
 
-  @@index([assigneeId, status])
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  assignments TaskAssignment[]
+  feedbacks   TaskFeedback[]
+
+  @@index([status])
   @@index([dueDate])
   @@map("tasks")
 }
 
-model TeamsMeeting {
-  id                String   @id @default(uuid())
-  projectId         String?
-  teamsMeetingId    String
-  subject           String
-  organizer         String
-  startTime         DateTime
-  endTime           DateTime
-  recordingUrl      String?
-  transcriptText    String?
-  aiSummary         String?
-  channelName       String?
-  fetchedAt         DateTime @default(now())
-  createdAt         DateTime @default(now())
+model TaskAssignment {
+  id       String     @id @default(cuid())
+  taskId   String
+  task     Task       @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  memberId String
+  member   TeamMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  status   TaskStatus @default(TODO)
 
-  project           Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  @@unique([taskId, memberId])
+  @@map("task_assignments")
+}
+
+model TaskFeedback {
+  id           String   @id @default(cuid())
+  feedbackText String   @db.Text
+  rating       Int? // 1-5, optional
+  attachments  Json     @default("[]") // Array of { url: string, name: string }
+  submittedAt  DateTime @default(now())
+
+  taskId String
+  task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  assigneeId String
+  assignee   TeamMember @relation("TaskFeedbackAssignee", fields: [assigneeId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, assigneeId])
+  @@map("task_feedbacks")
+}
+
+model TeamsMeeting {
+  id             String   @id @default(uuid())
+  projectId      String?
+  teamsMeetingId String
+  subject        String
+  organizer      String
+  startTime      DateTime
+  endTime        DateTime
+  recordingUrl   String?
+  transcriptText String?
+  aiSummary      String?
+  channelName    String?
+  fetchedAt      DateTime @default(now())
+  createdAt      DateTime @default(now())
+
+  project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@map("teams_meetings")
 }
 
 model MeetingRecord {
-  id                String   @id @default(cuid())
-  projectId         String?
-  opportunityId     String?
-  meetingTitle      String
-  meetingDate       DateTime?
-  recordingType     String?  // 'file' | 'link'
-  recordingUrl      String?
-  transcriptUrl     String?
-  transcriptText    String?  @db.Text
-  transcriptSource  String?  // 'pasted' | 'uploaded_file'
-  aiMinutes         Json?
-  createdBy         String?
-  createdAt         DateTime @default(now())
+  id               String    @id @default(cuid())
+  projectId        String?
+  opportunityId    String?
+  meetingTitle     String
+  meetingDate      DateTime?
+  recordingType    String? // 'file' | 'link'
+  recordingUrl     String?
+  transcriptUrl    String?
+  transcriptText   String?   @db.Text
+  transcriptSource String? // 'pasted' | 'uploaded_file'
+  aiMinutes        Json?
+  createdBy        String?
+  createdAt        DateTime  @default(now())
 
-  project           Project?  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  opportunity       PreSalesOpportunity? @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
-  actionItems       MeetingActionItem[]
-  keyDecisions      KeyDecision[]
-  blockersAndRisks  BlockerRisk[]         @relation("MeetingBlockers")
-  resolvedBlockers  BlockerRisk[]         @relation("ResolvedInMeeting")
-  attendees         MeetingAttendee[]
+  project          Project?             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  opportunity      PreSalesOpportunity? @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  actionItems      MeetingActionItem[]
+  keyDecisions     KeyDecision[]
+  blockersAndRisks BlockerRisk[]        @relation("MeetingBlockers")
+  resolvedBlockers BlockerRisk[]        @relation("ResolvedInMeeting")
+  attendees        MeetingAttendee[]
 
   @@index([projectId, meetingDate])
   @@index([opportunityId])
@@ -256,77 +290,76 @@ model MeetingRecord {
 }
 
 model MeetingActionItem {
-  id                String   @id @default(cuid())
+  id                String    @id @default(cuid())
   meetingRecordId   String
-  task              String   @db.Text
+  task              String    @db.Text
   originalOwnerText String
-  assignedToId      String?  
+  assignedToId      String?
   dueDate           DateTime?
-  completed         Boolean  @default(false)
-  status            String   @default("open") // 'open' | 'completed'
-  priority          String?  // 'high' | 'medium' | 'low'
-  confidence        String?  // 'High' | 'Medium' | 'Low'
-  sourceExcerpt     String?  @db.Text
-  createdAt         DateTime @default(now())
+  completed         Boolean   @default(false)
+  status            String    @default("open") // 'open' | 'completed'
+  priority          String? // 'high' | 'medium' | 'low'
+  confidence        String? // 'High' | 'Medium' | 'Low'
+  sourceExcerpt     String?   @db.Text
+  createdAt         DateTime  @default(now())
 
-  meetingRecord     MeetingRecord @relation(fields: [meetingRecordId], references: [id], onDelete: Cascade)
-  assignedTo        TeamMember?   @relation(fields: [assignedToId], references: [id], onDelete: SetNull)
+  meetingRecord MeetingRecord @relation(fields: [meetingRecordId], references: [id], onDelete: Cascade)
+  assignedTo    TeamMember?   @relation(fields: [assignedToId], references: [id], onDelete: SetNull)
 
   @@map("meeting_action_items")
 }
 
 model KeyDecision {
-  id                String   @id @default(cuid())
-  meetingRecordId   String
-  decisionText      String   @db.Text
-  context           String?  @db.Text
-  decidedById       String?
-  confidence        String?  // 'High' | 'Medium' | 'Low'
-  sourceExcerpt     String?  @db.Text
+  id              String  @id @default(cuid())
+  meetingRecordId String
+  decisionText    String  @db.Text
+  context         String? @db.Text
+  decidedById     String?
+  confidence      String? // 'High' | 'Medium' | 'Low'
+  sourceExcerpt   String? @db.Text
 
-  createdAt         DateTime @default(now())
+  createdAt DateTime @default(now())
 
-  meetingRecord     MeetingRecord @relation(fields: [meetingRecordId], references: [id], onDelete: Cascade)
-  decidedBy         TeamMember?   @relation(fields: [decidedById], references: [id], onDelete: SetNull)
+  meetingRecord MeetingRecord @relation(fields: [meetingRecordId], references: [id], onDelete: Cascade)
+  decidedBy     TeamMember?   @relation(fields: [decidedById], references: [id], onDelete: SetNull)
 
   @@map("key_decisions")
 }
 
 model BlockerRisk {
-  id                     String   @id @default(cuid())
-  projectId              String?
-  opportunityId          String?
-  description            String   @db.Text
-  status                 String   @default("open") // 'open' | 'resolved'
-  firstRaisedMeetingId   String
-  resolvedInMeetingId    String?
+  id                   String  @id @default(cuid())
+  projectId            String?
+  opportunityId        String?
+  description          String  @db.Text
+  status               String  @default("open") // 'open' | 'resolved'
+  firstRaisedMeetingId String
+  resolvedInMeetingId  String?
 
-  createdAt              DateTime @default(now())
-  updatedAt              DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  project                Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  firstRaisedMeeting     MeetingRecord @relation("MeetingBlockers", fields: [firstRaisedMeetingId], references: [id], onDelete: Cascade)
-  resolvedInMeeting      MeetingRecord? @relation("ResolvedInMeeting", fields: [resolvedInMeetingId], references: [id], onDelete: SetNull)
+  project            Project?       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  firstRaisedMeeting MeetingRecord  @relation("MeetingBlockers", fields: [firstRaisedMeetingId], references: [id], onDelete: Cascade)
+  resolvedInMeeting  MeetingRecord? @relation("ResolvedInMeeting", fields: [resolvedInMeetingId], references: [id], onDelete: SetNull)
 
   @@map("blockers_risks")
 }
 
 model MeetingAttendee {
-  id                String   @id @default(cuid())
-  meetingRecordId   String
-  memberId          String?
-  rawName           String
+  id              String  @id @default(cuid())
+  meetingRecordId String
+  memberId        String?
+  rawName         String
 
-  createdAt         DateTime @default(now())
+  createdAt DateTime @default(now())
 
-  meetingRecord     MeetingRecord @relation(fields: [meetingRecordId], references: [id], onDelete: Cascade)
-  member            TeamMember?   @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  meetingRecord MeetingRecord @relation(fields: [meetingRecordId], references: [id], onDelete: Cascade)
+  member        TeamMember?   @relation(fields: [memberId], references: [id], onDelete: SetNull)
 
   @@map("meeting_attendees")
 }
 
 // Enums
-
 
 enum Priority {
   LOW
@@ -380,38 +413,38 @@ model PreSalesOpportunity {
   name              String
   clientName        String
   description       String?  @db.Text
-  account           String   // 'PNB' or 'TNM'
+  account           String // 'PNB' or 'TNM'
   stages            String[]
   currentStageIndex Int      @default(0)
-  progressPercent   Int      @default(0)  // 0-100, continuous progress (AI-driven or stage-boundary on manual click)
+  progressPercent   Int      @default(0) // 0-100, continuous progress (AI-driven or stage-boundary on manual click)
 
   // ── Proposal Summary ────────────────────────────────────────────────────────
   // These nine columns are populated ONLY by POST /:id/generate-proposal.
   // They are NEVER touched by PATCH /:id/stage, PATCH /:id/progress, or POST /:id/reset —
   // those routes only update currentStageIndex and/or progressPercent.
-  executiveSummary        String?   @db.Text
-  scopeOfWork             String?   @db.Text
-  architecture            String?   @db.Text
-  implementationApproach  String?   @db.Text
-  deliveryApproach        String?   @db.Text
-  assumptions             String?   @db.Text
-  outOfScope              String?   @db.Text
-  timelines               String?   @db.Text
-  commercials             String?   @db.Text
-  others                  String?   @db.Text
-  sourceDocuments         Json?     // array of { fileName, blobUrl, uploadedAt }
-  descriptionGeneratedAt  DateTime?
+  executiveSummary       String?   @db.Text
+  scopeOfWork            String?   @db.Text
+  architecture           String?   @db.Text
+  implementationApproach String?   @db.Text
+  deliveryApproach       String?   @db.Text
+  assumptions            String?   @db.Text
+  outOfScope             String?   @db.Text
+  timelines              String?   @db.Text
+  commercials            String?   @db.Text
+  others                 String?   @db.Text
+  sourceDocuments        Json? // array of { fileName, blobUrl, uploadedAt }
+  descriptionGeneratedAt DateTime?
   // ────────────────────────────────────────────────────────────────────────────
 
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  updates           ProjectUpdate[]
-  assignments       ProjectMember[]
-  files             ProjectFile[]
-  links             ProjectLink[]
-  notes             ProjectNote[]
-  meetingRecords    MeetingRecord[]
+  updates        ProjectUpdate[]
+  assignments    ProjectMember[]
+  files          ProjectFile[]
+  links          ProjectLink[]
+  notes          ProjectNote[]
+  meetingRecords MeetingRecord[]
 
   @@map("presales_opportunities")
 }
@@ -420,25 +453,25 @@ model GtmPlan {
   id                String   @id @default(cuid())
   name              String
   clientName        String
-  category          String   // 'NEW_MARKET_ENTRY' or 'EXISTING_CLIENT_EXPANSION'
+  category          String // 'NEW_MARKET_ENTRY' or 'EXISTING_CLIENT_EXPANSION'
   stages            String[]
   currentStageIndex Int      @default(0)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
-  campaigns         GtmCampaign[]
-  files             GtmCollateral[]
+  campaigns GtmCampaign[]
+  files     GtmCollateral[]
 
   @@map("gtm_plans")
 }
 
 model GtmPartner {
-  id           String                  @id @default(cuid())
-  name         String
-  tier         String                  // e.g. Gold Partner, Select Partner
-  renewalDate  DateTime                @map("renewal_date")
-  createdAt    DateTime                @default(now()) @map("created_at")
-  updatedAt    DateTime                @updatedAt @map("updated_at")
+  id          String   @id @default(cuid())
+  name        String
+  tier        String // e.g. Gold Partner, Select Partner
+  renewalDate DateTime @map("renewal_date")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   requirements GtmPartnerRequirement[]
   campaigns    GtmCampaign[]
@@ -448,64 +481,64 @@ model GtmPartner {
 }
 
 model GtmPartnerRequirement {
-  id                String      @id @default(cuid())
-  partnerId         String      @map("partner_id")
-  certificationName String      @map("certification_name")
-  minimumCount      Int         @map("minimum_count")
-  createdAt         DateTime    @default(now()) @map("created_at")
-  updatedAt         DateTime    @updatedAt @map("updated_at")
+  id                String   @id @default(cuid())
+  partnerId         String   @map("partner_id")
+  certificationName String   @map("certification_name")
+  minimumCount      Int      @map("minimum_count")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
 
-  partner           GtmPartner  @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  partner GtmPartner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
 
   @@map("gtm_partner_requirements")
 }
 
 model GtmCampaign {
-  id          String      @id @default(cuid())
+  id          String    @id @default(cuid())
   name        String
-  launchId    String?     @map("launch_id")
-  partnerId   String?     @map("partner_id")
-  status      String      // 'Planned' | 'Active' | 'Completed'
-  startDate   DateTime?   @map("start_date")
-  endDate     DateTime?   @map("end_date")
-  description String?     @db.Text
-  createdAt   DateTime    @default(now()) @map("created_at")
-  updatedAt   DateTime    @updatedAt @map("updated_at")
+  launchId    String?   @map("launch_id")
+  partnerId   String?   @map("partner_id")
+  status      String // 'Planned' | 'Active' | 'Completed'
+  startDate   DateTime? @map("start_date")
+  endDate     DateTime? @map("end_date")
+  description String?   @db.Text
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
 
-  launch      GtmPlan?    @relation(fields: [launchId], references: [id], onDelete: SetNull)
-  partner     GtmPartner? @relation(fields: [partnerId], references: [id], onDelete: SetNull)
+  launch  GtmPlan?    @relation(fields: [launchId], references: [id], onDelete: SetNull)
+  partner GtmPartner? @relation(fields: [partnerId], references: [id], onDelete: SetNull)
 
   @@map("gtm_campaigns")
 }
 
 model GtmCollateral {
-  id          String      @id @default(cuid())
-  name        String
-  url         String
-  type        String
-  size        Int
-  uploadedBy  String      @map("uploaded_by")
-  uploadedAt  DateTime    @default(now()) @map("uploaded_at")
-  launchId    String?     @map("launch_id")
-  partnerId   String?     @map("partner_id")
+  id         String   @id @default(cuid())
+  name       String
+  url        String
+  type       String
+  size       Int
+  uploadedBy String   @map("uploaded_by")
+  uploadedAt DateTime @default(now()) @map("uploaded_at")
+  launchId   String?  @map("launch_id")
+  partnerId  String?  @map("partner_id")
 
-  launch      GtmPlan?    @relation(fields: [launchId], references: [id], onDelete: SetNull)
-  partner     GtmPartner? @relation(fields: [partnerId], references: [id], onDelete: SetNull)
+  launch  GtmPlan?    @relation(fields: [launchId], references: [id], onDelete: SetNull)
+  partner GtmPartner? @relation(fields: [partnerId], references: [id], onDelete: SetNull)
 
   @@map("gtm_collaterals")
 }
 
 model StageChangeLog {
-  id              String   @id @default(cuid())
-  opportunityId   String   // The specific PreSalesOpportunity row ID
-  track           String   // 'PNB' | 'TNM'
-  previousStage   String
-  newStage        String
-  source          String   // 'manual' | 'ai_suggested'
-  reasoning       String?  // Groq's reasoning field (only for ai_suggested)
-  blobUrl         String?  // URL of the uploaded document (only for ai_suggested)
+  id               String   @id @default(cuid())
+  opportunityId    String // The specific PreSalesOpportunity row ID
+  track            String // 'PNB' | 'TNM'
+  previousStage    String
+  newStage         String
+  source           String // 'manual' | 'ai_suggested'
+  reasoning        String? // Groq's reasoning field (only for ai_suggested)
+  blobUrl          String? // URL of the uploaded document (only for ai_suggested)
   originalFilename String? // The actual original file name of the document
-  createdAt       DateTime @default(now())
+  createdAt        DateTime @default(now())
 
   @@map("stage_change_logs")
 }
@@ -515,14 +548,14 @@ model ProjectFile {
   projectId     String?
   opportunityId String?
   name          String
-  url        String
-  type       String
-  size       Int
-  uploadedBy String
-  uploadedAt DateTime @default(now())
+  url           String
+  type          String
+  size          Int
+  uploadedBy    String
+  uploadedAt    DateTime @default(now())
 
-  project       Project?  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  opportunity   PreSalesOpportunity? @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  project     Project?             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  opportunity PreSalesOpportunity? @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
 
   @@map("project_files")
 }
@@ -532,13 +565,13 @@ model ProjectLink {
   projectId     String?
   opportunityId String?
   title         String
-  url         String
-  description String?
-  addedBy     String
-  addedAt     DateTime @default(now())
+  url           String
+  description   String?
+  addedBy       String
+  addedAt       DateTime @default(now())
 
-  project       Project?  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  opportunity   PreSalesOpportunity? @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  project     Project?             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  opportunity PreSalesOpportunity? @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
 
   @@map("project_links")
 }
@@ -548,12 +581,12 @@ model ProjectNote {
   projectId     String?
   opportunityId String?
   title         String
-  content   String   @db.Text
-  updatedBy String
-  updatedAt DateTime @updatedAt
+  content       String   @db.Text
+  updatedBy     String
+  updatedAt     DateTime @updatedAt
 
-  project       Project?  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  opportunity   PreSalesOpportunity? @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  project     Project?             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  opportunity PreSalesOpportunity? @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
 
   @@map("project_notes")
 }
@@ -561,23 +594,23 @@ model ProjectNote {
 model CertificateEditRequest {
   id              String            @id @default(cuid())
   assignmentId    String
-  proposedChanges Json              // { completionDate?, expiryDate?, credentialId? }
-  requestedBy     String            // display name of requester
+  proposedChanges Json // { completionDate?, expiryDate?, credentialId? }
+  requestedBy     String // display name of requester
   status          EditRequestStatus @default(PENDING)
   reviewedBy      String?
   reviewNotes     String?
   createdAt       DateTime          @default(now())
   reviewedAt      DateTime?
 
-  assignment      AssignedCertification @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  assignment AssignedCertification @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
 
   @@map("certificate_edit_requests")
 }
 
 model ActivityLog {
   id          String   @id @default(cuid())
-  category    String   // e.g., 'Certificate', 'CV', 'GTM', 'Project'
-  action      String   // e.g., 'UPLOAD', 'DELETE', 'UPDATE', 'CREATE'
+  category    String // e.g., 'Certificate', 'CV', 'GTM', 'Project'
+  action      String // e.g., 'UPLOAD', 'DELETE', 'UPDATE', 'CREATE'
   details     String   @db.Text
   performedBy String   @default("System")
   createdAt   DateTime @default(now())
@@ -588,68 +621,69 @@ model ActivityLog {
 model Role {
   id          String   @id @default(cuid())
   name        String   @unique
-  permissions Json     // { "read": true, "write": true, "delete": false, "manageTeam": false }
+  permissions Json // { "read": true, "write": true, "delete": false, "manageTeam": false }
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  users       User[]
+  users User[]
 
   @@map("roles")
 }
 
 model User {
-  id                 String      @id @default(cuid())
+  id                 String   @id @default(cuid())
   name               String
-  email              String      @unique
+  email              String   @unique
   passwordHash       String
   roleId             String
-  teamMemberId       String?     @unique
-  mustChangePassword Boolean     @default(true)
-  isActive           Boolean     @default(true)
-  createdAt          DateTime    @default(now())
-  updatedAt          DateTime    @updatedAt
+  teamMemberId       String?  @unique
+  mustChangePassword Boolean  @default(true)
+  isActive           Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
-  role               Role        @relation(fields: [roleId], references: [id])
-  teamMember         TeamMember? @relation(fields: [teamMemberId], references: [id], onDelete: SetNull)
-  tasks              Task[]
+  role       Role        @relation(fields: [roleId], references: [id])
+  teamMember TeamMember? @relation(fields: [teamMemberId], references: [id], onDelete: SetNull)
+  tasks      Task[]
+
   @@map("users")
 }
 
 model ResumeProfile {
-  id               String     @id @default(cuid())
-  memberId         String
-  member           TeamMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
-  
-  atsScore         Int?
-  atsBreakdown     Json?
-  atsSuggestions   Json?
-  
-  summary          String?
-  skills           Json?
-  skillsGrouped    Json?
-  projects         Json?
-  primaryRole      String?
+  id       String     @id @default(cuid())
+  memberId String
+  member   TeamMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  atsScore       Int?
+  atsBreakdown   Json?
+  atsSuggestions Json?
+
+  summary           String?
+  skills            Json?
+  skillsGrouped     Json?
+  projects          Json?
+  primaryRole       String?
   yearsOfExperience Int?
-  certifications   Json?
-  rawExtractedText String?
-  
-  uploadedAt       DateTime   @default(now())
-  
+  certifications    Json?
+  rawExtractedText  String?
+
+  uploadedAt DateTime @default(now())
+
   @@index([memberId])
   @@map("resume_profiles")
 }
 
 model GeneratedResume {
-  id               String     @id @default(cuid())
-  memberId         String
-  member           TeamMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
-  
-  jobDescription   String?
-  tailoredContent  Json
-  pdfUrl           String?
-  
-  createdAt        DateTime   @default(now())
-  
+  id       String     @id @default(cuid())
+  memberId String
+  member   TeamMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  jobDescription  String?
+  tailoredContent Json
+  pdfUrl          String?
+
+  createdAt DateTime @default(now())
+
   @@index([memberId])
   @@map("generated_resumes")
 }
