@@ -247,6 +247,7 @@ export interface PreSalesOpportunity {
   stages: string[];
   currentStageIndex: number;
   progressPercent: number;
+  sourceDocuments?: { fileName: string; blobUrl: string; uploadedAt: string }[];
 }
 
 export type GtmCategory = 'NEW_MARKET_ENTRY' | 'EXISTING_CLIENT_EXPANSION';

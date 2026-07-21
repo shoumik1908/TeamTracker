@@ -633,7 +633,8 @@ router.patch('/:id', async (req: Request, res: Response) => {
     assumptions,
     outOfScope,
     timelines,
-    commercials
+    commercials,
+    others
   } = req.body;
 
   try {
@@ -660,7 +661,8 @@ router.patch('/:id', async (req: Request, res: Response) => {
         ...(assumptions !== undefined && { assumptions }),
         ...(outOfScope !== undefined && { outOfScope }),
         ...(timelines !== undefined && { timelines }),
-        ...(commercials !== undefined && { commercials })
+        ...(commercials !== undefined && { commercials }),
+        ...(others !== undefined && { others })
       }
     });
     res.json({ data: updated });
@@ -918,7 +920,7 @@ router.post('/:id/generate-proposal', proposalUpload.array('files', 10), async (
   // Combine kept existing docs with new uploads
   const finalSourceDocs = [...keptDocs, ...sourceDocsMeta];
 
-  // ── 3. Persist 9 proposal columns ───────────────────────────────
+  // ── 3. Persist 10 proposal columns ───────────────────────────────
   const updated = await prisma.preSalesOpportunity.update({
     where: { id },
     data: {
@@ -931,6 +933,7 @@ router.post('/:id/generate-proposal', proposalUpload.array('files', 10), async (
       outOfScope: summary.out_of_scope,
       timelines: summary.timelines,
       commercials: summary.commercials,
+      others: summary.others,
       sourceDocuments: finalSourceDocs,
       descriptionGeneratedAt: new Date(),
     },
