@@ -912,8 +912,8 @@ router.post('/:id/generate-proposal', proposalUpload.array('files', 10), async (
   const combinedText = textSegments.join('\n\n');
   console.log(`[generate-proposal] Combined text length: ${combinedText.length} characters`);
 
-  // ── 2. Call Groq for 9-section proposal summary ──────────────────────────────
-  const summary = await generateProposalSummary(combinedText);
+  // ── 2. Call GPT-5 mini for 9-section proposal summary ──────────────────────────────
+  const summary = await generateProposalSummary(combinedText, opportunity.clientName);
 
   // Combine kept existing docs with new uploads
   const finalSourceDocs = [...keptDocs, ...sourceDocsMeta];

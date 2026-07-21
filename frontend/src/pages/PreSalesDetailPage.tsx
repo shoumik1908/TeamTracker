@@ -6,6 +6,54 @@ import { presalesDocumentationApi, membersApi, presalesMeetingRecordsApi } from 
 import { useAuth } from '@/context/AuthContext';
 import { presalesApi } from '@/lib/presalesApi';
 import axios from 'axios';
+import { MeetingNotesModal } from '@/components/MeetingNotesModal';
+
+const formatBoldText = (text: string) => {
+  const parts = text.split(/(\*\*.*?\*\*)/g);
+  return parts.map((part, index) => {
+    if (part.startsWith('**') && part.endsWith('**') && part.length > 4) {
+      return <strong key={index} className="text-white font-semibold">{part.slice(2, -2)}</strong>;
+    }
+    return <span key={index}>{part}</span>;
+  });
+};
+
+const formatContent = (text: string | null) => {
+  if (!text || text === 'Not specified in provided documents.') {
+    return <span className="text-white/40 italic">Not specified in provided documents.</span>;
+  }
+  const lines = text.split('\n');
+  return (
+    <div className="space-y-1.5 text-sm leading-relaxed text-foreground/90">
+      {lines.map((line, i) => {
+        const trimmed = line.trim();
+        if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
+          return (
+            <div key={i} className="flex gap-2.5 items-start pl-1 pr-2">
+              <span className="text-violet-500 mt-[8px] text-[6px]">●</span>
+              <span className="flex-1">{formatBoldText(trimmed.substring(2))}</span>
+            </div>
+          );
+        }
+        // Check for numbered lists e.g. "1. " or "1) "
+        const numMatch = trimmed.match(/^(\d+[\.\)])\s+(.*)/);
+        if (numMatch) {
+          return (
+            <div key={i} className="flex gap-2.5 items-start pl-1 pr-2">
+              <span className="text-violet-400 font-semibold text-xs mt-[2px]">{numMatch[1]}</span>
+              <span className="flex-1">{formatBoldText(numMatch[2])}</span>
+            </div>
+          );
+        }
+        if (trimmed === '') {
+          return <div key={i} className="h-1"></div>;
+        }
+        return <div key={i} className="mb-1">{formatBoldText(trimmed)}</div>;
+      })}
+    </div>
+  );
+};
+
 import GenerateProposalModal from '@/components/GenerateProposalModal';
 import GenerateSectionModal from '@/components/GenerateSectionModal';
 import AiGeneratedMinutesBox from '@/components/AiGeneratedMinutesBox';
@@ -687,8 +735,8 @@ export default function PreSalesDetailPage() {
                       </div>
                     ) : (
                       <>
-                        <div className="whitespace-pre-wrap leading-relaxed mt-2 text-foreground">
-                          {content || 'Not specified in provided documents.'}
+                        <div className="mt-2">
+                          {formatContent(content)}
                         </div>
                         {isBlank && (
                           <div className="flex items-center gap-3 mt-4 pt-4 border-t border-zinc-800/50">
