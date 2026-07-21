@@ -4,25 +4,25 @@
 
 @layer base {
   :root {
-    --background: 230 11% 11%; /* #191a1f */
-    --foreground: 0 0% 100%; /* #ffffff */
-    --card: 225 9% 15%; /* #222328 */
-    --card-foreground: 0 0% 100%;
-    --popover: 225 9% 15%;
-    --popover-foreground: 0 0% 100%;
-    --primary: 217 89% 75%; /* Google Blue-ish */
-    --primary-foreground: 230 11% 11%;
-    --secondary: 225 9% 25%;
-    --secondary-foreground: 0 0% 100%;
-    --muted: 225 9% 20%;
-    --muted-foreground: 225 15% 70%;
-    --accent: 280 80% 70%; /* Purple AI accent */
+    --background: 235 24% 10%; /* Very dark navy base */
+    --foreground: 210 20% 98%;
+    --card: 235 24% 14%; /* Dark navy card */
+    --card-foreground: 210 20% 98%;
+    --popover: 235 24% 14%;
+    --popover-foreground: 210 20% 98%;
+    --primary: 235 85% 60%; /* Vibrant blue */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 235 20% 20%;
+    --secondary-foreground: 210 20% 98%;
+    --muted: 235 20% 20%;
+    --muted-foreground: 215 15% 65%;
+    --accent: 265 85% 65%; /* Vibrant purple */
     --accent-foreground: 0 0% 100%;
-    --destructive: 4 90% 58%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    --border: 225 9% 22%;
-    --input: 225 9% 18%;
-    --ring: 217 89% 75%;
+    --border: 235 20% 22%;
+    --input: 235 20% 18%;
+    --ring: 235 85% 60%;
     --radius: 16px;
   }
 

@@ -95,6 +95,7 @@ function TeamMemberDashboardContent() {
   
   // KPI Stats
   const activeProjectsCount = member?.activeProjectsCount || 0;
+  const completedProjectsCount = member?.projectMembers?.filter((pm: any) => pm.project?.status === 'COMPLETED' || pm.opportunity?.status === 'COMPLETED').length || 0;
   const activeCertsCount = (member?.stats?.completedCertifications || 0) + (member?.stats?.inProgressCertifications || 0);
 
   // Parse Action Items (Tasks)
@@ -206,11 +207,16 @@ function TeamMemberDashboardContent() {
         </div>
 
         {/* KPI Strip */}
-        <div className="kpi-strip animate-fade-in" style={{ animationDelay: '50ms', gridTemplateColumns: 'repeat(3, 1fr)' }}>
+        <div className="kpi-strip animate-fade-in" style={{ animationDelay: '50ms', gridTemplateColumns: 'repeat(4, 1fr)' }}>
           <Link to="/projects" className="kpi">
             <div className="label">Assigned projects</div>
             <div className="value">{activeProjectsCount}</div>
             <div className="sub mono">Active assignments</div>
+          </Link>
+          <Link to="/projects" className="kpi">
+            <div className="label">Completed projects</div>
+            <div className="value">{completedProjectsCount}</div>
+            <div className="sub mono">Past assignments</div>
           </Link>
           <Link to="/certifications" className="kpi">
             <div className="label">Active certifications</div>

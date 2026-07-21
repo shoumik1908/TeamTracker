@@ -125,7 +125,6 @@ export default function ChatBot() {
               </div>
               <div>
                 <p className="text-white font-semibold text-sm">Team Tracker AI</p>
-                <p className="text-white/60 text-[10px]">Powered by Gemini • Live data</p>
               </div>
             </div>
             <div className="flex items-center gap-1">
