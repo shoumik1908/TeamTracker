@@ -45,6 +45,10 @@ const hasTaskManagePermission = (req: AuthRequest) => {
 };
 
 export const getTasks = async (req: AuthRequest, res: Response) => {
+  if (!req.user) {
+    throw new AppError('Unauthorized', 401);
+  }
+
   const canManage = hasTaskManagePermission(req);
   const { status } = req.query;
 
@@ -64,10 +68,11 @@ export const getTasks = async (req: AuthRequest, res: Response) => {
   // 1. Tasks assigned to them
   // 2. Tasks they created (assigned by their user account)
   // 3. Tasks assigned on behalf of them
+  const teamMemberId = req.user.teamMemberId || '';
   const orClauses: any[] = [
-    { assignments: { some: { memberId: req.user.teamMemberId } } },
+    { assignments: { some: { memberId: teamMemberId } } },
     { assignedById: req.user.id },
-    { onBehalfOfId: req.user.teamMemberId },
+    { onBehalfOfId: teamMemberId },
   ];
 
   const tasks = await prisma.task.findMany({
