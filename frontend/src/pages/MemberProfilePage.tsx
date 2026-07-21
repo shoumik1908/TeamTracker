@@ -297,6 +297,7 @@ export default function MemberProfilePage() {
   const [isEditingSkills, setIsEditingSkills] = useState(false);
   const [skillsInput, setSkillsInput] = useState('');
   const [skillsError, setSkillsError] = useState<string | null>(null);
+  const [isSkillsOpen, setIsSkillsOpen] = useState(false);
   const [isCertsOpen, setIsCertsOpen] = useState(false);
   const [isAtsExpanded, setIsAtsExpanded] = useState(false);
 
@@ -849,14 +850,17 @@ export default function MemberProfilePage() {
         </div>
 
         {/* Skills & Expertise Card */}
-        <div className="bg-[#1c1926]/80 backdrop-blur-md rounded-xl border border-white/5 p-5 space-y-4 flex flex-col justify-between">
-          <div className="space-y-4 w-full">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Award className="w-4 h-4 text-azure-400" />
-                <h3 className="font-semibold text-sm">Skills & Expertise</h3>
-              </div>
-              
+        <div className="bg-[#1c1926]/80 backdrop-blur-md rounded-xl border border-white/5 p-5">
+          <div 
+            onClick={() => setIsSkillsOpen(prev => !prev)}
+            className="flex items-center justify-between cursor-pointer select-none"
+          >
+            <div className="flex items-center gap-2">
+              <Award className="w-4 h-4 text-azure-400" />
+              <h3 className="font-semibold text-sm">Skills & Expertise</h3>
+            </div>
+            
+            <div className="flex items-center gap-2.5" onClick={e => e.stopPropagation()}>
               {!isEditingSkills ? (
                 canEdit && (
                   <button
@@ -864,6 +868,7 @@ export default function MemberProfilePage() {
                       setSkillsInput(member.skills.join(', '));
                       setIsEditingSkills(true);
                       setSkillsError(null);
+                      setIsSkillsOpen(true);
                     }}
                     className="text-xs font-medium text-azure-400 hover:text-azure-300 flex items-center gap-1 transition-colors"
                   >
@@ -888,50 +893,55 @@ export default function MemberProfilePage() {
                   </button>
                 </div>
               )}
+              <ChevronDown className={cn("w-4 h-4 text-white/50 transition-transform duration-200", isSkillsOpen && "rotate-180")} />
             </div>
-
-            {resumeProfile?.summary && (
-              <div className="mb-2">
-                <span className="text-[10px] font-bold text-white/50 uppercase tracking-wider block mb-1">Resume Summary</span>
-                <p className="text-xs text-white/70 leading-relaxed italic border-l-2 border-azure-500/30 pl-3 py-1">
-                  "{resumeProfile.summary}"
-                </p>
-              </div>
-            )}
-
-            {skillsError && (
-              <div className="text-xs text-red-400 p-2.5 bg-red-950/20 border border-red-800/30 rounded-lg">
-                {skillsError}
-              </div>
-            )}
-
-            {isEditingSkills ? (
-              <div className="space-y-2">
-                <label className="block text-[10px] font-bold text-white/50 uppercase tracking-wider">
-                  Enter skills (comma separated)
-                </label>
-                <textarea
-                  value={skillsInput}
-                  onChange={e => setSkillsInput(e.target.value)}
-                  rows={4}
-                  className="w-full px-3 py-2 text-sm border border-white/5 rounded-lg bg-muted/20 focus:outline-none focus:ring-2 focus:ring-azure-500/30 text-foreground resize-none"
-                  placeholder="React, Node.js, TypeScript, Docker..."
-                />
-              </div>
-            ) : (resumeProfile?.skills || member.skills).length > 0 ? (
-              <div className="flex flex-wrap gap-1.5">
-                {(resumeProfile?.skills || member.skills).map((skill: string, i: number) => (
-                  <span key={i} className="px-2.5 py-0.5 bg-azure-950/40 text-azure-300 border border-azure-800/40 rounded-full text-xs font-medium">
-                    {skill}
-                  </span>
-                ))}
-              </div>
-            ) : (
-              <p className="text-xs text-white/50">
-                No skills added yet. Upload a CV to auto-extract, or click Edit to add skills manually.
-              </p>
-            )}
           </div>
+
+          {isSkillsOpen && (
+            <div className="mt-4 pt-4 border-t border-white/5/40 space-y-4 animate-fade-in w-full">
+              {resumeProfile?.summary && (
+                <div className="mb-2">
+                  <span className="text-[10px] font-bold text-white/50 uppercase tracking-wider block mb-1">Resume Summary</span>
+                  <p className="text-xs text-white/70 leading-relaxed italic border-l-2 border-azure-500/30 pl-3 py-1">
+                    "{resumeProfile.summary}"
+                  </p>
+                </div>
+              )}
+
+              {skillsError && (
+                <div className="text-xs text-red-400 p-2.5 bg-red-950/20 border border-red-800/30 rounded-lg">
+                  {skillsError}
+                </div>
+              )}
+
+              {isEditingSkills ? (
+                <div className="space-y-2">
+                  <label className="block text-[10px] font-bold text-white/50 uppercase tracking-wider">
+                    Enter skills (comma separated)
+                  </label>
+                  <textarea
+                    value={skillsInput}
+                    onChange={e => setSkillsInput(e.target.value)}
+                    rows={4}
+                    className="w-full px-3 py-2 text-sm border border-white/5 rounded-lg bg-muted/20 focus:outline-none focus:ring-2 focus:ring-azure-500/30 text-foreground resize-none"
+                    placeholder="React, Node.js, TypeScript, Docker..."
+                  />
+                </div>
+              ) : (resumeProfile?.skills || member.skills).length > 0 ? (
+                <div className="flex flex-wrap gap-1.5">
+                  {(resumeProfile?.skills || member.skills).map((skill: string, i: number) => (
+                    <span key={i} className="px-2.5 py-0.5 bg-azure-950/40 text-azure-300 border border-azure-800/40 rounded-full text-xs font-medium">
+                      {skill}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-white/50">
+                  No skills added yet. Upload a CV to auto-extract, or click Edit to add skills manually.
+                </p>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
