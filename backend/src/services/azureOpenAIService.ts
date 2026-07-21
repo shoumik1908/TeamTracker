@@ -494,7 +494,7 @@ export async function generateProposalSummary(
 
   const prompt = `You are a senior presales solution architect. Based solely on the provided documents, generate a structured proposal summary for this business opportunity.
 
-Include everything from the source documents that is relevant to each section. Do not summarize down to a fixed length or omit relevant detail for brevity. The length of each section should be a direct reflection of how much relevant material exists in the source documents — a section with extensive source coverage should be correspondingly thorough and complete, with nothing left out.
+Include all the key points and relevant details from the source documents to ensure comprehensive coverage. However, you must meticulously categorize the information so that each detail is placed only in its most appropriate section. DO NOT repeat the same information across multiple sections. Every point should appear exactly once in the final output.
 
 Only include information stated or clearly implied in the source documents. Do not invent, assume, or extrapolate details not present in the source material, even if they would be typical for a project like this.
 
@@ -548,7 +548,12 @@ ${promptText}`;
   console.log('[Groq Proposal Raw Response] Entire Response:\n', rawText);
 
   try {
-    const parsed = JSON.parse(rawText) as any;
+    let jsonString = rawText.trim();
+    const jsonMatch = jsonString.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      jsonString = jsonMatch[0];
+    }
+    const parsed = JSON.parse(jsonString) as any;
     const clean = (v: any): string => {
       if (typeof v === 'string') {
         return v.trim();

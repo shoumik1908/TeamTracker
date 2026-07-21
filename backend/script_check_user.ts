@@ -1,23 +1,15 @@
 import { PrismaClient } from '@prisma/client';
-import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
 async function main() {
-  const email = "kamal.swami@xebia.com";
-  const newPassword = "kamal@123";
-  
-  const hashedPassword = await bcrypt.hash(newPassword, 10);
-  
-  const updatedUser = await prisma.user.update({
-    where: { email },
-    data: { 
-      passwordHash: hashedPassword,
-      mustChangePassword: true // force him to change it after login
-    }
+  const opp = await prisma.preSalesOpportunity.findFirst({
+    orderBy: { updatedAt: 'desc' }
   });
   
-  console.log("Successfully updated password for:", updatedUser.name);
+  console.log("Executive Summary:", opp?.executiveSummary);
+  console.log("Scope of Work:", opp?.scopeOfWork);
+  console.log("Architecture:", opp?.architecture);
 }
 
 main()
