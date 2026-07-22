@@ -230,6 +230,7 @@ export default function MemberProfilePage() {
   const [cvError, setCvError] = useState<string | null>(null);
   const [cvSuccess, setCvSuccess] = useState(false);
   const cvFileRef = useRef<HTMLInputElement>(null);
+  const photoInputRef = useRef<HTMLInputElement>(null);
 
   // CV Generation State
   const [showJdModal, setShowJdModal] = useState(false);
@@ -280,6 +281,15 @@ export default function MemberProfilePage() {
       setCvError(null);
     },
     onError: (e: Error) => setCvError(e.message),
+  });
+
+  const uploadPhotoMutation = useMutation({
+    mutationFn: (file: File) => {
+      const fd = new FormData();
+      fd.append('profilePicture', file);
+      return membersApi.update(id!, fd);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['member'] }),
   });
 
   const handleCvFile = (file: File) => {
@@ -407,11 +417,28 @@ export default function MemberProfilePage() {
         <div className="h-24 bg-gradient-to-r from-azure-800 via-azure-700 to-primary" />
         <div className="px-6 pb-6">
           <div className="flex items-end gap-4 -mt-10 mb-4">
-            <div className="w-20 h-20 rounded-2xl border-4 border-card bg-azure-900/40 flex items-center justify-center overflow-hidden shadow-xl flex-shrink-0">
+            <div className="relative group w-20 h-20 rounded-2xl border-4 border-card bg-azure-900/40 flex items-center justify-center overflow-hidden shadow-xl flex-shrink-0">
               {member.profilePictureUrl
                 ? <img src={member.profilePictureUrl} alt={member.name} className="w-full h-full object-cover" />
                 : <span className="text-azure-300 text-2xl font-bold">{getInitials(member.name)}</span>
               }
+              {canEdit && (
+                <div 
+                  onClick={() => photoInputRef.current?.click()}
+                  className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity"
+                >
+                  {uploadPhotoMutation.isPending ? <Loader2 className="w-5 h-5 text-white animate-spin" /> : <Upload className="w-5 h-5 text-white" />}
+                </div>
+              )}
+              <input 
+                type="file" 
+                accept="image/*" 
+                className="hidden" 
+                ref={photoInputRef}
+                onChange={(e) => {
+                  if (e.target.files?.[0]) uploadPhotoMutation.mutate(e.target.files[0]);
+                }} 
+              />
             </div>
             <div className="pb-1">
               <h1 className="text-2xl font-bold">{member.name}</h1>
