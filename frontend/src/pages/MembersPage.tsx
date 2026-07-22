@@ -13,11 +13,12 @@ interface MemberFormData {
   phone: string;
   designation?: string;
   managerId: string;
+  status: string;
 }
 
 const INITIAL_FORM: MemberFormData = {
   name: '', email: '', phone: '',
-  designation: '', managerId: '',
+  designation: '', managerId: '', status: 'Active'
 };
 
 function MemberMenu({ onEdit, onDelete, onUploadCv }: {
@@ -87,6 +88,7 @@ function MemberFormModal({
       name: member.name, email: member.email || '', phone: member.phone || '',
       designation: member.designation,
       managerId: member.managerId || '',
+      status: member.status || 'Active',
     } : INITIAL_FORM
   );
   const { data: allMembers } = useQuery<PaginatedResponse<TeamMember>>({
@@ -175,15 +177,25 @@ function MemberFormModal({
             ))}
           </div>
 
-          <div>
-            <label className="block text-xs font-medium text-white/50 mb-1">Reporting Manager / Head</label>
-            <select value={form.managerId} onChange={e => setForm(p => ({ ...p, managerId: e.target.value }))}
-              className="w-full px-3 py-2 text-sm border border-white/5 rounded-lg bg-zinc-900 text-foreground focus:outline-none focus:ring-2 focus:ring-azure-500/30 focus:border-azure-400">
-              <option value="">No Manager Assigned</option>
-              {allMembers?.data.filter(m => m.id !== member?.id).map(m => (
-                <option key={m.id} value={m.id}>{m.name} ({m.designation})</option>
-              ))}
-            </select>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-white/50 mb-1">Reporting Manager / Head</label>
+              <select value={form.managerId} onChange={e => setForm(p => ({ ...p, managerId: e.target.value }))}
+                className="w-full px-3 py-2 text-sm border border-white/5 rounded-lg bg-zinc-900 text-foreground focus:outline-none focus:ring-2 focus:ring-azure-500/30 focus:border-azure-400">
+                <option value="">No Manager Assigned</option>
+                {allMembers?.data.filter(m => m.id !== member?.id).map(m => (
+                  <option key={m.id} value={m.id}>{m.name} ({m.designation})</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-white/50 mb-1">Status</label>
+              <select value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value }))}
+                className="w-full px-3 py-2 text-sm border border-white/5 rounded-lg bg-zinc-900 text-foreground focus:outline-none focus:ring-2 focus:ring-azure-500/30 focus:border-azure-400">
+                <option value="Active">Active</option>
+                <option value="Benched">Benched</option>
+              </select>
+            </div>
           </div>
 
         </form>

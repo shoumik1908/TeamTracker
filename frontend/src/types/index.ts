@@ -8,8 +8,10 @@ export type NotificationType =
   | 'DEADLINE_APPROACHING'
   | 'CERTIFICATE_UPLOADED'
   | 'CERTIFICATION_COMPLETED'
+  | 'PROJECT_CREATED'
   | 'PROJECT_UPDATED'
-  | 'PROJECT_ASSIGNED';
+  | 'PROJECT_ASSIGNED'
+  | 'PROJECT_AUTO_ASSIGNED';
 
 export interface TeamMember {
   id: string;
@@ -21,6 +23,7 @@ export interface TeamMember {
   joiningDate: string;
   skills: string[];
   profilePictureUrl?: string;
+  status: string;
   managerId?: string;
   manager?: Pick<TeamMember, 'id' | 'name' | 'profilePictureUrl' | 'designation'>;
   projectMembers?: { project: { name: string } }[];
@@ -121,6 +124,7 @@ export interface Project {
   priority: Priority;
   status: ProjectStatus;
   progress: number;
+  visibleUntil?: string | null;
   createdAt: string;
   updatedAt: string;
   members?: ProjectMemberEntry[];
@@ -134,6 +138,7 @@ export interface ProjectMemberEntry {
   projectId: string;
   memberId: string;
   role?: string;
+  enrollmentType?: string | null;
   joinedAt: string;
   member: Pick<TeamMember, 'id' | 'name' | 'profilePictureUrl' | 'designation'>;
 }
@@ -143,6 +148,7 @@ export interface ProjectMemberWithProject {
   projectId: string;
   memberId: string;
   role?: string;
+  enrollmentType?: string | null;
   joinedAt: string;
   project: Project;
 }

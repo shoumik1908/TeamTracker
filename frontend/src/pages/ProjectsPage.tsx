@@ -5,6 +5,7 @@ import { projectsApi, membersApi } from '@/lib/api';
 import { Plus, Search, Pencil, Trash2, Users, X, Loader2, Calendar, UserPlus, MoreVertical, Video, Play, FileText, Sparkles } from 'lucide-react';
 import { cn, formatDate, formatStatus, getStatusColor, getPriorityColor, getProgressColor } from '@/lib/utils';
 import type { Project, PaginatedResponse, TeamMember, TeamsMeeting } from '@/types';
+import toast from 'react-hot-toast';
 
 const STATUSES = ['PLANNING', 'IN_PROGRESS', 'ON_HOLD', 'COMPLETED'];
 const PRIORITIES = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
@@ -193,9 +194,26 @@ export default function ProjectsPage() {
     queryFn: () => projectsApi.list({ search, status: statusFilter || undefined, page: 1, limit: 1000 }).then(r => r.data),
   });
 
-  const create = useMutation({ mutationFn: (d: Record<string, unknown>) => projectsApi.create(d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['projects'] }); qc.invalidateQueries({ queryKey: ['dashboard-stats'] }); qc.invalidateQueries({ queryKey: ['project-progress-chart'] }); setShowForm(false); } });
-  const update = useMutation({ mutationFn: ({ id, d }: { id: string; d: Record<string, unknown> }) => projectsApi.update(id, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['projects'] }); qc.invalidateQueries({ queryKey: ['dashboard-stats'] }); qc.invalidateQueries({ queryKey: ['project-progress-chart'] }); setEditProject(undefined); } });
-  const del = useMutation({ mutationFn: (id: string) => projectsApi.delete(id), onSuccess: () => { qc.invalidateQueries({ queryKey: ['projects'] }); qc.invalidateQueries({ queryKey: ['dashboard-stats'] }); qc.invalidateQueries({ queryKey: ['project-progress-chart'] }); setDeleteId(null); } });
+  const { data: openProjectsData, isLoading: isOpenProjectsLoading } = useQuery<PaginatedResponse<Project>>({
+    queryKey: ['projects-open'],
+    queryFn: () => projectsApi.list({ openForEnrollment: 'true', page: 1, limit: 100 }).then(r => r.data),
+  });
+
+  const create = useMutation({ mutationFn: (d: Record<string, unknown>) => projectsApi.create(d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['projects'] }); qc.invalidateQueries({ queryKey: ['projects-open'] }); qc.invalidateQueries({ queryKey: ['dashboard-stats'] }); qc.invalidateQueries({ queryKey: ['project-progress-chart'] }); setShowForm(false); } });
+  const update = useMutation({ mutationFn: ({ id, d }: { id: string; d: Record<string, unknown> }) => projectsApi.update(id, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['projects'] }); qc.invalidateQueries({ queryKey: ['projects-open'] }); qc.invalidateQueries({ queryKey: ['dashboard-stats'] }); qc.invalidateQueries({ queryKey: ['project-progress-chart'] }); setEditProject(undefined); } });
+  const del = useMutation({ mutationFn: (id: string) => projectsApi.delete(id), onSuccess: () => { qc.invalidateQueries({ queryKey: ['projects'] }); qc.invalidateQueries({ queryKey: ['projects-open'] }); qc.invalidateQueries({ queryKey: ['dashboard-stats'] }); qc.invalidateQueries({ queryKey: ['project-progress-chart'] }); setDeleteId(null); } });
+  
+  const enroll = useMutation({
+    mutationFn: (id: string) => projectsApi.enroll(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['projects'] });
+      qc.invalidateQueries({ queryKey: ['projects-open'] });
+      toast.success('Successfully enrolled in project!');
+    },
+    onError: (err: any) => {
+      toast.error(err.message || 'Failed to enroll');
+    }
+  });
 
   const sortedProjects = data?.data ? [...data.data].sort((a, b) => {
     if (a.status === 'COMPLETED' && b.status !== 'COMPLETED') return 1;
@@ -228,6 +246,47 @@ export default function ProjectsPage() {
           {STATUSES.map(s => <option key={s} value={s}>{formatStatus(s)}</option>)}
         </select>
       </div>
+
+      {openProjectsData && openProjectsData.data.length > 0 && !search && !statusFilter && (
+        <div className="mb-8">
+          <h3 className="text-sm font-semibold text-azure-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+            <Sparkles className="w-4 h-4" /> Open Projects for Enrollment
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {openProjectsData.data.map(project => (
+              <div key={project.id} className="bg-azure-900/10 backdrop-blur-md rounded-xl border border-azure-500/30 p-5 hover-card cursor-pointer hover:border-azure-500/60 transition-colors shadow-[0_0_15px_rgba(59,130,246,0.1)]">
+                <div className="flex items-start justify-between gap-3 mb-3">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold truncate text-azure-300">{project.name}</h3>
+                    {project.client && <p className="text-xs text-white/50 mt-0.5">Client: {project.client}</p>}
+                  </div>
+                  <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+                    <span className="text-[10px] px-2 py-0.5 rounded-full border font-medium bg-azure-900/40 text-azure-300 border-azure-700/50">
+                      Open for Enrollment
+                    </span>
+                  </div>
+                </div>
+                {project.description && <p className="text-xs text-white/50 line-clamp-2 mb-4">{project.description}</p>}
+                
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs text-white/50">
+                    <Users className="w-3.5 h-3.5" />
+                    <span>{project.members?.length || 0} Enrolled</span>
+                  </div>
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); enroll.mutate(project.id); }}
+                    disabled={enroll.isPending}
+                    className="px-4 py-2 bg-azure-500 text-white rounded-lg text-xs font-semibold hover:bg-azure-600 transition-colors shadow-lg shadow-azure-500/20 disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2"
+                  >
+                    {enroll.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UserPlus className="w-3.5 h-3.5" />}
+                    Enroll Now
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Project Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

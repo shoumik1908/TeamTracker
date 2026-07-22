@@ -10,7 +10,7 @@ router.use(authenticateToken);
 
 // GET /api/projects
 router.get('/', async (req: Request, res: Response) => {
-  const { search, status, priority, page = '1', limit = '10', sortBy = 'createdAt', sortOrder = 'desc' } = req.query;
+  const { search, status, priority, page = '1', limit = '10', sortBy = 'createdAt', sortOrder = 'desc', openForEnrollment } = req.query;
   const pageNum = parseInt(page as string);
   const limitNum = parseInt(limit as string);
 
@@ -24,6 +24,10 @@ router.get('/', async (req: Request, res: Response) => {
   }
   if (status) where.status = status as ProjectStatus;
   if (priority) where.priority = priority as Priority;
+  
+  if (openForEnrollment === 'true') {
+    where.visibleUntil = { gt: new Date() };
+  }
 
   // RBAC: If user is not admin, only show assigned projects
   const user = (req as AuthRequest).user;
@@ -157,6 +161,26 @@ router.post('/', async (req: Request, res: Response) => {
   const { name, description, client, startDate, endDate, priority, status, progress, memberIds, managerId } = req.body;
 
   if (!name || !startDate) throw new AppError('Name and start date are required', 400);
+  
+  const visibleUntilDate = new Date();
+  visibleUntilDate.setDate(visibleUntilDate.getDate() + 7);
+
+  // Find all benched members to auto-assign
+  const benchedMembers = await prisma.teamMember.findMany({
+    where: { status: { equals: 'Benched', mode: 'insensitive' } },
+    select: { id: true }
+  });
+  
+  const benchedMemberIds = benchedMembers.map(m => m.id);
+  const explicitMemberIds = memberIds || [];
+  
+  // Combine explicit assignments and auto-assignments, keeping track of types
+  const createMembersInput = [
+    ...explicitMemberIds.map((id: string) => ({ memberId: id, enrollmentType: 'assigned' })),
+    ...benchedMemberIds
+       .filter((id: string) => !explicitMemberIds.includes(id))
+       .map((id: string) => ({ memberId: id, enrollmentType: 'auto-assigned' }))
+  ];
 
   const project = await prisma.project.create({
     data: {
@@ -168,9 +192,10 @@ router.post('/', async (req: Request, res: Response) => {
       priority: priority || Priority.MEDIUM,
       status: status || ProjectStatus.PLANNING,
       progress: progress || 0,
+      visibleUntil: visibleUntilDate,
       managerId: managerId || undefined,
-      members: memberIds?.length
-        ? { create: memberIds.map((memberId: string) => ({ memberId })) }
+      members: createMembersInput.length
+        ? { create: createMembersInput }
         : undefined,
     },
     include: {
@@ -178,14 +203,27 @@ router.post('/', async (req: Request, res: Response) => {
     },
   });
 
-  const targetMemberIds = project.members.map(m => m.memberId);
-  if (targetMemberIds.length > 0) {
+  // Notify all active members about new project
+  const allMembers = await prisma.teamMember.findMany({ select: { id: true } });
+  if (allMembers.length > 0) {
     await prisma.notification.createMany({
-      data: targetMemberIds.map(id => ({
-        memberId: id,
-        type: 'PROJECT_UPDATED',
+      data: allMembers.map(m => ({
+        memberId: m.id,
+        type: 'PROJECT_CREATED',
         title: 'New Project Created',
-        message: `Project "${name}" has been created`,
+        message: `Project "${name}" has been created and is open for enrollment`,
+      })),
+    });
+  }
+  
+  // Notify specifically auto-assigned members
+  if (benchedMemberIds.length > 0) {
+    await prisma.notification.createMany({
+      data: benchedMemberIds.map(id => ({
+        memberId: id,
+        type: 'PROJECT_AUTO_ASSIGNED',
+        title: 'Auto-Assigned to New Project',
+        message: `You have been automatically assigned to "${name}" because you were on the bench.`,
       })),
     });
   }
@@ -282,6 +320,41 @@ router.delete('/:id/members/:memberId', async (req: Request, res: Response) => {
     where: { projectId: req.params.id, memberId: req.params.memberId },
   });
   res.json({ message: 'Member removed from project' });
+});
+
+// POST /api/projects/:id/enroll
+router.post('/:id/enroll', async (req: Request, res: Response) => {
+  const user = (req as AuthRequest).user;
+  const memberId = user?.teamMemberId;
+  if (!memberId) throw new AppError('User is not associated with a team member profile', 400);
+
+  const project = await prisma.project.findUnique({ where: { id: req.params.id } });
+  if (!project) throw new AppError('Project not found', 404);
+
+  // Check visibility window
+  if (!project.visibleUntil || new Date() > project.visibleUntil) {
+    throw new AppError('Project is no longer open for self-enrollment', 400);
+  }
+
+  // Check if already enrolled
+  const existing = await prisma.projectMember.findFirst({
+    where: { projectId: req.params.id, memberId }
+  });
+  if (existing) {
+    throw new AppError('Already enrolled in this project', 400);
+  }
+
+  const pm = await prisma.projectMember.create({
+    data: {
+      projectId: req.params.id,
+      memberId,
+      enrollmentType: 'self-enrolled',
+      role: 'DEVELOPER' // default role
+    },
+    include: { member: { select: { id: true, name: true, profilePictureUrl: true, designation: true } } },
+  });
+
+  res.status(201).json(pm);
 });
 
 export default router;
