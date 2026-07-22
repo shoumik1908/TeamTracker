@@ -3,8 +3,6 @@ import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
 import { AppError } from '../middleware/errorHandler';
 import { AuthRequest } from '../middleware/auth';
-import { sendMail } from '../services/mailService';
-import { taskAssignedTemplate } from '../templates/taskAssigned';
 
 const prisma = new PrismaClient();
 
@@ -157,36 +155,6 @@ export const createTask = async (req: AuthRequest, res: Response) => {
       message: notificationMessage,
     })),
   });
-
-  // Send email only to the actual assignees — NOT the on-behalf-of person
-  // (they see the task on their board but don't need an assignment email).
-  const membersWithEmail = await prisma.teamMember.findMany({
-    where: { id: { in: assigneeIds } },
-    select: { id: true, name: true, email: true },
-  });
-
-  for (const member of membersWithEmail) {
-    if (!member.email) {
-      console.warn(`[MailService] ⚠️  Skipping email for member "${member.name}" (no email on file) [taskId=${task.id}]`);
-      continue;
-    }
-    // Intentionally NOT awaited — email failure must never affect the API response.
-    sendMail({
-      to: member.email,
-      subject: onBehalfOfName
-        ? `New task from ${onBehalfOfName}: ${title}`
-        : `New task assigned: ${title}`,
-      html: taskAssignedTemplate({
-        memberName: member.name,
-        taskTitle: title,
-        taskId: task.id,
-        dueDate: task.dueDate?.toISOString() ?? null,
-        assignedByName: req.user!.name,
-        onBehalfOfName,          // shown in email body when present
-      }),
-      taskId: task.id,
-    });
-  }
 
   return res.status(201).json(task);
 };

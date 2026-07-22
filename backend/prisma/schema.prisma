@@ -21,6 +21,7 @@ model TeamMember {
   skills               String[]
   profilePictureUrl    String?
   allocationPercentage Int      @default(100)
+  status               String   @default("Active") // 'Active' or 'Benched'
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 
@@ -114,6 +115,7 @@ model Project {
   priority    Priority      @default(MEDIUM)
   status      ProjectStatus @default(PLANNING)
   progress    Int           @default(0)
+  visibleUntil DateTime?
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
@@ -140,6 +142,7 @@ model ProjectMember {
   opportunityId String?
   memberId      String
   role          String?
+  enrollmentType String?  @default("assigned") // 'assigned', 'self-enrolled', 'auto-assigned'
   joinedAt      DateTime @default(now())
 
   project     Project?             @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -394,8 +397,10 @@ enum NotificationType {
   DEADLINE_APPROACHING
   CERTIFICATE_UPLOADED
   CERTIFICATION_COMPLETED
+  PROJECT_CREATED
   PROJECT_UPDATED
   PROJECT_ASSIGNED
+  PROJECT_AUTO_ASSIGNED
   CERTIFICATE_EDIT_REQUESTED
   NEW_MEMBER_REGISTERED
   TASK_ASSIGNED

@@ -266,7 +266,7 @@ router.put('/:id', uploadImage.single('profilePicture'), async (req: Request, re
     throw new AppError('Forbidden: You can only edit your own profile', 403);
   }
 
-  const { name, email, phone, designation, joiningDate, skills, allocationPercentage } = req.body;
+  const { name, email, phone, designation, joiningDate, skills, allocationPercentage, status } = req.body;
 
   const existing = await prisma.teamMember.findUnique({ where: { id } });
   if (!existing) throw new AppError('Member not found', 404);
@@ -301,6 +301,7 @@ router.put('/:id', uploadImage.single('profilePicture'), async (req: Request, re
         skills: Array.isArray(skills) ? skills : skills.split(',').map((s: string) => s.trim()),
       }),
       ...(allocationPercentage !== undefined && { allocationPercentage: parseInt(allocationPercentage, 10) }),
+      ...(status && { status }),
       profilePictureUrl,
     },
   });

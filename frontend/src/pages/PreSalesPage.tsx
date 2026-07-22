@@ -443,10 +443,10 @@ export default function PreSalesPage() {
             return (
               <details
                 key={`${grouped.clientName}-${grouped.name}`}
-                className="group/opp-card bg-[#1c1926] border border-white/10 rounded-xl overflow-hidden hover-card flex flex-col transition-all duration-300 open:pb-2"
+                className="group/opp-card bg-[#1c1926] border border-white/10 rounded-xl hover-card flex flex-col transition-all duration-300 open:pb-2"
               >
                 {/* Card Header: Opportunity Name & Client details */}
-                <summary className="px-5 py-3 border-b border-white/5 bg-muted/5 flex items-center justify-between relative list-none cursor-pointer hover:bg-muted/10 transition-colors">
+                <summary className="px-5 py-3 border-b border-white/5 bg-muted/5 flex items-center justify-between relative list-none cursor-pointer hover:bg-muted/10 transition-colors rounded-xl group-open/opp-card:rounded-b-none">
                   <div className="flex items-center gap-3">
                     <ChevronRight className="w-4 h-4 text-white/50 transition-transform group-open/opp-card:rotate-90" />
                     <div className="flex flex-col gap-0.5">
@@ -611,7 +611,7 @@ export default function PreSalesPage() {
                 </summary>
 
                 {/* Combined Sliders List */}
-                <div className="divide-y divide-border">
+                <div className="divide-y divide-border rounded-b-xl overflow-hidden">
                   {/* PNB Slider Section */}
                   {grouped.pnbOpp && (activeTab === 'ALL' || activeTab === 'PNB') && (
                     <div className="py-3.5 px-5 space-y-2 bg-zinc-900/10">
