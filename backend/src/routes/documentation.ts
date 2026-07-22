@@ -1,3 +1,4 @@
+import prisma from '../lib/prisma';
 import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import crypto from 'crypto';
@@ -6,7 +7,6 @@ import { AppError } from '../middleware/errorHandler';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
 
 const router = Router({ mergeParams: true });
-const prisma = new PrismaClient();
 
 router.use(authenticateToken);
 

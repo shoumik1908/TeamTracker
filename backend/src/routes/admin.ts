@@ -1,3 +1,4 @@
+import prisma from '../lib/prisma';
 import { Router, Request, Response, NextFunction } from 'express';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
@@ -5,7 +6,6 @@ import { AppError } from '../middleware/errorHandler';
 import { authenticateToken, AuthRequest, requirePermission } from '../middleware/auth';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 // Ensure all routes in this file require 'manageTeam' permission
 router.use(authenticateToken);

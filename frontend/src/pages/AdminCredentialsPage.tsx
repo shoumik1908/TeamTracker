@@ -126,7 +126,7 @@ export default function AdminCredentialsPage() {
                         onChange={(e) => updateRoleMutation.mutate({ userId: u.id, roleId: e.target.value })}
                         className="text-sm bg-transparent border-none text-foreground focus:ring-0 cursor-pointer font-medium"
                       >
-                        {roles?.map((r: any) => (
+                        {roles?.filter((r: any) => r.name !== 'Manager').map((r: any) => (
                           <option key={r.id} value={r.id}>{r.name}</option>
                         ))}
                       </select>

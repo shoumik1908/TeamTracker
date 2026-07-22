@@ -1,8 +1,8 @@
+import prisma from '../lib/prisma';
 import { Router } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { generateExecutiveSummary } from '../services/azureOpenAIService';
 
-const prisma = new PrismaClient();
 const router = Router({ mergeParams: true });
 
 // GET /api/projects/:projectId/meeting-report?start=YYYY-MM-DD&end=YYYY-MM-DD

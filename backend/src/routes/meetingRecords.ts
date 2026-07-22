@@ -1,3 +1,4 @@
+import prisma from '../lib/prisma';
 import { Router } from 'express';
 import multer from 'multer';
 import { PrismaClient } from '@prisma/client';
@@ -5,7 +6,6 @@ import { uploadFile, deleteFile, CONTAINERS, generateSasUrl, extractBlobName, ge
 import { generateMeetingMinutes  } from '../services/azureOpenAIService';
 import { matchTeamMember, correctNamesInTranscript } from '../utils/fuzzyMatch';
 
-const prisma = new PrismaClient();
 const upload = multer({ storage: multer.memoryStorage() });
 
 const router = Router({ mergeParams: true });

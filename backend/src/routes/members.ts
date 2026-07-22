@@ -1,3 +1,4 @@
+import prisma from '../lib/prisma';
 import { Router, Request, Response } from 'express';
 import { PrismaClient, Prisma } from '@prisma/client';
 import multer from 'multer';
@@ -26,7 +27,6 @@ const cvUpload = multer({
 });
 
 const router = Router();
-const prisma = new PrismaClient();
 
 router.use(authenticateToken);
 
@@ -251,7 +251,7 @@ router.post('/', uploadImage.single('profilePicture'), async (req: Request, res:
       targetRole: 'Admin',
       type: 'NEW_MEMBER_REGISTERED',
       title: 'New Team Member Added',
-      message: `${name} has joined the team as ${designation}`,
+      message: designation ? `${name} has joined the team as ${designation}` : `${name} has joined the team`,
     },
   });
 

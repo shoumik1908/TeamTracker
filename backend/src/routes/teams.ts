@@ -1,9 +1,9 @@
+import prisma from '../lib/prisma';
 import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { generateMeetingSummary } from '../services/aiSummaryService';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 // GET /api/projects/:projectId/meetings - Fetch meetings from DB
 router.get('/projects/:projectId/meetings', async (req: Request, res: Response) => {

@@ -1,10 +1,10 @@
+import prisma from '../lib/prisma';
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
 import { AppError } from '../middleware/errorHandler';
 import { AuthRequest } from '../middleware/auth';
 
-const prisma = new PrismaClient();
 
 const taskInclude = {
   assignments: {

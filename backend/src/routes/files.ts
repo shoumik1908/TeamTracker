@@ -1,3 +1,4 @@
+import prisma from '../lib/prisma';
 import { Router, Request, Response } from 'express';
 import { PrismaClient, Prisma } from '@prisma/client';
 import { generateSasUrl, extractBlobName, CONTAINERS, deleteFile } from '../services/blobStorage';
@@ -5,7 +6,6 @@ import { authenticateToken, AuthRequest } from '../middleware/auth';
 import { AppError } from '../middleware/errorHandler';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 router.use(authenticateToken);
 
