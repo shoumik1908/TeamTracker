@@ -194,7 +194,7 @@ export default function ProjectsPage() {
     queryFn: () => projectsApi.list({ search, status: statusFilter || undefined, page: 1, limit: 1000 }).then(r => r.data),
   });
 
-  const { data: openProjectsData, isLoading: isOpenProjectsLoading } = useQuery<PaginatedResponse<Project>>({
+  const { data: openProjectsData } = useQuery<PaginatedResponse<Project>>({
     queryKey: ['projects-open'],
     queryFn: () => projectsApi.list({ openForEnrollment: 'true', page: 1, limit: 100 }).then(r => r.data),
   });
