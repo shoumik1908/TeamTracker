@@ -1,7 +1,7 @@
+import prisma from '../lib/prisma';
 import cron from 'node-cron';
 import { PrismaClient } from '@prisma/client';
 
-const prisma = new PrismaClient();
 
 export const cleanupExpiredLogs = async () => {
   try {

@@ -1,9 +1,10 @@
+import prisma from '../lib/prisma';
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { PrismaClient } from '@prisma/client';
 import { AppError } from './errorHandler';
+import { requestContext } from '../lib/context';
 
-const prisma = new PrismaClient();
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-key-do-not-use-in-prod';
 
 export interface AuthRequest extends Request {
@@ -40,7 +41,9 @@ export const authenticateToken = async (req: AuthRequest, res: Response, next: N
       return next(new AppError('User account is deactivated or not found', 401));
     }
 
-    next();
+    requestContext.run({ user: decoded }, () => {
+      next();
+    });
   } catch (error) {
     return next(new AppError('Invalid or expired token', 403));
   }

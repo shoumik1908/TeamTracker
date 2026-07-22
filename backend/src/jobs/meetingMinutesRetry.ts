@@ -1,9 +1,9 @@
+import prisma from '../lib/prisma';
 import { PrismaClient } from '@prisma/client';
 import { generateMeetingMinutes  } from '../services/azureOpenAIService';
 import { matchTeamMember, correctNamesInTranscript } from '../utils/fuzzyMatch';
 import cron from 'node-cron';
 
-const prisma = new PrismaClient();
 
 export const retryMeetingMinutesAnalysis = async () => {
   try {

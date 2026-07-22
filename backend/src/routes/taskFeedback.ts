@@ -1,3 +1,4 @@
+import prisma from '../lib/prisma';
 import { Router, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
@@ -8,7 +9,6 @@ import { CONTAINERS, uploadFile } from '../services/blobStorage';
 import crypto from 'crypto';
 
 const router = Router({ mergeParams: true });
-const prisma = new PrismaClient();
 
 router.use(authenticateToken);
 

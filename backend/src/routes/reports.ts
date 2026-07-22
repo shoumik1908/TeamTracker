@@ -1,3 +1,4 @@
+import prisma from '../lib/prisma';
 import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import ExcelJS from 'exceljs';
@@ -6,7 +7,6 @@ import autoTable from 'jspdf-autotable';
 import { authenticateToken, requirePermission } from '../middleware/auth';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 router.use(authenticateToken);
 router.use(requirePermission('manageTeam'));

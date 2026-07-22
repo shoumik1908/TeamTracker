@@ -1,3 +1,4 @@
+import prisma from '../lib/prisma';
 import { Router, Request, Response, NextFunction } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { authenticateToken } from '../middleware/auth';
@@ -30,7 +31,6 @@ const adHocUpload = dualUpload.fields([
 ]);
 
 const router = Router();
-const prisma = new PrismaClient();
 
 async function getMemberCertifications(memberId: string): Promise<string[]> {
   const assignments = await prisma.assignedCertification.findMany({

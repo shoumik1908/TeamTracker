@@ -1,3 +1,4 @@
+import prisma from '../lib/prisma';
 import { Router, Request, Response } from 'express';
 import { PrismaClient, CertificationStatus, Priority } from '@prisma/client';
 import { upload } from '../middleware/upload';
@@ -14,7 +15,6 @@ const fuzz = require('fuzzball') as {
 };
 
 const router = Router();
-const prisma = new PrismaClient();
 
 router.use(authenticateToken);
 

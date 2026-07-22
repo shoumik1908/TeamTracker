@@ -6,12 +6,13 @@ import {
   UploadCloud, 
   Activity, 
   FileText,
-  AlertCircle
+  AlertCircle,
+  RefreshCw
 } from 'lucide-react';
 import { fetchLogs, ActivityLog } from '../lib/logsApi';
 import { formatDistanceToNow } from 'date-fns';
 
-const TABS = ['All', 'Certifications', 'CVs', 'PreSales'];
+const TABS = ['All', 'TeamMember', 'Project', 'Certification', 'Notification', 'Task', 'User', 'PreSalesOpportunity'];
 
 export default function LogsPage() {
   const [logs, setLogs] = useState<ActivityLog[]>([]);
@@ -69,10 +70,11 @@ export default function LogsPage() {
     if (node) observer.current.observe(node);
   }, [loading, hasMore, logs]);
 
-  const getIconForAction = (action: string, cat: string) => {
-    if (action === 'DELETE') return <Trash2 className="w-5 h-5 text-red-500" />;
+  const getIconForAction = (action: string, _cat: string) => {
+    if (action === 'DELETE' || action === 'DELETEMANY') return <Trash2 className="w-5 h-5 text-red-500" />;
+    if (action === 'CREATE' || action === 'CREATEMANY') return <UploadCloud className="w-5 h-5 text-green-500" />;
+    if (action === 'UPDATE' || action === 'UPDATEMANY' || action === 'UPSERT') return <Activity className="w-5 h-5 text-blue-500" />;
     if (action === 'UPLOAD') return <UploadCloud className="w-5 h-5 text-blue-500" />;
-    if (cat === 'PreSales') return <Activity className="w-5 h-5 text-purple-500" />;
     return <FileText className="w-5 h-5 text-gray-400" />;
   };
 
@@ -89,15 +91,24 @@ export default function LogsPage() {
           </p>
         </div>
         
-        <div className="relative">
-          <Search className="w-5 h-5 text-white/50 absolute left-3 top-1/2 transform -translate-y-1/2" />
-          <input
-            type="text"
-            placeholder="Search activity..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-10 pr-4 py-2 bg-black/30 border border-white/10 rounded-lg text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent w-full md:w-64 outline-none placeholder:text-white/40"
-          />
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <Search className="w-5 h-5 text-white/50 absolute left-3 top-1/2 transform -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Search activity..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-10 pr-4 py-2 bg-black/30 border border-white/10 rounded-lg text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent w-full md:w-64 outline-none placeholder:text-white/40"
+            />
+          </div>
+          <button 
+            onClick={() => { setPage(1); setHasMore(true); loadLogs(1, [], true); }}
+            className="p-2 bg-black/30 border border-white/10 rounded-lg text-white/50 hover:text-white hover:bg-white/5 transition-colors"
+            title="Refresh Logs"
+          >
+            <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin text-indigo-400' : ''}`} />
+          </button>
         </div>
       </div>
 

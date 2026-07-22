@@ -1,9 +1,9 @@
+import prisma from '../lib/prisma';
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import { aiProvider, ChatMessage } from '../services/aiProvider';
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
 // Build live context from database
 async function buildContext(): Promise<string> {
