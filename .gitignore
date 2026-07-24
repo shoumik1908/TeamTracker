@@ -19,6 +19,10 @@ npm-debug.log*
 .DS_Store
 Thumbs.db
 
+# One-off scripts
+**/scratch.js
+**/refactor.js
+
 # Prisma
 prisma/*.db
 prisma/*.db-journal
