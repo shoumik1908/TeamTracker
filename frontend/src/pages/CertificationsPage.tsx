@@ -29,34 +29,34 @@ function CertModal({ cert, onClose, onSave }: { cert?: Certification; onClose: (
             <div>
               <label className="block text-xs font-medium text-white/50 mb-1">Certification Name *</label>
               <input required value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
-                className="w-full px-3 py-2 text-sm border border-white/5 rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30"
+                className="w-full px-3 py-2 text-sm bg-muted/20 text-white placeholder:text-white/40 border border-white/5 rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30 focus:border-azure-500"
                 placeholder="Azure Fundamentals" />
             </div>
             <div>
               <label className="block text-xs font-medium text-white/50 mb-1">Provider *</label>
               <input required value={form.provider} onChange={e => setForm(p => ({ ...p, provider: e.target.value }))}
-                className="w-full px-3 py-2 text-sm border border-white/5 rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30"
+                className="w-full px-3 py-2 text-sm bg-muted/20 text-white placeholder:text-white/40 border border-white/5 rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30 focus:border-azure-500"
                 placeholder="Microsoft" />
             </div>
           </div>
           <div>
             <label className="block text-xs font-medium text-white/50 mb-1">Description</label>
             <textarea rows={3} value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
-              className="w-full px-3 py-2 text-sm border border-white/5 rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30 resize-none"
+              className="w-full px-3 py-2 text-sm bg-muted/20 text-white placeholder:text-white/40 border border-white/5 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-azure-500/30 focus:border-azure-500"
               placeholder="Brief description of the certification..." />
           </div>
           <div className="grid grid-cols-1 gap-3">
             <div>
               <label className="block text-xs font-medium text-white/50 mb-1">Duration</label>
               <input value={form.duration} onChange={e => setForm(p => ({ ...p, duration: e.target.value }))}
-                className="w-full px-3 py-2 text-sm border border-white/5 rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30"
+                className="w-full px-3 py-2 text-sm bg-muted/20 text-white placeholder:text-white/40 border border-white/5 rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30"
                 placeholder="40 hours" />
             </div>
           </div>
           <div>
             <label className="block text-xs font-medium text-white/50 mb-1">Learning Link</label>
             <input type="url" value={form.learningLink} onChange={e => setForm(p => ({ ...p, learningLink: e.target.value }))}
-              className="w-full px-3 py-2 text-sm border border-white/5 rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30"
+              className="w-full px-3 py-2 text-sm bg-muted/20 text-white placeholder:text-white/40 border border-white/5 rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30"
               placeholder="https://learn.microsoft.com/..." />
           </div>
         </div>
