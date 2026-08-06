@@ -815,4 +815,106 @@ router.post('/edit-requests/:id/reject', async (req: Request, res: Response) => 
   res.json(updated);
 });
 
+// PATCH /api/certifications/assignments/:id/admin-edit
+router.patch(
+  "/assignments/:id/admin-edit",
+  requirePermission("manageTeam"),
+  async (req: AuthRequest, res: Response) => {
+    const {
+      progress,
+      status,
+      deadline,
+      priority,
+      notes,
+      credentialId,
+      completionDate,
+      expiryDate,
+    } = req.body;
+
+    const assignment = await prisma.assignedCertification.findUnique({
+      where: { id: req.params.id },
+      include: {
+        member: true,
+        certification: true,
+      },
+    });
+
+    if (!assignment) {
+      throw new AppError("Assignment not found", 404);
+    }
+
+    let finalCompletionDate = assignment.completionDate;
+    let finalExpiryDate = assignment.expiryDate;
+    let finalStatus = assignment.status;
+
+    if (completionDate !== undefined) {
+      finalCompletionDate = completionDate
+        ? new Date(completionDate)
+        : null;
+    }
+
+    if (expiryDate !== undefined) {
+      finalExpiryDate = expiryDate
+        ? new Date(expiryDate)
+        : null;
+    }
+
+    if (status) {
+      finalStatus = status;
+    }
+
+    // Auto derive status
+    if (finalCompletionDate) {
+      if (finalExpiryDate && finalExpiryDate < new Date()) {
+        finalStatus = "EXPIRED";
+      } else {
+        finalStatus = "COMPLETED";
+      }
+    }
+
+    const updated = await prisma.assignedCertification.update({
+      where: {
+        id: req.params.id,
+      },
+      data: {
+        ...(progress !== undefined && { progress: Number(progress) }),
+        ...(priority && { priority }),
+        ...(deadline && { deadline: new Date(deadline) }),
+        ...(notes !== undefined && { notes }),
+        ...(credentialId !== undefined && { credentialId }),
+
+        completionDate: finalCompletionDate,
+        expiryDate: finalExpiryDate,
+        status: finalStatus as any,
+      },
+      include: {
+        member: true,
+        certification: true,
+      },
+    });
+
+    // Notification
+    await prisma.notification.create({
+      data: {
+        memberId: updated.memberId,
+        type: "CERTIFICATE_UPLOADED",
+        title: "Certification Updated",
+        message: `Your certification "${updated.certification.name}" was updated by an administrator.`,
+      },
+    });
+
+    // Activity Log
+    await prisma.activityLog.create({
+      data: {
+        category: "Certifications",
+        action: "UPDATE",
+        performedBy: req.user?.name || "Admin",
+        details: `${req.user?.name} updated ${updated.member.name}'s certification (${updated.certification.name})`,
+      },
+    });
+
+    res.json(updated);
+  }
+);
+
 export default router;
