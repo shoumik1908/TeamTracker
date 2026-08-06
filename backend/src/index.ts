@@ -44,22 +44,20 @@ initMeetingMinutesRetryJob();
 
 const PORT = process.env.PORT || 3001;
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-key-do-not-use-in-prod';
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
-
-
-
-
-
-
+// ponytail: comma-split lets one env var hold multiple origins; upgrade to a proper allowlist if needed
+const FRONTEND_URLS = (process.env.FRONTEND_URL || 'http://localhost:5173')
+  .split(',').map(u => u.trim()).filter(Boolean);
 
 
 
 // Middleware
 app.use(cors({
-  origin: [FRONTEND_URL, 'http://localhost:5174'],
+  origin: [...FRONTEND_URLS, 'http://localhost:5174'],
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
+
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(compression());
