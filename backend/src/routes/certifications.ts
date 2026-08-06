@@ -159,7 +159,7 @@ router.get('/assignments/all', async (req: Request, res: Response) => {
 
 // POST /api/certifications/assign - Assign cert to member
 router.post('/assign', async (req: Request, res: Response) => {
-  const { memberId, certificationId, deadline, priority, notes, assignedDate } = req.body;
+  const { memberId, certificationId, deadline, priority, notes, assignedDate, credentialId } = req.body;
 
   if (!memberId || !certificationId || !deadline) {
     throw new AppError('memberId, certificationId, and deadline are required', 400);
@@ -184,6 +184,7 @@ router.post('/assign', async (req: Request, res: Response) => {
         deadline: new Date(deadline),
         priority: priority || existingAssignment.priority,
         notes: notes !== undefined ? notes : existingAssignment.notes,
+        credentialId: credentialId !== undefined ? credentialId : existingAssignment.credentialId,
       },
       include: { member: true, certification: true },
     });
@@ -195,6 +196,7 @@ router.post('/assign', async (req: Request, res: Response) => {
         deadline: new Date(deadline),
         priority: priority || Priority.MEDIUM,
         notes,
+        credentialId,
         assignedDate: assignedDate ? new Date(assignedDate) : new Date(),
       },
       include: { member: true, certification: true },

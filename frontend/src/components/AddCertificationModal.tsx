@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { certificationsApi } from '@/lib/api';
-import { X, Loader2 } from 'lucide-react';
+import { X, Loader2, Upload } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Certification, PaginatedResponse } from '@/types';
 
@@ -17,8 +17,11 @@ export default function AddCertificationModal({ memberId, memberName, onClose, o
   const [newCert, setNewCert] = useState({ name: '', provider: '', learningLink: '' });
   const [completionDate, setCompletionDate] = useState('');
   const [expiryDate, setExpiryDate] = useState('');
+  const [credentialId, setCredentialId] = useState('');
+  const [certificateFile, setCertificateFile] = useState<File | null>(null);
   const [notes, setNotes] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: catalog } = useQuery<PaginatedResponse<Certification>>({
     queryKey: ['certs-catalog'],
@@ -42,6 +45,7 @@ export default function AddCertificationModal({ memberId, memberName, onClose, o
         memberId,
         certificationId: certId,
         deadline: completionDate,
+        credentialId: credentialId.trim() || undefined,
         notes: notes.trim() || undefined,
       });
       await certificationsApi.updateAssignment(assigned.data.id, {
@@ -49,7 +53,16 @@ export default function AddCertificationModal({ memberId, memberName, onClose, o
         progress: 100,
         completionDate: completionDate || undefined,
         expiryDate: expiryDate || undefined,
+        credentialId: credentialId.trim() || undefined,
       });
+      if (certificateFile) {
+        const data = new FormData();
+        data.append('certificate', certificateFile);
+        data.append('completionDate', completionDate);
+        if (expiryDate) data.append('expiryDate', expiryDate);
+        if (credentialId.trim()) data.append('credentialId', credentialId.trim());
+        await certificationsApi.uploadCertificate(assigned.data.id, data);
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['member'] });
@@ -137,12 +150,34 @@ export default function AddCertificationModal({ memberId, memberName, onClose, o
             </div>
           </div>
           <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">Credential ID</label>
+            <input value={credentialId} onChange={e => setCredentialId(e.target.value)}
+              className="w-full bg-input px-3 py-2 text-sm text-foreground placeholder:text-slate-400 placeholder:opacity-100 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30"
+              placeholder="e.g. AZ-900-2024-123 (optional)" />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">Certificate File</label>
+            <button type="button" onClick={() => fileInputRef.current?.click()}
+              className="w-full border-2 border-dashed border-border rounded-xl p-4 text-center hover:border-azure-500 hover:bg-azure-900/10 transition-colors">
+              {certificateFile ? (
+                <p className="text-sm text-azure-300 font-medium truncate">{certificateFile.name}</p>
+              ) : (
+                <>
+                  <Upload className="w-5 h-5 text-muted-foreground mx-auto mb-1" />
+                  <p className="text-xs text-muted-foreground">Upload PDF, PNG, or JPG (optional)</p>
+                </>
+              )}
+            </button>
+            <input ref={fileInputRef} type="file" accept=".pdf,.png,.jpg,.jpeg" className="hidden"
+              onChange={e => setCertificateFile(e.target.files?.[0] || null)} />
+          </div>
+          <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">Notes</label>
             <textarea rows={2} value={notes} onChange={e => setNotes(e.target.value)}
               className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30 resize-none"
               placeholder="Optional notes…" />
           </div>
-          <p className="text-[11px] text-muted-foreground">Saved as <strong className="text-emerald-400">Completed</strong> (100%). You can upload the certificate file afterwards via the member's profile.</p>
+          <p className="text-[11px] text-muted-foreground">A certification is <strong className="text-emerald-400">Verified</strong> when both a certificate file and credential ID are provided; otherwise it is marked <strong>Unverified</strong>.</p>
           {error && <p className="text-xs text-red-400">{error}</p>}
         </div>
         <div className="flex gap-3 px-6 py-4 border-t border-border">

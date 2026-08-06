@@ -201,7 +201,7 @@ function EditProgressModal({ assignment, onClose, onSave }: {
           <div>
             <label className="block text-xs font-medium text-white/50 mb-1">Credential ID</label>
             <input value={form.credentialId} onChange={e => setForm(p => ({ ...p, credentialId: e.target.value }))}
-              className="w-full px-3 py-2 text-sm border border-white/5 rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30"
+              className="w-full bg-input px-3 py-2 text-sm text-foreground placeholder:text-slate-400 placeholder:opacity-100 border border-white/5 rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30"
               placeholder="e.g. AZ-900-2024-123" />
           </div>
           <div>
@@ -642,7 +642,17 @@ export default function TrackerPage() {
                           <tr key={a.id} className="hover:bg-muted/10 transition-colors">
                             <td>
                               <div className="space-y-0.5">
-                                <span className="text-xs font-medium block">{a.certification?.name}</span>
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-xs font-medium">{a.certification?.name}</span>
+                                  <span className={cn(
+                                    'text-[9px] px-1.5 py-0.5 rounded-full border font-medium',
+                                    a.certificateUrl && a.credentialId?.trim()
+                                      ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
+                                      : 'border-amber-500/30 bg-amber-500/10 text-amber-300'
+                                  )}>
+                                    {a.certificateUrl && a.credentialId?.trim() ? 'Verified' : 'Unverified'}
+                                  </span>
+                                </div>
                                 {a.certificateUrl && (
                                   <a href={a.certificateUrl} target="_blank" rel="noreferrer"
                                     className="inline-flex items-center gap-1 text-[10px] text-azure-400 hover:text-azure-300 truncate max-w-[150px]"
@@ -1161,7 +1171,7 @@ function RequestEditModal({ assignment, onClose, onSave }: {
           <div>
             <label className="block text-xs font-medium text-white/50 mb-1">Credential ID</label>
             <input value={form.credentialId} onChange={e => setForm(p => ({ ...p, credentialId: e.target.value }))}
-              className="w-full px-3 py-2 text-sm border border-white/5 rounded-lg bg-muted/20 focus:outline-none focus:ring-2 focus:ring-azure-500/30"
+              className="w-full bg-input px-3 py-2 text-sm text-foreground placeholder:text-slate-400 placeholder:opacity-100 border border-white/5 rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30"
               placeholder="e.g. AZ-900-2024-ABC" />
           </div>
           <div>
@@ -1424,4 +1434,3 @@ function AddNewCertificationInline({
     </div>
   );
 }
-

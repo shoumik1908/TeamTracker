@@ -129,7 +129,7 @@ function UpdateCertificationModal({ assignment, onClose, onSaved }: {
           <div>
             <label className="block text-xs font-medium text-white/50 mb-1">Credential ID</label>
             <input value={form.credentialId} onChange={e => setForm(p => ({ ...p, credentialId: e.target.value }))}
-              className="w-full px-3 py-2 text-sm border border-white/5 rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30"
+              className="w-full bg-input px-3 py-2 text-sm text-foreground placeholder:text-slate-400 placeholder:opacity-100 border border-white/5 rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30"
               placeholder="e.g. AZ-900-2024-123" />
           </div>
           <div>
@@ -1060,6 +1060,14 @@ export default function MemberProfilePage() {
                         <div className="flex items-center gap-2 flex-shrink-0">
                           <span className={cn('text-[10px] px-2 py-0.5 rounded-full border font-medium', getStatusColor(ac.status))}>
                             {formatStatus(ac.status)}
+                          </span>
+                          <span className={cn(
+                            'text-[10px] px-2 py-0.5 rounded-full border font-medium',
+                            ac.certificateUrl && ac.credentialId?.trim()
+                              ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
+                              : 'border-amber-500/30 bg-amber-500/10 text-amber-300'
+                          )}>
+                            {ac.certificateUrl && ac.credentialId?.trim() ? 'Verified' : 'Unverified'}
                           </span>
                           {canEdit && (
                             <button onClick={() => setUpdateCert(ac)} title="Update certification"
