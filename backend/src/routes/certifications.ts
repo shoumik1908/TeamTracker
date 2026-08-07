@@ -8,6 +8,8 @@ import { authenticateToken, AuthRequest, requirePermission } from '../middleware
 import { extractCertificateFields, isConfigured as isDocIntelConfigured, checkNameMatch } from '../services/documentIntelligence';
 import { matchCertificateTitle } from '../services/certMatcher';
 import { matchTeamMember } from '../utils/fuzzyMatch';
+import { buildEditRequestUpdate, createEditRequestNotificationMessage } from '../services/certificateEditRequest';
+import { normalizeCredentialId } from '../services/certificateVerification';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const fuzz = require('fuzzball') as {
@@ -417,7 +419,8 @@ router.post('/certificate/analyze-universal', upload.single('certificate'), asyn
 
 // POST /api/certifications/certificate/upload-universal
 router.post('/certificate/upload-universal', upload.single('certificate'), async (req: Request, res: Response) => {
-  const { memberId, certificationId, expiryDate, completionDate } = req.body;
+  const { memberId, certificationId, expiryDate, completionDate, credentialId } = req.body;
+  const normalizedCredentialId = normalizeCredentialId(credentialId);
   if (!memberId || !certificationId) throw new AppError('memberId and certificationId are required', 400);
 
   const member = await prisma.teamMember.findUnique({
@@ -490,6 +493,7 @@ router.post('/certificate/upload-universal', upload.single('certificate'), async
         expiryDate: finalExpiryDate,
         progress: 100,
         certificateUrl: url,
+        credentialId: normalizedCredentialId,
         originalFilename: originalFilename,
         uploadDate: uploadDate,
       },
@@ -511,6 +515,7 @@ router.post('/certificate/upload-universal', upload.single('certificate'), async
         completionDate: finalCompletionDate,
         expiryDate: finalExpiryDate,
         certificateUrl: url,
+        credentialId: normalizedCredentialId,
         originalFilename: originalFilename,
         uploadDate: uploadDate,
       },
@@ -548,6 +553,7 @@ router.post('/certificate/upload-universal', upload.single('certificate'), async
 router.post('/assignments/:id/certificate', upload.single('certificate'), async (req: Request, res: Response) => {
   const { id } = req.params;
   const { credentialId, expiryDate, completionDate } = req.body;
+  const normalizedCredentialId = normalizeCredentialId(credentialId);
 
   const existing = await prisma.assignedCertification.findUnique({
     where: { id },
@@ -592,7 +598,7 @@ router.post('/assignments/:id/certificate', upload.single('certificate'), async 
       certificateUrl: url,
       originalFilename: originalFilename,
       uploadDate: uploadDate,
-      ...(credentialId && { credentialId }),
+      credentialId: normalizedCredentialId,
       status: finalStatus as any,
       completionDate: finalCompletionDate,
       expiryDate: finalExpiryDate,
@@ -720,7 +726,10 @@ router.post('/assignments/:id/request-edit', async (req: Request, res: Response)
       targetRole: 'Admin',
       type: 'CERTIFICATE_EDIT_REQUESTED',
       title: 'Certificate Edit Requested',
-      message: `${requestedBy} requested an edit for ${existing.member.name}'s ${existing.certification.name} certificate.`,
+      message: createEditRequestNotificationMessage(
+        `${requestedBy} requested an edit for ${existing.member.name}'s ${existing.certification.name} certificate.`,
+        editRequest.id,
+      ),
     },
   });
 
@@ -728,7 +737,7 @@ router.post('/assignments/:id/request-edit', async (req: Request, res: Response)
 });
 
 // GET /api/certifications/edit-requests
-router.get('/edit-requests', async (req: Request, res: Response) => {
+router.get('/edit-requests', requirePermission('manageTeam'), async (req: Request, res: Response) => {
   const { status } = req.query;
   const where: any = {};
   if (status) where.status = status;
@@ -750,7 +759,7 @@ router.get('/edit-requests', async (req: Request, res: Response) => {
 });
 
 // POST /api/certifications/edit-requests/:id/approve
-router.post('/edit-requests/:id/approve', async (req: Request, res: Response) => {
+router.post('/edit-requests/:id/approve', requirePermission('manageTeam'), async (req: Request, res: Response) => {
   const { reviewedBy, reviewNotes } = req.body;
 
   const editReq = await (prisma as any).certificateEditRequest.findUnique({
@@ -760,21 +769,8 @@ router.post('/edit-requests/:id/approve', async (req: Request, res: Response) =>
   if (editReq.status !== 'PENDING') throw new AppError('Edit request is not pending', 400);
 
   const changes = editReq.proposedChanges as Record<string, any>;
-
-  // Apply changes to live record
-  const updateData: any = {};
-  if (changes.completionDate) updateData.completionDate = new Date(changes.completionDate);
-  if (changes.expiryDate !== undefined) updateData.expiryDate = changes.expiryDate ? new Date(changes.expiryDate) : null;
-  if (changes.credentialId !== undefined) updateData.credentialId = changes.credentialId;
-
-  // Re-derive status based on new dates
-  if (updateData.completionDate || updateData.expiryDate !== undefined) {
-    const existing = await prisma.assignedCertification.findUnique({ where: { id: editReq.assignmentId } });
-    const finalExpiry = updateData.expiryDate !== undefined ? updateData.expiryDate : existing?.expiryDate;
-    if (updateData.completionDate || existing?.completionDate) {
-      updateData.status = (finalExpiry && new Date(finalExpiry) < new Date()) ? 'EXPIRED' : 'COMPLETED';
-    }
-  }
+  const existing = await prisma.assignedCertification.findUnique({ where: { id: editReq.assignmentId } });
+  const updateData = buildEditRequestUpdate(changes, existing || {});
 
   await prisma.assignedCertification.update({
     where: { id: editReq.assignmentId },
@@ -795,7 +791,7 @@ router.post('/edit-requests/:id/approve', async (req: Request, res: Response) =>
 });
 
 // POST /api/certifications/edit-requests/:id/reject
-router.post('/edit-requests/:id/reject', async (req: Request, res: Response) => {
+router.post('/edit-requests/:id/reject', requirePermission('manageTeam'), async (req: Request, res: Response) => {
   const { reviewedBy, reviewNotes } = req.body;
 
   const editReq = await (prisma as any).certificateEditRequest.findUnique({ where: { id: req.params.id } });

@@ -1061,6 +1061,14 @@ export default function MemberProfilePage() {
                           <span className={cn('text-[10px] px-2 py-0.5 rounded-full border font-medium', getStatusColor(ac.status))}>
                             {formatStatus(ac.status)}
                           </span>
+                          <span className={cn(
+                            'text-[10px] px-2 py-0.5 rounded-full border font-medium',
+                            ac.certificateUrl && ac.credentialId?.trim()
+                              ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
+                              : 'border-amber-500/30 bg-amber-500/10 text-amber-300'
+                          )}>
+                            {ac.certificateUrl && ac.credentialId?.trim() ? 'Verified' : 'Unverified'}
+                          </span>
                           {canEdit && (
                             <button onClick={() => setUpdateCert(ac)} title="Update certification"
                               className="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md border border-azure-800/40 text-azure-300 hover:bg-azure-900/30 hover:text-azure-200 transition-colors">

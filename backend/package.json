@@ -7,6 +7,7 @@
     "predev": "npx kill-port 3001",
     "dev": "ts-node-dev --respawn --transpile-only -r dotenv/config src/index.ts",
     "build": "tsc",
+    "test": "npm run build && node --test dist/tests/certificateEditRequest.test.js dist/tests/certificateUpload.test.js dist/tests/matching.test.js",
     "start": "node dist/index.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate deploy",

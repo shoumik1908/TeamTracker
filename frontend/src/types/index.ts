@@ -162,6 +162,24 @@ export interface Notification {
   read: boolean;
   createdAt: string;
   member?: Pick<TeamMember, 'name' | 'profilePictureUrl'>;
+  certificateEditRequestId?: string | null;
+  certificateEditRequest?: CertificateEditRequest | null;
+}
+
+export interface CertificateEditRequest {
+  id: string;
+  assignmentId: string;
+  proposedChanges: { completionDate?: string; expiryDate?: string | null; credentialId?: string | null };
+  requestedBy: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  createdAt: string;
+  reviewedBy?: string | null;
+  reviewNotes?: string | null;
+  reviewedAt?: string | null;
+  assignment?: {
+    member?: Pick<TeamMember, 'id' | 'name'>;
+    certification?: Pick<Certification, 'id' | 'name' | 'provider'>;
+  };
 }
 
 export interface DashboardStats {
@@ -326,4 +344,3 @@ export interface GtmAuditResult {
   currentCount: number;
   status: 'Met' | 'At Risk' | 'Not Met';
 }
-

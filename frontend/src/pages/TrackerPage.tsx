@@ -236,6 +236,8 @@ export default function TrackerPage() {
   const [selectedCertId, setSelectedCertId] = useState('');
   const [completionDateInput, setCompletionDateInput] = useState('');
   const [expiryDateInput, setExpiryDateInput] = useState('');
+  const [credentialIdInput, setCredentialIdInput] = useState('');
+  const [credentialIdWasRead, setCredentialIdWasRead] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analyzedFields, setAnalyzedFields] = useState<{
     configured: boolean;
@@ -271,6 +273,8 @@ export default function TrackerPage() {
     setSelectedCertId('');
     setCompletionDateInput('');
     setExpiryDateInput('');
+    setCredentialIdInput('');
+    setCredentialIdWasRead(false);
     setMissingFields([]);
     setShowMissingModal(false);
     setActiveAddForm(null);
@@ -420,11 +424,12 @@ export default function TrackerPage() {
   });
 
   const uploadCert = useMutation({
-    mutationFn: ({ id, file, completionDate, expiryDate, memberId, certificationId }: { id: string; file?: File; completionDate?: string; expiryDate?: string; memberId?: string; certificationId?: string }) => {
+    mutationFn: ({ id, file, completionDate, expiryDate, credentialId, memberId, certificationId }: { id: string; file?: File; completionDate?: string; expiryDate?: string; credentialId: string; memberId?: string; certificationId?: string }) => {
       const fd = new FormData();
       if (file) fd.append('certificate', file);
       if (completionDate) fd.append('completionDate', completionDate);
       if (expiryDate) fd.append('expiryDate', expiryDate);
+      fd.append('credentialId', credentialId);
 
       if (id === '__universal__') {
         if (memberId) fd.append('memberId', memberId);
@@ -444,6 +449,8 @@ export default function TrackerPage() {
       setSelectedCertId('');
       setCompletionDateInput('');
       setExpiryDateInput('');
+      setCredentialIdInput('');
+      setCredentialIdWasRead(false);
       setAnalyzedFields(null);
       setIsAnalyzing(false);
     },
@@ -476,6 +483,8 @@ export default function TrackerPage() {
         const data = res.data;
         if (data.completionDate) setCompletionDateInput(data.completionDate);
         if (data.expiryDate) setExpiryDateInput(data.expiryDate);
+        setCredentialIdInput(data.credentialId || '');
+        setCredentialIdWasRead(Boolean(data.credentialId));
         if (data.recipientName) setExtractedName(data.recipientName);
         if (data.matchedLine) setExtractedCertTitle(data.matchedLine);
 
@@ -642,7 +651,17 @@ export default function TrackerPage() {
                           <tr key={a.id} className="hover:bg-muted/10 transition-colors">
                             <td>
                               <div className="space-y-0.5">
-                                <span className="text-xs font-medium block">{a.certification?.name}</span>
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-xs font-medium">{a.certification?.name}</span>
+                                  <span className={cn(
+                                    'text-[9px] px-1.5 py-0.5 rounded-full border font-medium',
+                                    a.certificateUrl && a.credentialId?.trim()
+                                      ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
+                                      : 'border-amber-500/30 bg-amber-500/10 text-amber-300'
+                                  )}>
+                                    {a.certificateUrl && a.credentialId?.trim() ? 'Verified' : 'Unverified'}
+                                  </span>
+                                </div>
                                 {a.certificateUrl && (
                                   <a href={a.certificateUrl} target="_blank" rel="noreferrer"
                                     className="inline-flex items-center gap-1 text-[10px] text-azure-400 hover:text-azure-300 truncate max-w-[150px]"
@@ -836,6 +855,8 @@ export default function TrackerPage() {
                       setAnalyzedFields(null);
                       setCompletionDateInput('');
                       setExpiryDateInput('');
+                      setCredentialIdInput('');
+                      setCredentialIdWasRead(false);
                       if (isUniversal) {
                         setSelectedMemberId('');
                         setSelectedCertId('');
@@ -947,6 +968,26 @@ export default function TrackerPage() {
                     className="w-full px-3 py-2 text-sm border border-white/5 rounded-lg bg-muted/20 focus:outline-none focus:ring-2 focus:ring-azure-500/30 focus:border-azure-500" />
                 </div>
               </div>
+
+              <div>
+                <label className="block text-xs font-medium text-white/50 mb-1">Credential ID</label>
+                <input
+                  value={credentialIdInput}
+                  onChange={e => { setCredentialIdInput(e.target.value); setCredentialIdWasRead(false); }}
+                  className="w-full bg-input px-3 py-2 text-sm text-foreground placeholder:text-slate-400 placeholder:opacity-100 border border-white/5 rounded-lg focus:outline-none focus:ring-2 focus:ring-azure-500/30"
+                  placeholder="Enter credential ID if OCR could not detect it"
+                />
+                <p className={cn(
+                  'mt-1 text-[10px]',
+                  credentialIdInput ? 'text-emerald-300' : 'text-amber-300'
+                )}>
+                  {credentialIdInput
+                    ? credentialIdWasRead
+                      ? 'Verified automatically: credential ID was read from the uploaded certificate.'
+                      : 'Verified: credential ID was entered manually.'
+                    : 'OCR did not detect a credential ID. Enter it manually to verify this certification.'}
+                </p>
+              </div>
             </div>
 
             {/* Modal Actions */}
@@ -1011,6 +1052,7 @@ export default function TrackerPage() {
                       file: uploadFile || undefined,
                       completionDate: completionDateInput || undefined,
                       expiryDate: expiryDateInput || undefined,
+                      credentialId: credentialIdInput,
                       memberId: isAdmin ? selectedMemberId : (currentUser?.teamMemberId || undefined),
                       certificationId: selectedCertId
                     });
@@ -1424,4 +1466,3 @@ function AddNewCertificationInline({
     </div>
   );
 }
-

@@ -3,6 +3,7 @@ import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { AppError } from '../middleware/errorHandler';
 import { AuthRequest, authenticateToken } from '../middleware/auth';
+import { parseEditRequestNotificationMessage } from '../services/certificateEditRequest';
 
 const router = Router();
 router.use(authenticateToken);
@@ -48,8 +49,40 @@ router.get('/', async (req: Request, res: Response) => {
     prisma.notification.count({ where: { ...where, read: false } }),
   ]);
 
+  const editRequestIds = notifications
+    .filter(notification => notification.type === 'CERTIFICATE_EDIT_REQUESTED')
+    .map(notification => parseEditRequestNotificationMessage(notification.message).editRequestId)
+    .filter((id): id is string => Boolean(id));
+
+  const editRequests = editRequestIds.length > 0
+    ? await prisma.certificateEditRequest.findMany({
+        where: { id: { in: editRequestIds } },
+        include: {
+          assignment: {
+            include: {
+              member: { select: { id: true, name: true } },
+              certification: { select: { id: true, name: true, provider: true } },
+            },
+          },
+        },
+      })
+    : [];
+  const editRequestsById = new Map(editRequests.map(request => [request.id, request]));
+
+  const notificationData = notifications.map(notification => {
+    const { message, editRequestId } = parseEditRequestNotificationMessage(notification.message);
+    return {
+      ...notification,
+      message,
+      ...(editRequestId && {
+        certificateEditRequestId: editRequestId,
+        certificateEditRequest: editRequestsById.get(editRequestId) || null,
+      }),
+    };
+  });
+
   res.json({
-    data: notifications,
+    data: notificationData,
     unreadCount,
     pagination: { page: pageNum, limit: limitNum, total, totalPages: Math.ceil(total / limitNum) },
   });
