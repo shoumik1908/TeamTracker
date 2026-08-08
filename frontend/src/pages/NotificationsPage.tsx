@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { notificationsApi } from '@/lib/api';
+import { certificationsApi, notificationsApi } from '@/lib/api';
 import { Bell, CheckCheck, Trash2, Loader2 } from 'lucide-react';
 import { cn, formatRelative } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
@@ -10,6 +11,7 @@ const TYPE_ICONS: Record<string, string> = {
   DEADLINE_APPROACHING: '⏰',
   CERTIFICATE_UPLOADED: '📄',
   CERTIFICATION_COMPLETED: '🎉',
+  CERTIFICATE_EDIT_REQUESTED: '✏️',
   PROJECT_UPDATED: '🚀',
   PROJECT_ASSIGNED: '👥',
 };
@@ -19,6 +21,7 @@ const TYPE_COLORS: Record<string, string> = {
   DEADLINE_APPROACHING: 'bg-orange-950/20 border-orange-900/40 text-orange-300',
   CERTIFICATE_UPLOADED: 'bg-green-950/20 border-green-900/40 text-green-300',
   CERTIFICATION_COMPLETED: 'bg-green-950/20 border-green-900/40 text-green-300',
+  CERTIFICATE_EDIT_REQUESTED: 'bg-amber-950/20 border-amber-900/40 text-amber-300',
   PROJECT_UPDATED: 'bg-purple-950/20 border-purple-900/40 text-purple-300',
   PROJECT_ASSIGNED: 'bg-indigo-950/20 border-indigo-900/40 text-indigo-300',
 };
@@ -27,6 +30,7 @@ export default function NotificationsPage() {
   const qc = useQueryClient();
   const { hasPermission } = useAuth();
   const isAdmin = hasPermission('manageTeam');
+  const [expandedRequestId, setExpandedRequestId] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery<{ data: Notification[]; unreadCount: number; pagination: { total: number } }>({
     queryKey: ['notifications'],
@@ -47,6 +51,21 @@ export default function NotificationsPage() {
   const del = useMutation({
     mutationFn: (id: string) => notificationsApi.delete(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
+  });
+
+  const reviewRequest = useMutation({
+    mutationFn: ({ id, decision }: { id: string; notificationId: string; decision: 'approve' | 'reject' }) =>
+      decision === 'approve'
+        ? certificationsApi.approveEditRequest(id)
+        : certificationsApi.rejectEditRequest(id),
+    onSuccess: (_result, variables) => {
+      markRead.mutate(variables.notificationId);
+      qc.invalidateQueries({ queryKey: ['notifications'] });
+      qc.invalidateQueries({ queryKey: ['notifications-count'] });
+      qc.invalidateQueries({ queryKey: ['tracker'] });
+      qc.invalidateQueries({ queryKey: ['member'] });
+      setExpandedRequestId(null);
+    },
   });
 
   return (
@@ -84,7 +103,13 @@ export default function NotificationsPage() {
       )}
 
       <div className="space-y-2">
-        {data?.data.map(n => (
+        {data?.data.map(n => {
+          const editRequest = n.certificateEditRequest;
+          const isPendingEditRequest = isAdmin && editRequest?.status === 'PENDING';
+          const isExpanded = expandedRequestId === editRequest?.id;
+          const requestedChanges = editRequest?.proposedChanges;
+
+          return (
           <div key={n.id}
             className={cn(
               'group flex items-start gap-4 p-4 rounded-xl border transition-all cursor-pointer hover:shadow-sm',
@@ -104,6 +129,37 @@ export default function NotificationsPage() {
               {n.member && (
                 <p className="text-xs text-azure-400 mt-1 font-medium">👤 {n.member.name}</p>
               )}
+              {isPendingEditRequest && editRequest && (
+                <div className="mt-3" onClick={e => e.stopPropagation()}>
+                  <div className="flex flex-wrap gap-2">
+                    <button onClick={() => setExpandedRequestId(isExpanded ? null : editRequest.id)}
+                      className="px-2.5 py-1.5 text-xs font-medium text-azure-300 border border-azure-800/50 rounded-lg hover:bg-azure-950/40">
+                      {isExpanded ? 'Hide request' : 'View edit request'}
+                    </button>
+                    <button onClick={() => reviewRequest.mutate({ id: editRequest.id, notificationId: n.id, decision: 'approve' })}
+                      disabled={reviewRequest.isPending}
+                      className="px-2.5 py-1.5 text-xs font-medium text-emerald-300 border border-emerald-800/50 rounded-lg hover:bg-emerald-950/40 disabled:opacity-60">
+                      Accept
+                    </button>
+                    <button onClick={() => reviewRequest.mutate({ id: editRequest.id, notificationId: n.id, decision: 'reject' })}
+                      disabled={reviewRequest.isPending}
+                      className="px-2.5 py-1.5 text-xs font-medium text-red-300 border border-red-800/50 rounded-lg hover:bg-red-950/40 disabled:opacity-60">
+                      Reject
+                    </button>
+                  </div>
+                  {isExpanded && (
+                    <div className="mt-2 rounded-lg border border-white/5 bg-black/10 p-3 text-xs text-white/70 space-y-1.5">
+                      <p><span className="text-white/50">Certification:</span> {editRequest.assignment?.certification?.name ?? 'Unknown certification'}</p>
+                      <p><span className="text-white/50">Team member:</span> {editRequest.assignment?.member?.name ?? 'Unknown member'}</p>
+                      <p><span className="text-white/50">Requested by:</span> {editRequest.requestedBy}</p>
+                      <p className="pt-1 text-white/50">Requested changes</p>
+                      {requestedChanges?.completionDate !== undefined && <p>Completion date → {requestedChanges.completionDate || 'Clear'}</p>}
+                      {requestedChanges?.expiryDate !== undefined && <p>Expiry date → {requestedChanges.expiryDate || 'Clear'}</p>}
+                      {requestedChanges?.credentialId !== undefined && <p>Credential ID → {requestedChanges.credentialId || 'Clear'}</p>}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             <div className="flex items-center gap-1 flex-shrink-0">
               {!n.read && <div className="w-2 h-2 bg-azure-500 rounded-full" />}
@@ -115,9 +171,9 @@ export default function NotificationsPage() {
               )}
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
 }
-
