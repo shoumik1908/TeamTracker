@@ -71,7 +71,7 @@ export default function Header({
   };
 
   return (
-    <header className="h-14 bg-background/40 backdrop-blur-xl border-b border-white/5 flex items-center justify-between px-4 md:px-6 flex-shrink-0 z-50 w-full relative">
+    <header className="h-16 bg-card/90 backdrop-blur-xl border-b border-border flex items-center justify-between px-4 md:px-6 flex-shrink-0 z-50 w-full relative">
       <div className="flex items-center gap-3">
         <button
           onClick={() => setIsMobileMenuOpen(true)}
@@ -276,4 +276,3 @@ export default function Header({
     </header>
   );
 }
-

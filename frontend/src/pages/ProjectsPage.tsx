@@ -376,7 +376,7 @@ export default function ProjectsPage() {
                 )}
                 <button 
                   onClick={(e) => { e.stopPropagation(); setMeetingsProject(project); }} 
-                  className="px-2.5 py-1 text-[11px] font-medium bg-azure-900/30 text-azure-400 border border-azure-800/40 rounded-lg hover:bg-azure-800/50 transition-colors flex items-center gap-1.5 ml-4"
+                  className="px-2.5 py-1 text-[11px] font-medium bg-azure-50 text-azure-700 border border-azure-200 rounded-lg hover:bg-azure-100 transition-colors flex items-center gap-1.5 ml-4"
                 >
                   <Video className="w-3 h-3" /> Meetings
                 </button>
@@ -431,27 +431,27 @@ export default function ProjectsPage() {
 function getRoleBadgeStyle(role: string) {
   switch (role) {
     case 'PROJECT_MANAGER':
-      return 'bg-purple-950/50 text-purple-300 border-purple-800/40';
+      return 'bg-purple-50 text-purple-700 border-purple-200';
     case 'TEAM_LEADER':
-      return 'bg-amber-950/50 text-amber-300 border-amber-800/40';
+      return 'bg-amber-50 text-amber-700 border-amber-200';
     case 'BUSINESS_ANALYST':
     case 'DATA_ANALYST':
     case 'DATA_ENGINEER':
     case 'BI_DEVELOPER':
     case 'DASHBOARD_DEVELOPER':
-      return 'bg-cyan-950/50 text-cyan-300 border-cyan-800/40';
+      return 'bg-cyan-50 text-cyan-700 border-cyan-200';
     case 'DESIGNER':
-      return 'bg-rose-950/50 text-rose-300 border-rose-800/40';
+      return 'bg-rose-50 text-rose-700 border-rose-200';
     case 'QA_SPECIALIST':
-      return 'bg-red-950/50 text-red-300 border-red-800/40';
+      return 'bg-red-50 text-red-700 border-red-200';
     case 'DEVELOPER':
     case 'FRONTEND_DEVELOPER':
     case 'BACKEND_DEVELOPER':
     case 'CLOUD_ENGINEER':
     case 'SOLUTION_ARCHITECT':
-      return 'bg-emerald-950/50 text-emerald-300 border-emerald-800/40';
+      return 'bg-emerald-50 text-emerald-700 border-emerald-200';
     default:
-      return 'bg-slate-900/60 text-slate-300 border-slate-800/40';
+      return 'bg-slate-100 text-slate-700 border-slate-200';
   }
 }
 

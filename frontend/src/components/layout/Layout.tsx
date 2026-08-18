@@ -21,12 +21,11 @@ export default function Layout() {
   
   const title = Object.entries(PAGE_TITLES).find(([key]) =>
     key === '/' ? location.pathname === '/' : location.pathname.startsWith(key)
-  )?.[1] || 'Team Tracker';
+  )?.[1] || 'Xebia Team Tracker';
 
   return (
     <div className="flex h-screen overflow-hidden bg-transparent relative z-10">
-      {/* Background Glow */}
-      <div className="absolute top-0 right-0 w-[1000px] h-[1000px] bg-[radial-gradient(circle_at_50%_50%,rgba(94,44,217,0.12)_0%,rgba(20,18,27,0)_70%)] pointer-events-none" />
+      <div className="absolute top-0 right-0 w-[900px] h-[700px] bg-[radial-gradient(circle_at_50%_0%,rgba(149,60,181,0.10)_0%,rgba(247,245,251,0)_68%)] pointer-events-none" />
       <Sidebar 
         isMobileMenuOpen={isMobileMenuOpen} 
         setIsMobileMenuOpen={setIsMobileMenuOpen} 

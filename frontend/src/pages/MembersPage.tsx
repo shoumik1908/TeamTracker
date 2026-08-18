@@ -132,20 +132,20 @@ function MemberFormModal({
         <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
           {/* Avatar Upload */}
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-azure-900/40 flex items-center justify-center overflow-hidden flex-shrink-0 border-2 border-azure-800/40">
+            <div className="w-16 h-16 rounded-full bg-azure-50 flex items-center justify-center overflow-hidden flex-shrink-0 border-2 border-azure-200">
               {imagePreview
                 ? <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
-                : <span className="text-azure-300 text-xl font-bold">{form.name ? getInitials(form.name) : '?'}</span>
+                : <span className="text-azure-700 text-xl font-bold">{form.name ? getInitials(form.name) : '?'}</span>
               }
             </div>
-            <label className="flex items-center gap-2 text-sm text-azure-300 cursor-pointer hover:text-azure-400 border border-azure-800/40 rounded-lg px-3 py-2 hover:bg-azure-900/20 transition-colors">
+            <label className="flex items-center gap-2 text-sm text-azure-700 cursor-pointer hover:text-azure-800 border border-azure-200 rounded-lg px-3 py-2 hover:bg-azure-50 transition-colors">
               <Upload className="w-4 h-4" /> Upload Photo
               <input type="file" accept="image/*" className="hidden" onChange={handleImage} />
             </label>
           </div>
 
           <div className="flex items-center gap-4 border border-white/5 p-3 rounded-lg bg-muted/20">
-            <label className="flex items-center gap-2 text-sm text-azure-300 cursor-pointer hover:text-azure-400 border border-azure-800/40 rounded-lg px-3 py-2 hover:bg-azure-900/20 transition-colors">
+            <label className="flex items-center gap-2 text-sm text-azure-700 cursor-pointer hover:text-azure-800 border border-azure-200 rounded-lg px-3 py-2 hover:bg-azure-50 transition-colors">
               <FileText className="w-4 h-4" /> {cvFile ? 'Change CV' : 'Upload CV'}
               <input type="file" accept=".pdf,.docx" className="hidden" onChange={e => {
                 const f = e.target.files?.[0];
@@ -407,7 +407,7 @@ export default function MembersPage() {
                 'px-3 py-1.5 text-xs font-semibold rounded-lg transition-all',
                 statusFilter === tab.value
                   ? 'bg-azure-500 text-white shadow-sm'
-                  : 'text-white/50 hover:text-foreground hover:bg-white/5'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
               )}
             >
               {tab.label}
@@ -450,10 +450,10 @@ export default function MembersPage() {
                     onClick={() => navigate(`/members/${member.id}`)}
                     className="flex items-center gap-3 cursor-pointer group/member"
                   >
-                    <div className="w-9 h-9 rounded-full bg-azure-900/40 flex items-center justify-center flex-shrink-0 overflow-hidden border border-azure-800/40 group-hover/member:border-azure-500/50 transition-colors">
+                    <div className="w-9 h-9 rounded-full bg-azure-50 flex items-center justify-center flex-shrink-0 overflow-hidden border border-azure-200 group-hover/member:border-azure-500/50 transition-colors">
                       {member.profilePictureUrl
                         ? <img src={member.profilePictureUrl} alt={member.name} className="w-full h-full object-cover" />
-                        : <span className="text-azure-300 text-xs font-bold">{getInitials(member.name)}</span>
+                        : <span className="text-azure-700 text-xs font-bold">{getInitials(member.name)}</span>
                       }
                     </div>
                     <div>
@@ -466,8 +466,8 @@ export default function MembersPage() {
                   <span className={cn(
                     'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border',
                     member.allocationStatus === 'ALLOCATED'
-                      ? 'bg-emerald-950/30 text-emerald-400 border-emerald-800/30'
-                      : 'bg-amber-950/30 text-amber-400 border-amber-800/30'
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                      : 'bg-amber-50 text-amber-700 border-amber-200'
                   )}>
                     <span className={cn('w-1.5 h-1.5 rounded-full', member.allocationStatus === 'ALLOCATED' ? 'bg-emerald-500' : 'bg-amber-500')} />
                     {member.allocationStatus === 'ALLOCATED' ? 'Allocated' : 'Benched'}
@@ -505,11 +505,11 @@ export default function MembersPage() {
                         rel="noopener noreferrer"
                         className={cn(
                           "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border transition-colors",
-                          (member.atsScore || 0) >= 90 ? "bg-emerald-950/30 text-emerald-400 border-emerald-800/30 hover:bg-emerald-900/30" :
-                          (member.atsScore || 0) >= 80 ? "bg-teal-950/30 text-teal-400 border-teal-800/30 hover:bg-teal-900/30" :
-                          (member.atsScore || 0) >= 70 ? "bg-azure-950/30 text-azure-400 border-azure-800/30 hover:bg-azure-900/30" :
-                          (member.atsScore || 0) >= 60 ? "bg-amber-950/30 text-amber-400 border-amber-800/30 hover:bg-amber-900/30" :
-                          "bg-red-950/30 text-red-400 border-red-800/30 hover:bg-red-900/30"
+                          (member.atsScore || 0) >= 90 ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100" :
+                          (member.atsScore || 0) >= 80 ? "bg-teal-50 text-teal-700 border-teal-200 hover:bg-teal-100" :
+                          (member.atsScore || 0) >= 70 ? "bg-azure-50 text-azure-700 border-azure-200 hover:bg-azure-100" :
+                          (member.atsScore || 0) >= 60 ? "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100" :
+                          "bg-red-50 text-red-700 border-red-200 hover:bg-red-100"
                         )}
                         title="Click to view CV"
                       >
