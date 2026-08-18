@@ -42,7 +42,7 @@ export default function ReportsPage() {
         deadlines: reportsApi.deadlines,
       };
       const response = await apiFns[type](format);
-      downloadBlob(new Blob([response.data]), FILENAMES[type][format]);
+      downloadBlob(response.data, FILENAMES[type][format]);
     } finally {
       setLoading(null);
     }
