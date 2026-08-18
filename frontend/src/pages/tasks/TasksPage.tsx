@@ -156,8 +156,8 @@ export default function TasksPage() {
 
   if (userLoading) {
     return (
-      <div className="min-h-full bg-transparent p-8 text-neutral-100 flex items-center justify-center">
-        <p className="text-sm text-neutral-400">Loading...</p>
+      <div className="min-h-full bg-transparent p-8 text-foreground flex items-center justify-center">
+        <p className="text-sm text-muted-foreground">Loading...</p>
       </div>
     );
   }
@@ -168,18 +168,18 @@ export default function TasksPage() {
   ];
 
   return (
-    <div className="min-h-full bg-transparent p-8 text-neutral-100">
+    <div className="min-h-full bg-transparent p-8 text-foreground">
       <div className="mx-auto max-w-6xl">
         <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-semibold text-white">Tasks</h1>
-            <p className="mt-1 text-sm text-neutral-400">
+            <h1 className="text-2xl font-semibold text-foreground">Tasks</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
               Track work assigned to you and tasks you've delegated.
             </p>
           </div>
           <button
             onClick={() => setEditModalTask(null)}
-            className="flex items-center gap-1.5 rounded-lg bg-white/10 border border-white/10 px-3.5 py-2 text-sm font-medium text-white hover:bg-white/20 transition-colors shadow-sm"
+            className="flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm shadow-primary/20"
           >
             <Plus className="h-4 w-4" />
             New task
@@ -187,15 +187,15 @@ export default function TasksPage() {
         </div>
 
         {/* Tabs */}
-        <div className="mb-5 flex items-center gap-1 rounded-xl border border-white/5 bg-[#1c1926]/60 p-1 w-fit">
+        <div className="mb-5 flex items-center gap-1 rounded-xl border border-border bg-card p-1 w-fit shadow-sm">
           {tabs.map((t) => (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
               className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all ${
                 tab === t.id
-                  ? "bg-indigo-600 text-white shadow-md"
-                  : "text-neutral-400 hover:text-white hover:bg-white/5"
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground hover:bg-secondary"
               }`}
             >
               {t.icon}
@@ -205,13 +205,13 @@ export default function TasksPage() {
         </div>
 
         <div className="mb-6 flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-2 rounded-lg border border-white/5 bg-[#1c1926]/80 backdrop-blur-md px-3 py-1.5">
-            <Search className="h-3.5 w-3.5 text-neutral-500" />
+          <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-1.5 shadow-sm">
+            <Search className="h-3.5 w-3.5 text-muted-foreground" />
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Filter by task or person"
-              className="w-48 bg-transparent text-sm text-neutral-200 placeholder-neutral-600 outline-none"
+              className="w-48 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
             />
           </div>
           <div className="flex gap-1">
@@ -220,7 +220,7 @@ export default function TasksPage() {
                 key={p}
                 onClick={() => setPriorityFilter(p)}
                 className={`rounded-lg px-2.5 py-1.5 text-xs font-medium capitalize transition-colors ${
-                  priorityFilter === p ? "bg-white/10 text-white border border-white/5 shadow-sm" : "text-white/50 hover:text-white/80 hover:bg-white/5 border border-transparent"
+                  priorityFilter === p ? "bg-secondary text-primary border border-primary/20 shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-secondary border border-transparent"
                 }`}
               >
                 {p === "all" ? "All priorities" : p}
@@ -253,21 +253,21 @@ export default function TasksPage() {
                   onDragLeave={() => setDragOverCol((c) => (c === col.id ? null : c))}
                   onDrop={(e) => handleDrop(e, col.id)}
                   className={`rounded-xl border p-3 transition-colors ${
-                    isOver ? "border-indigo-500/60 bg-indigo-500/10" : "border-white/5 bg-[#1c1926]/80 backdrop-blur-md shadow-md"
+                    isOver ? "border-primary/60 bg-primary/10" : "border-border bg-card shadow-sm"
                   }`}
                 >
                   <div className="mb-3 flex items-center justify-between px-1">
-                    <span className="text-xs font-semibold uppercase tracking-wide text-neutral-400">{col.label}</span>
-                    <span className="rounded-full bg-neutral-800 px-1.5 py-0.5 text-[11px] text-neutral-400">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{col.label}</span>
+                    <span className="rounded-full bg-secondary px-1.5 py-0.5 text-[11px] text-primary">
                       {isLoading ? "…" : colTasks.length}
                     </span>
                   </div>
 
                   <div className="space-y-2 min-h-[120px]">
                     {isLoading ? (
-                      <div className="rounded-lg border border-dashed border-white/10 px-3 py-6 text-center text-sm text-white/40">Loading...</div>
+                      <div className="rounded-lg border border-dashed border-border px-3 py-6 text-center text-sm text-muted-foreground">Loading...</div>
                     ) : colTasks.length === 0 ? (
-                      <div className="rounded-lg border border-dashed border-white/10 px-3 py-6 text-center text-sm text-white/40">
+                      <div className="rounded-lg border border-dashed border-border px-3 py-6 text-center text-sm text-muted-foreground">
                         No tasks {query || priorityFilter !== "all" ? "match this filter." : "pending."}
                       </div>
                     ) : (
@@ -324,4 +324,3 @@ export default function TasksPage() {
     </div>
   );
 }
-

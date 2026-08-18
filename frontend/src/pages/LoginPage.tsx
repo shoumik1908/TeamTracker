@@ -57,18 +57,18 @@ export default function LoginPage() {
       <div className="brand">
         <div className="brand-top">
           <div className="mark">
-            <img src="/logo.png" alt="Team Tracker Logo" />
+            <img src="/xebia-brand-logo.png" alt="Xebia logo" />
           </div>
-          <span className="brand-name">Team Tracker</span>
+          <span className="brand-name">Xebia</span>
         </div>
 
         <div className="brand-mid">
-          <h1>Team <span className="grad">Tracker</span></h1>
-          <p className="desc">Track your team's progress and status in real time, all from one secure workspace.</p>
+          <h1>Teamwork, <span className="grad">tracked.</span></h1>
+          <p className="desc">A clear, collaborative workspace for your Xebia team’s projects, progress, and growth.</p>
         </div>
 
         <div className="brand-bottom">
-          <span>© 2026 Team Tracker</span>
+          <span>© 2026 Xebia Team Tracker</span>
           <a href="#">Need help?</a>
         </div>
       </div>

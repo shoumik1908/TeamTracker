@@ -3,26 +3,25 @@
 export default function ParticleBackground() {
   return (
     <div className="fixed inset-0 z-0 pointer-events-none">
-      {/* Base Gradient: Deep royal purple to electric blue on near black */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-blue-900/30 via-[#0a0514] to-[#020106]"></div>
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_70%,_var(--tw-gradient-stops))] from-purple-900/20 via-transparent to-transparent"></div>
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,_var(--tw-gradient-stops))] from-blue-600/15 via-transparent to-transparent"></div>
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-violet-100 via-[#f8f6fc] to-[#f4f0fb]"></div>
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_70%,_var(--tw-gradient-stops))] from-violet-200/45 via-transparent to-transparent"></div>
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,_var(--tw-gradient-stops))] from-orange-100/60 via-transparent to-transparent"></div>
       
       {/* High-fidelity Dot & Line Particle Network */}
-      <div className="absolute inset-0 overflow-hidden opacity-70">
+      <div className="absolute inset-0 overflow-hidden opacity-30">
         <svg className="w-full h-full" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
           <defs>
             <radialGradient cx="50%" cy="50%" id="glow-purple" r="50%">
-              <stop offset="0%" stopColor="#a855f7" stopOpacity="0.8"></stop>
-              <stop offset="100%" stopColor="#a855f7" stopOpacity="0"></stop>
+              <stop offset="0%" stopColor="#953cb5" stopOpacity="0.8"></stop>
+              <stop offset="100%" stopColor="#953cb5" stopOpacity="0"></stop>
             </radialGradient>
             <radialGradient cx="50%" cy="50%" id="glow-blue" r="50%">
-              <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.8"></stop>
-              <stop offset="100%" stopColor="#3b82f6" stopOpacity="0"></stop>
+              <stop offset="0%" stopColor="#f4511e" stopOpacity="0.8"></stop>
+              <stop offset="100%" stopColor="#f4511e" stopOpacity="0"></stop>
             </radialGradient>
           </defs>
           {/* Lines Network */}
-          <g fill="none" stroke="rgba(255, 255, 255, 0.08)" strokeWidth="0.75">
+          <g fill="none" stroke="rgba(149, 60, 181, 0.16)" strokeWidth="0.75">
             {/* Left Web */}
             <path d="M 5% 15% L 18% 28% L 10% 45% L 22% 58% L 18% 28%"></path>
             <path d="M 10% 45% L -5% 55%"></path>

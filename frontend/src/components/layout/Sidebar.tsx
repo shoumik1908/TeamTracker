@@ -61,19 +61,19 @@ export default function Sidebar({
 
       <aside
         className={cn(
-          'flex flex-col h-screen bg-[#14121b]/40 backdrop-blur-xl border-r border-white/5 transition-all duration-300 ease-in-out relative z-50 flex-shrink-0',
+          'flex flex-col h-screen bg-card/95 backdrop-blur-xl border-r border-border transition-all duration-300 ease-in-out relative z-50 flex-shrink-0',
           'md:relative absolute top-0 left-0',
           isMobileMenuOpen ? 'translate-x-0 w-64 shadow-2xl' : '-translate-x-full md:translate-x-0',
           collapsed ? 'md:w-16 w-64' : 'w-64'
         )}
       >
       {/* Logo */}
-      <div className={cn('flex items-center gap-3 px-4 py-5 border-b border-white/5', collapsed && 'justify-center px-2')}>
-        <img src="/logo.png" alt="Logo" className="flex-shrink-0 w-8 h-8 shadow-lg shadow-black/20" />
+      <div className={cn('flex items-center gap-3 px-4 py-5 border-b border-border', collapsed && 'justify-center px-2')}>
+        <img src="/xebia-brand-logo.png" alt="Xebia" className="flex-shrink-0 w-14 h-9 object-contain" />
         {!collapsed && (
           <div className="animate-fade-in overflow-hidden">
-            <p className="text-foreground font-bold text-sm leading-tight">Team Tracker</p>
-            <p className="text-muted-foreground text-xs">Enterprise Dashboard</p>
+            <p className="text-foreground font-bold text-sm leading-tight">Xebia</p>
+            <p className="text-muted-foreground text-xs">Team Tracker</p>
           </div>
         )}
       </div>
@@ -133,5 +133,3 @@ export default function Sidebar({
     </>
   );
 }
-
-

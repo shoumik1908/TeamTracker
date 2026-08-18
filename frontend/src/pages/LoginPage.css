@@ -1,24 +1,24 @@
 :root{
-  --purple:#7C3AED;
-  --purple-2:#A78BFA;
-  --blue:#2563EB;
-  --blue-2:#60A5FA;
-  --bg:#07070C;
-  --panel:#0F0F17;
-  --card:rgba(255,255,255,0.04);
-  --border:rgba(255,255,255,0.08);
-  --border-strong:rgba(167,139,250,0.55);
-  --text:#F5F5F7;
-  --text-dim:#9497A6;
-  --text-faint:#5C5F70;
+  --purple:#953cb5;
+  --purple-2:#b864d5;
+  --blue:#f4511e;
+  --blue-2:#ff7a4b;
+  --bg:#f7f5fb;
+  --panel:#ffffff;
+  --card:rgba(149,60,181,0.04);
+  --border:rgba(88,28,109,0.14);
+  --border-strong:rgba(149,60,181,0.5);
+  --text:#211531;
+  --text-dim:#665a72;
+  --text-faint:#978ca1;
 }
 
 .login-page-container {
   font-family:'Segoe UI', -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif;
   background:
-    radial-gradient(ellipse 80% 60% at 20% 15%, rgba(124,58,237,0.35), transparent 60%),
-    radial-gradient(ellipse 70% 50% at 85% 80%, rgba(37,99,235,0.30), transparent 60%),
-    linear-gradient(160deg, #0A0A14 0%, #0B0C18 45%, #060710 100%);
+    radial-gradient(ellipse 80% 60% at 12% 12%, rgba(149,60,181,0.13), transparent 60%),
+    radial-gradient(ellipse 70% 50% at 85% 80%, rgba(244,81,30,0.10), transparent 60%),
+    linear-gradient(160deg, #fcfbff 0%, #f7f5fb 52%, #f6f1ff 100%);
   color:var(--text);
   display:flex;
   min-height:100vh;
@@ -49,7 +49,7 @@
 .login-page-container .stars{position:absolute; inset:0; z-index:0;}
 .login-page-container .stars span{
   position:absolute; width:2px; height:2px; border-radius:50%;
-  background:rgba(255,255,255,0.55);
+  background:rgba(149,60,181,0.26);
   animation:twinkle 4s ease-in-out infinite;
 }
 @keyframes twinkle{
@@ -74,7 +74,7 @@
   flex-shrink:0;
   box-shadow: 0 4px 12px rgba(0,0,0,0.5);
 }
-.login-page-container .mark img{width:40px; height:40px; border-radius:10px;}
+.login-page-container .mark img{width:40px; height:40px;}
 .login-page-container .brand-name{font-size:17px; font-weight:600; letter-spacing:0.2px;}
 
 .login-page-container .brand-mid{
@@ -152,7 +152,7 @@
 .login-page-container .input-wrap{position:relative;}
 .login-page-container input{
   width:100%; padding:14px 16px; font-size:14.5px;
-  background:rgba(255,255,255,0.03);
+  background:#fff;
   border:1px solid var(--border);
   border-radius:10px; color:var(--text);
   outline:none;
@@ -162,7 +162,7 @@
 .login-page-container input:focus{
   border-color:var(--border-strong);
   box-shadow:0 0 0 4px rgba(124,58,237,0.15);
-  background:rgba(255,255,255,0.05);
+  background:#fff;
 }
 .login-page-container input[type="password"]{padding-right:44px;}
 

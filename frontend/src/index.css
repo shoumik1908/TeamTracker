@@ -4,26 +4,26 @@
 
 @layer base {
   :root {
-    --background: 235 24% 10%; /* Very dark navy base */
-    --foreground: 210 20% 98%;
-    --card: 235 24% 14%; /* Dark navy card */
-    --card-foreground: 210 20% 98%;
-    --popover: 235 24% 14%;
-    --popover-foreground: 210 20% 98%;
-    --primary: 235 85% 60%; /* Vibrant blue */
+    --background: 270 38% 97%;
+    --foreground: 258 29% 14%;
+    --card: 0 0% 100%;
+    --card-foreground: 258 29% 14%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 258 29% 14%;
+    --primary: 293 50% 47%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 235 20% 20%;
-    --secondary-foreground: 210 20% 98%;
-    --muted: 235 20% 20%;
-    --muted-foreground: 215 15% 65%;
-    --accent: 265 85% 65%; /* Vibrant purple */
+    --secondary: 265 43% 94%;
+    --secondary-foreground: 258 29% 14%;
+    --muted: 264 32% 95%;
+    --muted-foreground: 258 12% 42%;
+    --accent: 20 98% 54%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    --border: 235 20% 22%;
-    --input: 235 20% 18%;
-    --ring: 235 85% 60%;
-    --radius: 16px;
+    --border: 263 27% 87%;
+    --input: 0 0% 100%;
+    --ring: 293 50% 47%;
+    --radius: 12px;
   }
 
   * {
@@ -31,7 +31,7 @@
   }
 
   body {
-    @apply bg-background text-foreground font-sans antialiased selection:bg-primary/30 selection:text-primary-foreground;
+    @apply bg-background text-foreground font-sans antialiased selection:bg-primary/20 selection:text-primary;
   }
 
   input[type="text"],
@@ -48,7 +48,7 @@
 
   select option,
   select optgroup {
-    @apply bg-zinc-900 text-foreground;
+    @apply bg-card text-foreground;
   }
 
   ::-webkit-scrollbar {
@@ -66,6 +66,117 @@
   }
 }
 
+/* Existing feature screens use a mixture of legacy dark surface utilities.
+   Normalize those utilities to the shared light Xebia surface so all routes,
+   including the independently-built workflows and dialogs, remain cohesive. */
+@layer components {
+  [class*='bg-[#0a0a0a]'],
+  [class*='bg-[#1c1926]'],
+  [class*='bg-[#211e28]'],
+  [class*='bg-[#1d1a24]'],
+  [class*='bg-[#1a1a18]'],
+  [class*='bg-[#1a1726]'],
+  [class*='bg-[#1a1721]'],
+  [class*='bg-[#2b2833]'],
+  [class*='bg-[#14121b]'],
+  [class*='bg-zinc-950'],
+  [class*='bg-zinc-900'],
+  [class*='bg-zinc-800'],
+  [class*='bg-gray-900'],
+  [class*='bg-gray-950'],
+  [class*='bg-neutral-900'],
+  [class*='bg-slate-900'] {
+    background-color: hsl(var(--card)) !important;
+    border-color: hsl(var(--border)) !important;
+  }
+
+  [class*='bg-black'] {
+    background-color: hsl(var(--card)) !important;
+  }
+
+  [class*='fixed'][class*='bg-black'] {
+    background-color: rgb(251 249 253 / 84%) !important;
+  }
+
+  [class*='fixed'][class*='bg-black'] > div,
+  [class*='bg-[#1a1721]'] {
+    color: hsl(var(--foreground));
+  }
+
+  [class*='fixed'][class*='bg-black'] > div [class*='text-white']:not([class*='bg-']) {
+    color: hsl(var(--foreground)) !important;
+  }
+
+  button[class*='bg-black'][class*='text-white'],
+  input[class*='bg-black'][class*='text-white'],
+  textarea[class*='bg-black'][class*='text-white'] {
+    color: hsl(var(--foreground)) !important;
+  }
+
+  input[class*='placeholder-white']::placeholder,
+  textarea[class*='placeholder-white']::placeholder {
+    color: hsl(var(--muted-foreground)) !important;
+  }
+
+  [class*='border-white/'] {
+    border-color: hsl(var(--border)) !important;
+  }
+
+  [class*='text-white/'] {
+    color: hsl(var(--muted-foreground)) !important;
+  }
+
+  :is(
+    [class*='bg-[#0a0a0a]'],
+    [class*='bg-[#1c1926]'],
+    [class*='bg-[#211e28]'],
+    [class*='bg-[#1d1a24]'],
+    [class*='bg-[#1a1a18]'],
+    [class*='bg-zinc-950'],
+    [class*='bg-zinc-900'],
+    [class*='bg-zinc-800']
+  ) [class~='text-white']:not([class*='bg-']) {
+    color: hsl(var(--foreground)) !important;
+  }
+
+  [class*='hover:bg-zinc']:hover,
+  [class*='hover:bg-black']:hover {
+    background-color: hsl(var(--secondary)) !important;
+  }
+
+  [class*='bg-[#378add]'] {
+    background-color: hsl(var(--primary)) !important;
+  }
+
+  [class*='border-[#378add]'] {
+    border-color: hsl(var(--primary)) !important;
+  }
+
+  [class*='text-[#378add]'],
+  [class*='text-[#bfadfe]'],
+  [class*='text-[#cdbdff]'] {
+    color: hsl(var(--primary)) !important;
+  }
+
+  [class*='text-[#494455]'],
+  [class*='text-[#948ea1]'] {
+    color: hsl(var(--muted-foreground)) !important;
+  }
+
+  [class*='text-[#cac3d8]'],
+  [class*='text-[#e7deff]'] {
+    color: hsl(var(--foreground)) !important;
+  }
+
+  [class*='text-[#ffb4ab]'] {
+    color: hsl(var(--accent)) !important;
+  }
+
+  [role='dialog'] {
+    color: hsl(var(--foreground));
+  }
+}
+
 @layer components {
   /* KPI Card shimmer effect */
   .shimmer-bg {
@@ -80,26 +191,26 @@
            text-muted-foreground transition-all duration-200 cursor-pointer select-none border border-transparent;
   }
   .sidebar-link:hover {
-    @apply bg-white/5 text-foreground border-white/5;
+    @apply bg-primary/5 text-primary border-primary/10;
   }
   .sidebar-link.active {
-    @apply bg-gradient-to-r from-primary to-accent text-white shadow-lg shadow-primary/20 border-transparent;
+    @apply bg-primary text-white shadow-lg shadow-primary/20 border-transparent;
   }
 
   /* Status badges */
-  .badge-not-started    { @apply bg-slate-900/60 text-slate-400 border border-slate-800; }
-  .badge-in-progress    { @apply bg-blue-950/40 text-blue-400 border border-blue-900/40; }
-  .badge-completed      { @apply bg-green-950/40 text-green-400 border border-green-900/40; }
-  .badge-overdue        { @apply bg-red-950/40 text-red-400 border border-red-900/40; }
-  .badge-expired        { @apply bg-orange-950/40 text-orange-400 border border-orange-900/40; }
-  .badge-planning       { @apply bg-purple-950/40 text-purple-400 border border-purple-900/40; }
-  .badge-on-hold        { @apply bg-yellow-950/40 text-yellow-400 border border-yellow-900/40; }
+  .badge-not-started    { @apply bg-slate-100 text-slate-600 border border-slate-200; }
+  .badge-in-progress    { @apply bg-fuchsia-50 text-fuchsia-700 border border-fuchsia-200; }
+  .badge-completed      { @apply bg-emerald-50 text-emerald-700 border border-emerald-200; }
+  .badge-overdue        { @apply bg-red-50 text-red-700 border border-red-200; }
+  .badge-expired        { @apply bg-orange-50 text-orange-700 border border-orange-200; }
+  .badge-planning       { @apply bg-purple-50 text-purple-700 border border-purple-200; }
+  .badge-on-hold        { @apply bg-amber-50 text-amber-700 border border-amber-200; }
 
   /* Priority badges */
-  .badge-low      { @apply bg-slate-900/40 text-slate-400 border border-slate-800/40; }
-  .badge-medium   { @apply bg-yellow-950/40 text-yellow-400 border border-yellow-900/40; }
-  .badge-high     { @apply bg-orange-950/40 text-orange-400 border border-orange-900/40; }
-  .badge-critical { @apply bg-red-950/40 text-red-400 border border-red-900/40; }
+  .badge-low      { @apply bg-slate-100 text-slate-600 border border-slate-200; }
+  .badge-medium   { @apply bg-amber-50 text-amber-700 border border-amber-200; }
+  .badge-high     { @apply bg-orange-50 text-orange-700 border border-orange-200; }
+  .badge-critical { @apply bg-red-50 text-red-700 border border-red-200; }
 
   /* Card hover */
   .hover-card {
@@ -108,7 +219,7 @@
 
   /* Glass card */
   .glass-card, .card, .app-page > .card {
-    @apply bg-card/40 backdrop-blur-xl border border-white/5 shadow-xl rounded-2xl;
+    @apply bg-card border border-border shadow-sm rounded-xl;
   }
 
   /* Page header */

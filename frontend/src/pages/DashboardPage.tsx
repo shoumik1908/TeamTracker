@@ -50,7 +50,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-transparent text-white p-6 relative overflow-hidden">
+    <div className="min-h-screen bg-transparent text-foreground p-6 relative overflow-hidden">
       {/* Background Glow */}
       <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-[radial-gradient(circle_at_50%_50%,rgba(94,44,217,0.15)_0%,rgba(20,18,27,0)_70%)] pointer-events-none" />
 
@@ -68,19 +68,19 @@ export default function DashboardPage() {
           </div>
           <div className="flex gap-3">
             <button 
-              className="px-4 py-2 bg-card/5 hover:bg-white/10 border border-white/10 rounded-lg text-sm font-medium transition-all"
+              className="px-4 py-2 bg-card hover:bg-secondary border border-border text-foreground rounded-lg text-sm font-medium transition-all"
               onClick={() => navigate('/members?action=new')}
             >
               + Add Member
             </button>
             <button 
-              className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-sm font-medium transition-all"
+              className="px-4 py-2 bg-card hover:bg-secondary border border-border text-foreground rounded-lg text-sm font-medium transition-all"
               onClick={() => navigate('/projects?action=new')}
             >
               + New Project
             </button>
             <button 
-              className="px-4 py-2 bg-gradient-to-r from-[#5e2cd9] to-[#6738e2] hover:from-[#6738e2] hover:to-[#cdbdff] text-white rounded-lg text-sm font-medium transition-all hover:shadow-lg hover:shadow-[#5e2cd9]/20"
+              className="px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg text-sm font-medium transition-all hover:shadow-lg hover:shadow-primary/25"
               onClick={() => setIsTaskModalOpen(true)}
             >
               + Assign Task
@@ -91,12 +91,12 @@ export default function DashboardPage() {
         {/* KPI Strip */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 animate-fade-in-up" style={{ animationDelay: '50ms' }}>
           {[
-            { label: 'Total Members', value: stats?.totalMembers, sub: 'Active profiles', nav: '/members', color: 'text-white' },
+            { label: 'Total Members', value: stats?.totalMembers, sub: 'Active profiles', nav: '/members', color: 'text-foreground' },
             { label: 'Active Projects', value: stats?.activeProjects, sub: 'In progress', nav: '/projects', color: 'text-[#cdbdff]' },
-            { label: 'Completed Projects', value: stats?.completedProjects, sub: 'Delivered', nav: '/projects', color: 'text-white' },
+            { label: 'Completed Projects', value: stats?.completedProjects, sub: 'Delivered', nav: '/projects', color: 'text-foreground' },
             { label: 'Team Certs', value: stats?.completedCertifications, sub: 'Total completed', nav: '/tracker', color: 'text-[#cdbdff]' },
             { label: 'Deadlines', value: stats?.upcomingDeadlines, sub: 'Next 7 days', nav: '/deadlines', color: 'text-[#ffb4ab]' },
-            { label: 'Pending Tasks', value: stats?.pendingTasks, sub: 'To do & In progress', nav: '/tasks', color: 'text-white' }
+            { label: 'Pending Tasks', value: stats?.pendingTasks, sub: 'To do & In progress', nav: '/tasks', color: 'text-foreground' }
           ].map((kpi, i) => (
             <div 
               key={i}
@@ -116,7 +116,7 @@ export default function DashboardPage() {
           {/* Upcoming Deadlines */}
           <div className="flex flex-col h-[400px] bg-[#211e28]/40 backdrop-blur-xl border border-white/5 rounded-2xl p-5 shadow-xl">
             <div className="flex justify-between items-center mb-4 flex-shrink-0">
-              <h2 className="text-lg font-bold text-white tracking-tight">Upcoming Deadlines</h2>
+              <h2 className="text-lg font-bold text-foreground tracking-tight">Upcoming Deadlines</h2>
               <a href="#" onClick={(e) => { e.preventDefault(); navigate('/deadlines'); }} className="text-xs text-[#cdbdff] hover:text-[#e7deff]">View all</a>
             </div>
             {upcomingData?.certifications?.length === 0 ? (
@@ -129,7 +129,7 @@ export default function DashboardPage() {
                       {item.member?.name?.[0] || '?'}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium text-white truncate">{item.certification?.name}</div>
+                      <div className="text-sm font-medium text-foreground truncate">{item.certification?.name}</div>
                       <div className="text-xs text-[#bfadfe] truncate">{item.member?.name}</div>
                     </div>
                     <div className="text-right">
@@ -161,7 +161,7 @@ export default function DashboardPage() {
           {/* Recent Activities */}
           <div className="flex flex-col h-[400px] bg-[#211e28]/40 backdrop-blur-xl border border-white/5 rounded-2xl p-5 shadow-xl">
             <div className="flex justify-between items-center mb-4 flex-shrink-0">
-              <h2 className="text-lg font-bold text-white tracking-tight">Recent Activities</h2>
+              <h2 className="text-lg font-bold text-foreground tracking-tight">Recent Activities</h2>
               <a href="#" onClick={(e) => { e.preventDefault(); navigate('/notifications'); }} className="text-xs text-[#cdbdff] hover:text-[#e7deff]">View all</a>
             </div>
             {recentActivities?.length === 0 ? (
@@ -174,7 +174,7 @@ export default function DashboardPage() {
                       {notifTypeIcon[activity.type] || '📢'}
                     </div>
                     <div className="flex-1 min-w-0 pt-0.5">
-                      <div className="text-sm font-medium text-white leading-tight truncate group-hover:whitespace-normal">{activity.title}</div>
+                      <div className="text-sm font-medium text-foreground leading-tight truncate group-hover:whitespace-normal">{activity.title}</div>
                       <div className="text-xs text-[#948ea1] mt-1 leading-snug">
                         {user?.role?.permissions?.manageTeam && activity.member?.name 
                           ? <><span className="text-[#bfadfe]">{activity.member.name}</span>: {activity.message}</>
@@ -221,4 +221,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
