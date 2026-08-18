@@ -193,7 +193,7 @@ router.post('/', uploadImage.single('profilePicture'), async (req: Request, res:
   const user = (req as AuthRequest).user;
   if (!user?.permissions?.manageTeam) throw new AppError('Forbidden: Only Admins can add members', 403);
 
-  const { name, email, phone, designation, joiningDate, skills } = req.body;
+  const { name, email, phone, designation, joiningDate, skills, yearsOfExperience } = req.body;
 
   if (!name || !joiningDate) {
     throw new AppError('Name and joining date are required', 400);
@@ -220,6 +220,7 @@ router.post('/', uploadImage.single('profilePicture'), async (req: Request, res:
       designation,
       joiningDate: new Date(joiningDate),
       skills: Array.isArray(skills) ? skills : (skills ? skills.split(',').map((s: string) => s.trim()) : []),
+      ...(yearsOfExperience !== undefined && yearsOfExperience !== '' && { yearsOfExperience: parseInt(yearsOfExperience, 10) }),
       profilePictureUrl,
     },
   });
@@ -266,7 +267,7 @@ router.put('/:id', uploadImage.single('profilePicture'), async (req: Request, re
     throw new AppError('Forbidden: You can only edit your own profile', 403);
   }
 
-  const { name, email, phone, designation, joiningDate, skills, allocationPercentage, status } = req.body;
+  const { name, email, phone, designation, joiningDate, skills, allocationPercentage, status, yearsOfExperience } = req.body;
 
   const existing = await prisma.teamMember.findUnique({ where: { id } });
   if (!existing) throw new AppError('Member not found', 404);
@@ -302,6 +303,7 @@ router.put('/:id', uploadImage.single('profilePicture'), async (req: Request, re
       }),
       ...(allocationPercentage !== undefined && { allocationPercentage: parseInt(allocationPercentage, 10) }),
       ...(status && { status }),
+      ...(yearsOfExperience !== undefined && yearsOfExperience !== '' && { yearsOfExperience: parseInt(yearsOfExperience, 10) }),
       profilePictureUrl,
     },
   });

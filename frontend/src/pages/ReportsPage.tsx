@@ -11,9 +11,9 @@ const REPORT_TYPES = [
 ] as const;
 
 const FORMATS = [
-  { id: 'pdf', label: 'PDF', icon: FileText, color: 'text-red-400 bg-red-950/20 border-red-900/50' },
-  { id: 'excel', label: 'Excel', icon: FileSpreadsheet, color: 'text-green-400 bg-green-950/20 border-green-900/50' },
-  { id: 'csv', label: 'CSV', icon: Table, color: 'text-blue-400 bg-blue-950/20 border-blue-900/50' },
+  { id: 'pdf', label: 'PDF', icon: FileText, color: 'text-rose-700 bg-rose-50 border-rose-200 hover:bg-rose-100' },
+  { id: 'excel', label: 'Excel', icon: FileSpreadsheet, color: 'text-emerald-700 bg-emerald-50 border-emerald-200 hover:bg-emerald-100' },
+  { id: 'csv', label: 'CSV', icon: Table, color: 'text-azure-700 bg-azure-50 border-azure-200 hover:bg-azure-100' },
 ] as const;
 
 type ReportType = typeof REPORT_TYPES[number]['id'];
@@ -65,12 +65,12 @@ export default function ReportsPage() {
                 <button key={rt.id} onClick={() => setSelectedType(rt.id)}
                   className={cn(
                     'flex items-start gap-3 p-4 rounded-xl border text-left transition-all',
-                    selectedType === rt.id ? 'border-azure-500 bg-azure-900/20 shadow-sm' : 'border-white/5 hover:border-azure-500/50 hover:bg-muted/30'
+                    selectedType === rt.id ? 'border-primary bg-primary/5 shadow-sm' : 'border-border hover:border-primary/40 hover:bg-secondary/50'
                   )}>
                   <span className="text-2xl flex-shrink-0">{rt.icon}</span>
                   <div>
-                    <p className={cn('text-sm font-semibold', selectedType === rt.id ? 'text-azure-300' : 'text-foreground')}>{rt.label}</p>
-                    <p className="text-xs text-white/50 mt-0.5">{rt.description}</p>
+                    <p className={cn('text-sm font-semibold', selectedType === rt.id ? 'text-primary' : 'text-foreground')}>{rt.label}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{rt.description}</p>
                   </div>
                 </button>
               ))}
@@ -86,7 +86,7 @@ export default function ReportsPage() {
                   <button key={fmt.id} onClick={() => setSelectedFormat(fmt.id)}
                     className={cn(
                       'flex items-center gap-3 p-4 rounded-xl border transition-all',
-                      selectedFormat === fmt.id ? 'border-azure-500 bg-azure-900/20' : 'border-white/5 hover:border-azure-500/50 hover:bg-muted/30',
+                      selectedFormat === fmt.id ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/40 hover:bg-secondary/50',
                     )}>
                     <div className={cn('w-9 h-9 rounded-lg border flex items-center justify-center flex-shrink-0', fmt.color)}>
                       <Icon className="w-4 h-4" />
@@ -119,7 +119,7 @@ export default function ReportsPage() {
           <div className="space-y-4">
             {REPORT_TYPES.map(rt => (
               <div key={rt.id}>
-                <p className="text-xs font-semibold text-white/50 mb-2">{rt.icon} {rt.label}</p>
+                <p className="text-xs font-semibold text-muted-foreground mb-2">{rt.icon} {rt.label}</p>
                 <div className="flex gap-2">
                   {FORMATS.map(fmt => {
                     const Icon = fmt.icon;
