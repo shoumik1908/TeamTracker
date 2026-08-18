@@ -14,11 +14,12 @@ interface MemberFormData {
   designation?: string;
   managerId: string;
   status: string;
+  yearsOfExperience: string;
 }
 
 const INITIAL_FORM: MemberFormData = {
   name: '', email: '', phone: '',
-  designation: '', managerId: '', status: 'Active'
+  designation: '', managerId: '', status: 'Active', yearsOfExperience: ''
 };
 
 function MemberMenu({ onEdit, onDelete, onUploadCv }: {
@@ -89,6 +90,7 @@ function MemberFormModal({
       designation: member.designation,
       managerId: member.managerId || '',
       status: member.status || 'Active',
+      yearsOfExperience: member.yearsOfExperience?.toString() || '',
     } : INITIAL_FORM
   );
   const { data: allMembers } = useQuery<PaginatedResponse<TeamMember>>({
@@ -162,6 +164,7 @@ function MemberFormModal({
               { label: 'Email *', key: 'email', placeholder: 'alice@example.com', required: true, type: 'email' },
               { label: 'Phone', key: 'phone', placeholder: '+1-555-0101', type: 'text' },
               { label: 'Designation', key: 'designation', placeholder: 'Senior Engineer', type: 'text' },
+              { label: 'Work experience (years)', key: 'yearsOfExperience', placeholder: '5', type: 'number' },
             ].map(({ label, key, placeholder, required, type }) => (
               <div key={key}>
                 <label className="block text-xs font-medium text-white/50 mb-1">{label}</label>
@@ -225,6 +228,7 @@ export default function MembersPage() {
 
   // Status Filter: ALL, ALLOCATED, BENCHED
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ALLOCATED' | 'BENCHED'>('ALL');
+  const [experienceFilter, setExperienceFilter] = useState<'ALL' | '0-2' | '3-5' | '6-10' | '10+'>('ALL');
   // Sort state
   const [sortBy, setSortBy] = useState<'name' | 'status' | 'project' | 'count'>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
@@ -310,6 +314,16 @@ export default function MembersPage() {
       list = list.filter(m => m.allocationStatus === statusFilter);
     }
 
+    if (experienceFilter !== 'ALL') {
+      list = list.filter(m => {
+        const years = m.yearsOfExperience ?? 0;
+        if (experienceFilter === '0-2') return years <= 2;
+        if (experienceFilter === '3-5') return years >= 3 && years <= 5;
+        if (experienceFilter === '6-10') return years >= 6 && years <= 10;
+        return years > 10;
+      });
+    }
+
     // Sort list
     list.sort((a, b) => {
       let comparison = 0;
@@ -333,7 +347,7 @@ export default function MembersPage() {
     });
 
     return list;
-  }, [data?.data, statusFilter, sortBy, sortOrder]);
+  }, [data?.data, statusFilter, experienceFilter, sortBy, sortOrder]);
 
   const handleSort = (field: 'name' | 'status' | 'project' | 'count') => {
     if (sortBy === field) {
@@ -414,6 +428,18 @@ export default function MembersPage() {
             </button>
           ))}
         </div>
+        <select
+          value={experienceFilter}
+          onChange={e => setExperienceFilter(e.target.value as typeof experienceFilter)}
+          className="px-3 py-2 text-xs font-medium border border-border rounded-xl bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+          aria-label="Filter by work experience"
+        >
+          <option value="ALL">All experience</option>
+          <option value="0-2">0–2 years</option>
+          <option value="3-5">3–5 years</option>
+          <option value="6-10">6–10 years</option>
+          <option value="10+">10+ years</option>
+        </select>
       </div>
 
       {/* Table */}
