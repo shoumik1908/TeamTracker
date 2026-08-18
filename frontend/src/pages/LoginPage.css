@@ -72,9 +72,14 @@
   width:40px; height:40px; border-radius:12px;
   display:flex; align-items:center; justify-content:center;
   flex-shrink:0;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+  box-shadow:none;
 }
-.login-page-container .mark img{width:40px; height:40px;}
+.login-page-container .mark img{
+  width:50px; height:40px;
+  object-fit:fill;
+  border-radius:50%;
+  clip-path:circle(50%);
+}
 .login-page-container .brand-name{font-size:17px; font-weight:600; letter-spacing:0.2px;}
 
 .login-page-container .brand-mid{
