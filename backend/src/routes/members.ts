@@ -77,12 +77,12 @@ router.get('/', async (req: Request, res: Response) => {
         projectMembers: {
           where: {
             OR: [
-              { project: { status: { not: 'COMPLETED' } } },
+              { project: { OR: [{ status: { not: 'COMPLETED' } }, { progress: { lt: 100 } }] } },
               { opportunityId: { not: null } }
             ]
           },
           include: {
-            project: { select: { name: true, status: true } },
+            project: { select: { name: true, status: true, progress: true } },
             opportunity: { select: { name: true, clientName: true } }
           }
         },
@@ -99,8 +99,8 @@ router.get('/', async (req: Request, res: Response) => {
   ]);
 
   const mappedMembers = members.map(member => {
-    const activeAssignments = member.projectMembers.filter(pm => 
-      (pm.project && pm.project.status !== 'COMPLETED') || pm.opportunity
+    const activeAssignments = member.projectMembers.filter(pm =>
+      (pm.project && (pm.project.status !== 'COMPLETED' || pm.project.progress < 100)) || pm.opportunity
     );
     const allocationStatus = activeAssignments.length > 0 ? 'ALLOCATED' : 'BENCHED';
     
@@ -159,8 +159,8 @@ router.get('/:id', async (req: Request, res: Response) => {
     ? Math.round(certs.reduce((sum, c) => sum + c.progress, 0) / totalCerts)
     : 0;
 
-  const activeAssignments = member.projectMembers.filter(pm => 
-    (pm.project && pm.project.status !== 'COMPLETED') || pm.opportunity
+  const activeAssignments = member.projectMembers.filter(pm =>
+    (pm.project && (pm.project.status !== 'COMPLETED' || pm.project.progress < 100)) || pm.opportunity
   );
   const allocationStatus = activeAssignments.length > 0 ? 'ALLOCATED' : 'BENCHED';
   

@@ -502,9 +502,9 @@ export default function MemberProfilePage() {
             <span className="text-xs font-semibold text-white/50 uppercase tracking-wider block mb-3">Active Project(s) Details</span>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {member.projectMembers
-                .filter(pm => pm.project && pm.project.status !== 'COMPLETED')
+                .filter(pm => pm.project && (pm.project.status !== 'COMPLETED' || pm.project.progress < 100))
                 .map(pm => {
-                  const activeCount = member.projectMembers.filter(p => p.project && p.project.status !== 'COMPLETED').length;
+                  const activeCount = member.projectMembers.filter(p => p.project && (p.project.status !== 'COMPLETED' || p.project.progress < 100)).length;
                   const allocPercent = Math.round(100 / activeCount);
                   return (
                     <div key={pm.id} className="p-3.5 rounded-xl bg-black/30 border border-white/10/40 space-y-2">
