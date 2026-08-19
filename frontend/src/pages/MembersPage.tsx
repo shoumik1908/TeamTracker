@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { membersApi, projectsApi } from '@/lib/api';
-import { Plus, Search, Pencil, Trash2, X, Upload, Loader2, MoreVertical, Filter, FileUp, FileText, Award } from 'lucide-react';
-import { getInitials, cn } from '@/lib/utils';
+import { membersApi, projectsApi, reportsApi } from '@/lib/api';
+import { Plus, Search, Pencil, Trash2, X, Upload, Loader2, MoreVertical, Filter, FileUp, FileText, Award, Download } from 'lucide-react';
+import { getInitials, cn, downloadBlob } from '@/lib/utils';
 import type { TeamMember, PaginatedResponse } from '@/types';
 import { useAuth } from '@/context/AuthContext';
 
@@ -229,6 +229,8 @@ export default function MembersPage() {
   // Status Filter: ALL, ALLOCATED, BENCHED
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ALLOCATED' | 'BENCHED'>('ALL');
   const [experienceFilter, setExperienceFilter] = useState<'ALL' | '0-2' | '3-5' | '6-10' | '10+'>('ALL');
+  const [workExperienceMinimum, setWorkExperienceMinimum] = useState('');
+  const [isExperienceExporting, setIsExperienceExporting] = useState(false);
   // Sort state
   const [sortBy, setSortBy] = useState<'name' | 'status' | 'project' | 'count'>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
@@ -358,6 +360,18 @@ export default function MembersPage() {
     }
   };
 
+  const downloadWorkExperienceExport = async () => {
+    const minimum = Number(workExperienceMinimum);
+    if (!Number.isFinite(minimum) || minimum < 0) return;
+    setIsExperienceExporting(true);
+    try {
+      const response = await reportsApi.workExperience(Math.floor(minimum));
+      downloadBlob(response.data, `xebia-work-experience-${Math.floor(minimum)}-years-and-above.xlsx`);
+    } finally {
+      setIsExperienceExporting(false);
+    }
+  };
+
   return (
     <div className="space-y-5">
       {/* Page Header */}
@@ -367,12 +381,32 @@ export default function MembersPage() {
           <p className="page-subtitle">{data?.pagination.total || 0} members in your organization</p>
         </div>
         {isAdmin && (
-          <button
-            onClick={() => setShowForm(true)}
-            className="flex items-center gap-2 px-4 py-2.5 bg-azure-500 text-white text-sm font-medium rounded-xl hover:bg-azure-600 transition-colors shadow-lg shadow-azure-500/25"
-          >
-            <Plus className="w-4 h-4" /> Add Member
-          </button>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <label className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+              Work ex above:
+              <input
+                type="number"
+                min="0"
+                value={workExperienceMinimum}
+                onChange={e => setWorkExperienceMinimum(e.target.value)}
+                placeholder="3"
+                className="w-16 px-2.5 py-2 text-sm border border-border rounded-lg bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+              />
+            </label>
+            <button
+              onClick={downloadWorkExperienceExport}
+              disabled={isExperienceExporting || workExperienceMinimum === ''}
+              className="flex items-center gap-2 px-3.5 py-2.5 bg-secondary text-primary text-sm font-medium rounded-xl hover:bg-primary/10 border border-primary/20 transition-colors disabled:opacity-50"
+            >
+              {isExperienceExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />} Download Excel
+            </button>
+            <button
+              onClick={() => setShowForm(true)}
+              className="flex items-center gap-2 px-4 py-2.5 bg-azure-500 text-white text-sm font-medium rounded-xl hover:bg-azure-600 transition-colors shadow-lg shadow-azure-500/25"
+            >
+              <Plus className="w-4 h-4" /> Add Member
+            </button>
+          </div>
         )}
       </div>
 

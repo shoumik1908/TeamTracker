@@ -47,7 +47,7 @@ async function fetchApi(method: string, url: string, data?: any, config?: any) {
 
   if (config?.responseType === 'blob') {
     if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-    return res; // Fetch blob response is handled by caller via res.blob() or just return res
+    return { data: await res.blob(), status: res.status, headers: res.headers };
   }
 
   const text = await res.text();
@@ -185,6 +185,7 @@ export const reportsApi = {
   certifications: (format: string) => api.get(`/reports/certifications?format=${format}`, { responseType: format === 'json' ? 'json' : 'blob' }),
   projects: (format: string) => api.get(`/reports/projects?format=${format}`, { responseType: format === 'json' ? 'json' : 'blob' }),
   deadlines: (format: string) => api.get(`/reports/deadlines?format=${format}`, { responseType: format === 'json' ? 'json' : 'blob' }),
+  workExperience: (minYears: number) => api.get(`/reports/work-experience?minYears=${minYears}`, { responseType: 'blob' }),
 };
 
 // ---- Project Updates ----

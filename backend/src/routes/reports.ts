@@ -18,6 +18,64 @@ function toCSV(headers: string[], rows: string[][]): string {
   return [headers.map(escape).join(','), ...rows.map(r => r.map(escape).join(','))].join('\n');
 }
 
+// GET /api/reports/work-experience?minYears=3
+// Admin-only export of team members meeting a work-experience threshold.
+router.get('/work-experience', async (req: Request, res: Response) => {
+  const rawMinYears = Number(req.query.minYears);
+  const minYears = Number.isFinite(rawMinYears) && rawMinYears >= 0 ? Math.floor(rawMinYears) : 0;
+  const members = await prisma.teamMember.findMany({
+    where: { yearsOfExperience: { gte: minYears } },
+    select: { name: true, email: true, designation: true, yearsOfExperience: true, status: true, joiningDate: true },
+    orderBy: [{ yearsOfExperience: 'desc' }, { name: 'asc' }],
+  });
+
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = 'Xebia Team Tracker';
+  const sheet = workbook.addWorksheet('Work Experience');
+  sheet.mergeCells('A1:F1');
+  const title = sheet.getCell('A1');
+  title.value = `Xebia Team Members — ${minYears}+ Years Work Experience`;
+  title.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 14 };
+  title.alignment = { horizontal: 'center', vertical: 'middle' };
+  title.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF953CB5' } };
+  sheet.getRow(1).height = 28;
+
+  const headers = ['Name', 'Email', 'Designation', 'Work Experience (Years)', 'Status', 'Joining Date'];
+  sheet.addRow(headers);
+  const headerRow = sheet.getRow(2);
+  headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+  headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFB45CD1' } };
+  headerRow.alignment = { vertical: 'middle' };
+
+  members.forEach((member, index) => {
+    const row = sheet.addRow([
+      member.name,
+      member.email || '',
+      member.designation || '',
+      member.yearsOfExperience || 0,
+      member.status,
+      member.joiningDate,
+    ]);
+    row.getCell(6).numFmt = 'dd-mmm-yyyy';
+    if (index % 2 === 0) {
+      row.eachCell(cell => {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8F1FA' } };
+      });
+    }
+  });
+
+  sheet.columns = [
+    { width: 28 }, { width: 32 }, { width: 26 }, { width: 24 }, { width: 14 }, { width: 16 },
+  ];
+  sheet.views = [{ state: 'frozen', ySplit: 2 }];
+  sheet.autoFilter = { from: 'A2', to: 'F2' };
+
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition', `attachment; filename="xebia-work-experience-${minYears}-years-and-above.xlsx"`);
+  const buffer = await workbook.xlsx.writeBuffer();
+  return res.send(buffer);
+});
+
 // GET /api/reports/team
 router.get('/team', async (req: Request, res: Response) => {
   const format = (req.query.format as ExportFormat) || 'json';
