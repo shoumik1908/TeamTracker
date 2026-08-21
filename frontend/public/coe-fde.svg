@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Fabric Data Engineering">
+  <defs><linearGradient id="fde" x1="9" y1="8" x2="53" y2="57" gradientUnits="userSpaceOnUse"><stop stop-color="#385977"/><stop offset="1" stop-color="#18243A"/></linearGradient><linearGradient id="arrow" x1="33" y1="6" x2="54" y2="31" gradientUnits="userSpaceOnUse"><stop stop-color="#FFEAA1"/><stop offset="1" stop-color="#E2A93D"/></linearGradient></defs>
+  <path fill="url(#fde)" d="m32 3 25 14v29L32 61 7 46V17L32 3Z"/>
+  <path fill="none" stroke="#9BE6EC" stroke-width="2" d="m13 41 13-19 9 11 15-21M16 48l9-9 8 6 14-13" opacity=".85"/>
+  <circle cx="24" cy="23" r="8" fill="#102033" stroke="#83D3DC" stroke-width="2"/><path fill="#EBD787" d="m24 17 2.3 5.7L24 29l-2.3-6.3L24 17Z"/>
+  <path fill="url(#arrow)" d="m37 28 2-14 15-4-9 12-1 7-7-1Z"/>
+  <circle cx="39" cy="42" r="7" fill="none" stroke="#83AFC5" stroke-width="3"/><circle cx="39" cy="42" r="2.5" fill="#E2A93D"/>
+  <text x="32" y="56" text-anchor="middle" fill="#EAF6F8" font-size="7" font-family="Arial, sans-serif" font-weight="700">FDE</text>
+</svg>

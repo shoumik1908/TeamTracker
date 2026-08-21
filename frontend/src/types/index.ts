@@ -11,7 +11,11 @@ export type NotificationType =
   | 'PROJECT_CREATED'
   | 'PROJECT_UPDATED'
   | 'PROJECT_ASSIGNED'
-  | 'PROJECT_AUTO_ASSIGNED';
+  | 'PROJECT_AUTO_ASSIGNED'
+  | 'COE_SESSION_SCHEDULED'
+  | 'COE_SESSION_REMINDER_DAY'
+  | 'COE_SESSION_REMINDER_30_MIN'
+  | 'COE_SESSION_ABSENCE_REPORTED';
 
 export interface TeamMember {
   id: string;

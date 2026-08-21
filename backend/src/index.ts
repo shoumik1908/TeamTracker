@@ -33,14 +33,17 @@ import meetingReportRouter from './routes/meetingReport';
 import taskRoutes from './routes/taskRoutes';
 import resumeGenerationRouter from './routes/resumeGeneration';
 import taskFeedbackRouter from './routes/taskFeedback';
+import coeRouter from './routes/coe';
 import { errorHandler } from './middleware/errorHandler';
 import { initLogCleanupJob } from './jobs/logCleanup';
 import { initMeetingMinutesRetryJob } from './jobs/meetingMinutesRetry';
+import { initCoeSessionReminderJob } from './jobs/coeSessionReminders';
 
 const app = express();
 // Initialize scheduled jobs
 initLogCleanupJob();
 initMeetingMinutesRetryJob();
+initCoeSessionReminderJob();
 
 const PORT = process.env.PORT || 3001;
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-key-do-not-use-in-prod';
@@ -92,6 +95,7 @@ app.use('/api/projects/:projectId/meeting-report', meetingReportRouter);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/resume-generation', resumeGenerationRouter);
 app.use('/api/tasks/:id/feedback', taskFeedbackRouter);
+app.use('/api/coe', coeRouter);
 app.use('/api/presales/:opportunityId/documentation', documentationRouter);
 app.use('/api/presales/:opportunityId/meeting-records', meetingRecordsRouter);
 app.use('/api', teamsRouter);

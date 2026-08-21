@@ -3,6 +3,7 @@ import { Outlet, useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import ChatBot from '../chat/ChatBot';
+import SessionReminderToasts from '../coe/SessionReminderToasts';
 
 const PAGE_TITLES: Record<string, string> = {
   '/': 'Dashboard',
@@ -13,6 +14,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/deadlines': 'Deadline Tracker',
   '/notifications': 'Notifications',
   '/reports': 'Reports & Export',
+  '/coe': 'Centre of Excellence',
 };
 
 export default function Layout() {
@@ -41,6 +43,7 @@ export default function Layout() {
         </main>
       </div>
       <ChatBot />
+      <SessionReminderToasts />
     </div>
   );
 }
