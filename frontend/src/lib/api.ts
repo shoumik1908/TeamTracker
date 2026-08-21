@@ -173,6 +173,25 @@ export const tasksApi = {
   delete: (id: string) => api.delete(`/tasks/${id}`),
 };
 
+// ---- Centre of Excellence ----
+export const coeApi = {
+  resources: (params?: Record<string, unknown>) => api.get('/coe/resources', { params }),
+  uploadResource: (data: FormData) => api.post('/coe/resources', data, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  deleteResource: (id: string) => api.delete(`/coe/resources/${id}`),
+  getResourceDownload: (id: string) => api.get(`/coe/resources/${id}/download`),
+  tickets: (params?: Record<string, unknown>) => api.get('/coe/tickets', { params }),
+  createTicket: (data: Record<string, unknown>) => api.post('/coe/tickets', data),
+  updateTicket: (id: string, data: Record<string, unknown>) => api.patch(`/coe/tickets/${id}`, data),
+  deleteTicket: (id: string) => api.delete(`/coe/tickets/${id}`),
+  sessions: () => api.get('/coe/sessions'),
+  createSession: (data: Record<string, unknown>) => api.post('/coe/sessions', data),
+  rescheduleSession: (id: string, data: Record<string, unknown>) => api.patch(`/coe/sessions/${id}/reschedule`, data),
+  endSession: (id: string, data: Record<string, unknown>) => api.post(`/coe/sessions/${id}/end`, data),
+  uploadSessionTranscript: (id: string, data: FormData) => api.post(`/coe/sessions/${id}/transcript`, data, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  getSessionTranscriptDownload: (id: string) => api.get(`/coe/sessions/${id}/transcript/download`),
+  summarizeSessionTranscript: (id: string) => api.post(`/coe/sessions/${id}/transcript/summarize`),
+};
+
 // ---- Search ----
 export const searchApi = {
   global: (q: string) => api.get('/search', { params: { q } }),

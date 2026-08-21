@@ -3,7 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Award, FolderKanban,
   Bell, FileBarChart, ChevronLeft, ChevronRight,
-  Diff, Target, Rocket, FolderOpen, History, ShieldCheck, FileText } from 'lucide-react';
+  Diff, Target, Rocket, FolderOpen, History, ShieldCheck, FileText, GraduationCap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import { notificationsApi } from '@/lib/api';
@@ -19,6 +19,7 @@ const navItems = [
   { to: '/project-updates', icon: Diff, label: 'Project Updates' },
   { to: '/notifications', icon: Bell, label: 'Notifications' },
   { to: '/tasks', icon: Target, label: 'Tasks' },
+  { to: '/coe', icon: GraduationCap, label: 'COE' },
   { to: '/reports', icon: FileBarChart, label: 'Reports' },
   { to: '/files', icon: FolderOpen, label: 'Files' },
   { to: '/cv-generation', icon: FileText, label: 'CV Generation' }

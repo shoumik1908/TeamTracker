@@ -4,6 +4,7 @@ import Layout from './components/layout/Layout';
 import LoginPage from './pages/LoginPage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { Toaster } from 'sonner';
 
 const AdminCredentialsPage = React.lazy(() => import('./pages/AdminCredentialsPage'));
 const TeamMemberDashboard = React.lazy(() => import('./pages/TeamMemberDashboard'));
@@ -27,6 +28,7 @@ const TasksPage = React.lazy(() => import('./pages/tasks/TasksPage'));
 const TaskDetailPage = React.lazy(() => import('./pages/tasks/TaskDetailPage'));
 const ChangePasswordPage = React.lazy(() => import('./pages/ChangePasswordPage'));
 const CvGenerationPage = React.lazy(() => import('./pages/CvGenerationPage'));
+const CoePage = React.lazy(() => import('./pages/CoePage'));
 
 function DashboardRouter() {
   const { hasPermission } = useAuth();
@@ -41,6 +43,7 @@ export default function App() {
     <AuthProvider>
       <ParticleBackground />
       <BrowserRouter>
+        <Toaster richColors position="top-right" />
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/" element={<ProtectedRoute />}>
@@ -65,6 +68,7 @@ export default function App() {
               <Route path="logs" element={<Suspense fallback={<div>Loading...</div>}><LogsPage /></Suspense>} />
               <Route path="tasks" element={<Suspense fallback={<div>Loading...</div>}><TasksPage /></Suspense>} />
               <Route path="tasks/:id" element={<Suspense fallback={<div>Loading...</div>}><TaskDetailPage /></Suspense>} />
+              <Route path="coe" element={<Suspense fallback={<div>Loading...</div>}><CoePage /></Suspense>} />
               <Route path="change-password" element={<Suspense fallback={<div>Loading...</div>}><ChangePasswordPage /></Suspense>} />
             </Route>
           </Route>

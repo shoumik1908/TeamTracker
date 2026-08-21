@@ -65,6 +65,8 @@ export const CONTAINERS = {
   PRESALES_DOCS: process.env.AZURE_CONTAINER_PRESALES_DOCS || 'presales-documents',
   PROJECT_RECORDINGS: process.env.AZURE_CONTAINER_PROJECT_RECORDINGS || 'project-recordings',
   TASK_FILES: process.env.AZURE_CONTAINER_TASK_FILES || 'task-files',
+  COE_RESOURCES: process.env.AZURE_CONTAINER_COE_RESOURCES || 'coe-resources',
+  COE_TRANSCRIPTS: process.env.AZURE_CONTAINER_COE_TRANSCRIPTS || 'coe-transcripts',
 };
 
 export async function uploadFile(

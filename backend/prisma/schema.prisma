@@ -57,6 +57,8 @@ model TeamMember {
 
   resumeProfiles   ResumeProfile[]
   generatedResumes GeneratedResume[]
+  coeTickets       CoeTicket[]
+  coeSessionAttendance CoeSessionAttendance[]
 
   @@map("team_members")
 }
@@ -386,6 +388,30 @@ enum ProjectStatus {
   COMPLETED
 }
 
+enum CoeTrack {
+  DATABRICKS
+  FABRIC
+  FDE
+}
+
+enum CoeTicketStatus {
+  BACKLOG
+  IN_PROGRESS
+  DONE
+}
+
+enum CoeTicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum CoeSessionStatus {
+  SCHEDULED
+  ENDED
+  CANCELLED
+}
+
 enum TaskStatus {
   TODO
   IN_PROGRESS
@@ -405,6 +431,10 @@ enum NotificationType {
   NEW_MEMBER_REGISTERED
   TASK_ASSIGNED
   TASK_DUE_SOON
+  COE_SESSION_SCHEDULED
+  COE_SESSION_REMINDER_DAY
+  COE_SESSION_REMINDER_30_MIN
+  COE_SESSION_ABSENCE_REPORTED
 }
 
 enum EditRequestStatus {
@@ -650,8 +680,93 @@ model User {
   role       Role        @relation(fields: [roleId], references: [id])
   teamMember TeamMember? @relation(fields: [teamMemberId], references: [id], onDelete: SetNull)
   tasks      Task[]
+  coeResources CoeLearningResource[]
+  coeTickets   CoeTicket[] @relation("CoeTicketCreator")
+  coeKnowledgeSessions CoeKnowledgeSession[] @relation("CoeSessionOrganizer")
 
   @@map("users")
+}
+
+model CoeLearningResource {
+  id            String   @id @default(cuid())
+  track         CoeTrack
+  title         String
+  description   String?
+  fileName      String
+  fileUrl       String
+  fileMimeType  String?
+  uploadedById  String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  uploadedBy User @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
+
+  @@index([track, createdAt])
+  @@map("coe_learning_resources")
+}
+
+model CoeTicket {
+  id          String            @id @default(cuid())
+  ticketNumber Int              @unique @default(autoincrement())
+  track       CoeTrack
+  title       String
+  description String?           @db.Text
+  status      CoeTicketStatus   @default(IN_PROGRESS)
+  priority    CoeTicketPriority @default(MEDIUM)
+  createdById String
+  memberId    String?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  createdBy User        @relation("CoeTicketCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  member    TeamMember? @relation(fields: [memberId], references: [id], onDelete: SetNull)
+
+  @@index([track, status])
+  @@index([memberId])
+  @@map("coe_tickets")
+}
+
+model CoeKnowledgeSession {
+  id                    String           @id @default(cuid())
+  topic                 String
+  description           String?          @db.Text
+  scheduledAt           DateTime
+  durationMinutes       Int              @default(60)
+  status                CoeSessionStatus @default(SCHEDULED)
+  organizerId           String
+  endedAt               DateTime?
+  attendanceSummary     String?          @db.Text
+  transcriptFileName    String?
+  transcriptFileUrl     String?
+  transcriptMimeType    String?
+  transcriptText        String?          @db.Text
+  transcriptSummary     String?          @db.Text
+  dayReminderSentAt     DateTime?
+  thirtyMinuteReminderSentAt DateTime?
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+
+  organizer   User                   @relation("CoeSessionOrganizer", fields: [organizerId], references: [id], onDelete: Cascade)
+  attendance  CoeSessionAttendance[]
+
+  @@index([status, scheduledAt])
+  @@map("coe_knowledge_sessions")
+}
+
+model CoeSessionAttendance {
+  id          String   @id @default(cuid())
+  sessionId   String
+  memberId    String
+  attended    Boolean  @default(false)
+  notes       String?
+  updatedAt   DateTime @updatedAt
+
+  session CoeKnowledgeSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  member  TeamMember          @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, memberId])
+  @@index([memberId])
+  @@map("coe_session_attendance")
 }
 
 model ResumeProfile {
