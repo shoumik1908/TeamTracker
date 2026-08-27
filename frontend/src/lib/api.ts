@@ -190,20 +190,6 @@ export const coeApi = {
   uploadSessionTranscript: (id: string, data: FormData) => api.post(`/coe/sessions/${id}/transcript`, data, { headers: { 'Content-Type': 'multipart/form-data' } }),
   getSessionTranscriptDownload: (id: string) => api.get(`/coe/sessions/${id}/transcript/download`),
   summarizeSessionTranscript: (id: string) => api.post(`/coe/sessions/${id}/transcript/summarize`),
-  learningProjects: () => api.get('/coe/learning-projects'),
-  createLearningProject: (data: Record<string, unknown>) => api.post('/coe/learning-projects', data),
-  updateLearningProject: (id: string, data: Record<string, unknown>) => api.patch(`/coe/learning-projects/${id}`, data),
-  deleteLearningProject: (id: string) => api.delete(`/coe/learning-projects/${id}`),
-  addLearningProjectMember: (id: string, memberId: string) => api.post(`/coe/learning-projects/${id}/members`, { memberId }),
-  removeLearningProjectMember: (id: string, memberId: string) => api.delete(`/coe/learning-projects/${id}/members/${memberId}`),
-  addLearningProjectMilestone: (id: string, data: Record<string, unknown>) => api.post(`/coe/learning-projects/${id}/milestones`, data),
-  updateLearningProjectMilestone: (id: string, milestoneId: string, data: Record<string, unknown>) => api.patch(`/coe/learning-projects/${id}/milestones/${milestoneId}`, data),
-  deleteLearningProjectMilestone: (id: string, milestoneId: string) => api.delete(`/coe/learning-projects/${id}/milestones/${milestoneId}`),
-  addLearningProjectUpdate: (id: string, milestoneId: string, body: string) => api.post(`/coe/learning-projects/${id}/milestones/${milestoneId}/updates`, { body }),
-  addLearningProjectLink: (id: string, data: { label: string; url: string }) => api.post(`/coe/learning-projects/${id}/assets/link`, data),
-  uploadLearningProjectFile: (id: string, data: FormData) => api.post(`/coe/learning-projects/${id}/assets/file`, data, { headers: { 'Content-Type': 'multipart/form-data' } }),
-  getLearningProjectFile: (id: string, assetId: string) => api.get(`/coe/learning-projects/${id}/assets/${assetId}/download`),
-  deleteLearningProjectAsset: (id: string, assetId: string) => api.delete(`/coe/learning-projects/${id}/assets/${assetId}`),
 };
 
 // ---- Search ----
