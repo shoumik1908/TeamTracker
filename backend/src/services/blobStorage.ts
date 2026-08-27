@@ -67,7 +67,6 @@ export const CONTAINERS = {
   TASK_FILES: process.env.AZURE_CONTAINER_TASK_FILES || 'task-files',
   COE_RESOURCES: process.env.AZURE_CONTAINER_COE_RESOURCES || 'coe-resources',
   COE_TRANSCRIPTS: process.env.AZURE_CONTAINER_COE_TRANSCRIPTS || 'coe-transcripts',
-  LEARNING_PROJECTS: process.env.AZURE_CONTAINER_LEARNING_PROJECTS || 'learning-projects',
 };
 
 export async function uploadFile(
