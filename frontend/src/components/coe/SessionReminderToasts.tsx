@@ -14,11 +14,17 @@ export default function SessionReminderToasts() {
   });
 
   useEffect(() => {
+    let clearAllAssigned = false;
     for (const notification of data?.data || []) {
       if (!REMINDER_TYPES.has(notification.type)) continue;
       const storageKey = `coe-reminder-toast:${notification.id}`;
       if (localStorage.getItem(storageKey)) continue;
-      toast.info(notification.title, { description: notification.message, duration: 9000 });
+      toast.info(notification.title, {
+        description: notification.message,
+        duration: 9000,
+        ...(clearAllAssigned ? {} : { action: { label: 'Clear all', onClick: () => toast.dismiss() } }),
+      });
+      clearAllAssigned = true;
       localStorage.setItem(storageKey, 'shown');
     }
   }, [data]);
