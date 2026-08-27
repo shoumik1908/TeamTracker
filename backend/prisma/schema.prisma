@@ -59,6 +59,7 @@ model TeamMember {
   generatedResumes GeneratedResume[]
   coeTickets       CoeTicket[]
   coeSessionAttendance CoeSessionAttendance[]
+  learningProjectMemberships LearningProjectMember[]
 
   @@map("team_members")
 }
@@ -683,8 +684,92 @@ model User {
   coeResources CoeLearningResource[]
   coeTickets   CoeTicket[] @relation("CoeTicketCreator")
   coeKnowledgeSessions CoeKnowledgeSession[] @relation("CoeSessionOrganizer")
+  learningProjects LearningProject[] @relation("LearningProjectCreator")
+  learningProjectUpdates LearningProjectMilestoneUpdate[] @relation("LearningProjectUpdateCreator")
+  learningProjectAssets LearningProjectAsset[] @relation("LearningProjectAssetUploader")
 
   @@map("users")
+}
+
+model LearningProject {
+  id          String   @id @default(cuid())
+  title       String
+  description String?  @db.Text
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  createdBy  User                       @relation("LearningProjectCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  members    LearningProjectMember[]
+  milestones LearningProjectMilestone[]
+  assets     LearningProjectAsset[]
+
+  @@index([createdById, updatedAt])
+  @@map("learning_projects")
+}
+
+model LearningProjectMember {
+  id        String   @id @default(cuid())
+  projectId String
+  memberId  String
+  addedAt   DateTime @default(now())
+
+  project LearningProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  member  TeamMember      @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, memberId])
+  @@index([memberId])
+  @@map("learning_project_members")
+}
+
+model LearningProjectMilestone {
+  id          String   @id @default(cuid())
+  projectId   String
+  title       String
+  description String?  @db.Text
+  completed   Boolean  @default(false)
+  completedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  project LearningProject                 @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  updates LearningProjectMilestoneUpdate[]
+
+  @@index([projectId, createdAt])
+  @@map("learning_project_milestones")
+}
+
+model LearningProjectMilestoneUpdate {
+  id          String   @id @default(cuid())
+  milestoneId String
+  body        String   @db.Text
+  createdById String
+  createdAt   DateTime @default(now())
+
+  milestone LearningProjectMilestone @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+  createdBy User                     @relation("LearningProjectUpdateCreator", fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@index([milestoneId, createdAt])
+  @@map("learning_project_milestone_updates")
+}
+
+model LearningProjectAsset {
+  id           String   @id @default(cuid())
+  projectId    String
+  kind         String
+  label        String
+  url          String?
+  fileUrl      String?
+  fileName     String?
+  mimeType     String?
+  uploadedById String
+  createdAt    DateTime @default(now())
+
+  project    LearningProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  uploadedBy User            @relation("LearningProjectAssetUploader", fields: [uploadedById], references: [id], onDelete: Cascade)
+
+  @@index([projectId, createdAt])
+  @@map("learning_project_assets")
 }
 
 model CoeLearningResource {
