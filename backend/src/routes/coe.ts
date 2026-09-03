@@ -180,6 +180,141 @@ router.delete('/tickets/:id', async (req: AuthRequest, res: Response) => {
   res.json({ message: 'COE ticket deleted' });
 });
 
+// ============ LEARNING PROJECTS ============
+const learningProjectInclude = {
+  createdBy: { select: { id: true, name: true } },
+  members: { include: { member: { select: { id: true, name: true, designation: true } } }, orderBy: { addedAt: 'asc' as const } },
+  milestones: { include: { updates: { include: { createdBy: { select: { id: true, name: true } } }, orderBy: { createdAt: 'asc' as const } } }, orderBy: { createdAt: 'asc' as const } },
+  assets: { orderBy: { createdAt: 'desc' as const } },
+};
+
+async function findLearningProject(id: string, req: AuthRequest) {
+  const project = await prisma.learningProject.findUnique({ where: { id }, include: learningProjectInclude });
+  if (!project) throw new AppError('Learning project not found', 404);
+  const isMember = project.members.some(item => item.memberId === req.user?.teamMemberId);
+  if (!isAdmin(req) && project.createdById !== req.user?.id && !isMember) throw new AppError('You do not have access to this learning project', 403);
+  return project;
+}
+
+router.get('/learning-projects', async (req: AuthRequest, res: Response) => {
+  const where = isAdmin(req) ? {} : {
+    OR: [
+      { createdById: req.user!.id },
+      ...(req.user?.teamMemberId ? [{ members: { some: { memberId: req.user.teamMemberId } } }] : []),
+    ],
+  };
+  const projects = await prisma.learningProject.findMany({ where, include: learningProjectInclude, orderBy: { updatedAt: 'desc' } });
+  res.json({ projects });
+});
+
+router.post('/learning-projects', async (req: AuthRequest, res: Response) => {
+  const { title, description, memberIds = [] } = req.body;
+  if (!title?.trim()) throw new AppError('A learning project title is required', 400);
+  if (!Array.isArray(memberIds)) throw new AppError('Teammates must be a list', 400);
+  const ids = [...new Set(memberIds.filter((id: unknown) => typeof id === 'string' && id))];
+  if (ids.length && await prisma.teamMember.count({ where: { id: { in: ids } } }) !== ids.length) throw new AppError('One or more teammates were not found', 404);
+  const project = await prisma.learningProject.create({
+    data: { title: title.trim(), description: description?.trim() || null, createdById: req.user!.id, members: ids.length ? { createMany: { data: ids.map(memberId => ({ memberId })) } } : undefined },
+    include: learningProjectInclude,
+  });
+  res.status(201).json({ project });
+});
+
+router.patch('/learning-projects/:id', async (req: AuthRequest, res: Response) => {
+  const project = await findLearningProject(req.params.id, req);
+  const { title, description } = req.body;
+  if (title !== undefined && !title?.trim()) throw new AppError('A learning project title is required', 400);
+  const updated = await prisma.learningProject.update({ where: { id: project.id }, data: { ...(title !== undefined && { title: title.trim() }), ...(description !== undefined && { description: description?.trim() || null }) }, include: learningProjectInclude });
+  res.json({ project: updated });
+});
+
+router.delete('/learning-projects/:id', async (req: AuthRequest, res: Response) => {
+  const project = await findLearningProject(req.params.id, req);
+  if (!isAdmin(req)) throw new AppError('Only administrators can delete learning projects', 403);
+  await prisma.learningProject.delete({ where: { id: project.id } });
+  res.json({ message: 'Learning project deleted' });
+});
+
+router.post('/learning-projects/:id/members', async (req: AuthRequest, res: Response) => {
+  const project = await findLearningProject(req.params.id, req);
+  const { memberId } = req.body;
+  if (!memberId || !await prisma.teamMember.findUnique({ where: { id: memberId }, select: { id: true } })) throw new AppError('Teammate not found', 404);
+  await prisma.learningProjectMember.upsert({ where: { projectId_memberId: { projectId: project.id, memberId } }, create: { projectId: project.id, memberId }, update: {} });
+  res.status(201).json({ message: 'Teammate added' });
+});
+
+router.delete('/learning-projects/:id/members/:memberId', async (req: AuthRequest, res: Response) => {
+  const project = await findLearningProject(req.params.id, req);
+  await prisma.learningProjectMember.deleteMany({ where: { projectId: project.id, memberId: req.params.memberId } });
+  res.json({ message: 'Teammate removed' });
+});
+
+router.post('/learning-projects/:id/milestones', async (req: AuthRequest, res: Response) => {
+  const project = await findLearningProject(req.params.id, req);
+  const { title, description } = req.body;
+  if (!title?.trim()) throw new AppError('A milestone title is required', 400);
+  const milestone = await prisma.learningProjectMilestone.create({ data: { projectId: project.id, title: title.trim(), description: description?.trim() || null } });
+  res.status(201).json({ milestone });
+});
+
+router.patch('/learning-projects/:id/milestones/:milestoneId', async (req: AuthRequest, res: Response) => {
+  const project = await findLearningProject(req.params.id, req);
+  const milestone = await prisma.learningProjectMilestone.findFirst({ where: { id: req.params.milestoneId, projectId: project.id } });
+  if (!milestone) throw new AppError('Milestone not found', 404);
+  const { title, description, completed } = req.body;
+  if (title !== undefined && !title?.trim()) throw new AppError('A milestone title is required', 400);
+  const updated = await prisma.learningProjectMilestone.update({ where: { id: milestone.id }, data: { ...(title !== undefined && { title: title.trim() }), ...(description !== undefined && { description: description?.trim() || null }), ...(completed !== undefined && { completed: Boolean(completed), completedAt: completed ? new Date() : null }) } });
+  res.json({ milestone: updated });
+});
+
+router.delete('/learning-projects/:id/milestones/:milestoneId', async (req: AuthRequest, res: Response) => {
+  const project = await findLearningProject(req.params.id, req);
+  await prisma.learningProjectMilestone.deleteMany({ where: { id: req.params.milestoneId, projectId: project.id } });
+  res.json({ message: 'Milestone removed' });
+});
+
+router.post('/learning-projects/:id/milestones/:milestoneId/updates', async (req: AuthRequest, res: Response) => {
+  const project = await findLearningProject(req.params.id, req);
+  if (!req.body.body?.trim()) throw new AppError('An update is required', 400);
+  const milestone = await prisma.learningProjectMilestone.findFirst({ where: { id: req.params.milestoneId, projectId: project.id }, select: { id: true } });
+  if (!milestone) throw new AppError('Milestone not found', 404);
+  const update = await prisma.learningProjectMilestoneUpdate.create({ data: { milestoneId: milestone.id, body: req.body.body.trim(), createdById: req.user!.id } });
+  res.status(201).json({ update });
+});
+
+router.post('/learning-projects/:id/assets/link', async (req: AuthRequest, res: Response) => {
+  const project = await findLearningProject(req.params.id, req);
+  const { label, url } = req.body;
+  if (!label?.trim() || !url?.trim()) throw new AppError('A link and label are required', 400);
+  try { new URL(url); } catch { throw new AppError('Enter a valid project link', 400); }
+  const asset = await prisma.learningProjectAsset.create({ data: { projectId: project.id, kind: 'LINK', label: label.trim(), url: url.trim(), uploadedById: req.user!.id } });
+  res.status(201).json({ asset });
+});
+
+router.post('/learning-projects/:id/assets/file', uploadAny.single('file'), async (req: AuthRequest, res: Response) => {
+  const project = await findLearningProject(req.params.id, req);
+  if (!req.file) throw new AppError('Choose a file to upload', 400);
+  const uploaded = await uploadFile(CONTAINERS.LEARNING_PROJECTS, req.file.buffer, req.file.originalname, req.file.mimetype || 'application/octet-stream', undefined, undefined, `learning-projects/${project.id}`);
+  const asset = await prisma.learningProjectAsset.create({ data: { projectId: project.id, kind: 'FILE', label: req.file.originalname, fileUrl: uploaded.url, fileName: req.file.originalname, mimeType: req.file.mimetype || null, uploadedById: req.user!.id } });
+  res.status(201).json({ asset });
+});
+
+router.get('/learning-projects/:id/assets/:assetId/download', async (req: AuthRequest, res: Response) => {
+  const project = await findLearningProject(req.params.id, req);
+  const asset = await prisma.learningProjectAsset.findFirst({ where: { id: req.params.assetId, projectId: project.id } });
+  if (!asset?.fileUrl) throw new AppError('Uploaded file not found', 404);
+  res.json({ downloadUrl: generateSasUrl({ containerName: CONTAINERS.LEARNING_PROJECTS, blobName: extractBlobName(asset.fileUrl), permissions: 'r', expiryMinutes: 30 }), fileName: asset.fileName });
+});
+
+router.delete('/learning-projects/:id/assets/:assetId', async (req: AuthRequest, res: Response) => {
+  const project = await findLearningProject(req.params.id, req);
+  const asset = await prisma.learningProjectAsset.findFirst({ where: { id: req.params.assetId, projectId: project.id } });
+  if (!asset) throw new AppError('Project asset not found', 404);
+  if (asset.fileUrl) await deleteFile(CONTAINERS.LEARNING_PROJECTS, extractBlobName(asset.fileUrl));
+  await prisma.learningProjectAsset.delete({ where: { id: asset.id } });
+  res.json({ message: 'Project asset removed' });
+});
+
 const sessionInclude = {
   organizer: { select: { id: true, name: true, teamMemberId: true } },
   attendance: { include: { member: { select: { id: true, name: true, designation: true, profilePictureUrl: true } } }, orderBy: { member: { name: 'asc' as const } } },
