@@ -318,6 +318,7 @@ router.delete('/learning-projects/:id/assets/:assetId', async (req: AuthRequest,
 const sessionInclude = {
   organizer: { select: { id: true, name: true, teamMemberId: true } },
   attendance: { include: { member: { select: { id: true, name: true, designation: true, profilePictureUrl: true } } }, orderBy: { member: { name: 'asc' as const } } },
+  meetingNotes: { include: { uploadedBy: { select: { id: true, name: true } } }, orderBy: { createdAt: 'desc' as const } },
 };
 
 const canManageSession = (session: { organizerId: string }, req: AuthRequest) => isAdmin(req) || session.organizerId === req.user?.id;
@@ -358,7 +359,7 @@ function extractTranscriptText(buffer: Buffer, originalName: string, mimeType: s
 // Knowledge-sharing sessions are open to every authenticated user.
 router.get('/sessions', async (_req: AuthRequest, res: Response) => {
   const sessions = await prisma.coeKnowledgeSession.findMany({ include: sessionInclude, orderBy: [{ status: 'asc' }, { scheduledAt: 'asc' }] });
-  res.json({ sessions });
+  res.json({ sessions: isAdmin(_req) ? sessions : sessions.map(({ attendanceSummary: _summary, ...session }) => session) });
 });
 
 router.post('/sessions', async (req: AuthRequest, res: Response) => {
@@ -393,6 +394,28 @@ router.patch('/sessions/:id/reschedule', async (req: AuthRequest, res: Response)
   res.json({ session });
 });
 
+// Updates session details without reopening a completed session or changing its attendance.
+router.patch('/sessions/:id', async (req: AuthRequest, res: Response) => {
+  const session = await prisma.coeKnowledgeSession.findUnique({ where: { id: req.params.id } });
+  if (!session) throw new AppError('Knowledge-sharing session not found', 404);
+  if (!canManageSession(session, req)) throw new AppError('Only the organiser or an admin can edit this session', 403);
+  const { topic, description, scheduledAt, durationMinutes } = req.body;
+  if (topic !== undefined && !topic?.trim()) throw new AppError('A session topic is required', 400);
+  const duration = durationMinutes === undefined ? undefined : Number(durationMinutes);
+  if (duration !== undefined && (!Number.isInteger(duration) || duration < 15 || duration > 480)) throw new AppError('Session duration must be between 15 and 480 minutes', 400);
+  const updated = await prisma.coeKnowledgeSession.update({
+    where: { id: session.id },
+    data: {
+      ...(topic !== undefined && { topic: topic.trim() }),
+      ...(description !== undefined && { description: description?.trim() || null }),
+      ...(scheduledAt !== undefined && { scheduledAt: parseSessionDate(scheduledAt) }),
+      ...(duration !== undefined && { durationMinutes: duration }),
+    },
+    include: sessionInclude,
+  });
+  res.json({ session: updated });
+});
+
 router.post('/sessions/:id/end', async (req: AuthRequest, res: Response) => {
   const existing = await prisma.coeKnowledgeSession.findUnique({ where: { id: req.params.id }, include: { attendance: true } });
   if (!existing) throw new AppError('Knowledge-sharing session not found', 404);
@@ -424,6 +447,52 @@ router.get('/sessions/:id/transcript/download', async (_req: AuthRequest, res: R
   const session = await prisma.coeKnowledgeSession.findUnique({ where: { id: _req.params.id } });
   if (!session?.transcriptFileUrl) throw new AppError('Transcript not found', 404);
   res.json({ downloadUrl: generateSasUrl({ containerName: CONTAINERS.COE_TRANSCRIPTS, blobName: extractBlobName(session.transcriptFileUrl), permissions: 'r', expiryMinutes: 30 }), fileName: session.transcriptFileName });
+});
+
+const meetingNoteMimeTypes = new Set([
+  'application/pdf',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/msword',
+  'application/vnd.ms-powerpoint',
+  'application/vnd.ms-excel',
+  'application/x-ipynb+json',
+  'application/zip',
+  'application/x-zip-compressed',
+]);
+const meetingNoteExtensions = /\.(pdf|docx?|pptx?|xlsx?|ipynb|zip)$/i;
+
+router.post('/sessions/:id/meeting-notes', uploadAny.array('files', 10), async (req: AuthRequest, res: Response) => {
+  const session = await prisma.coeKnowledgeSession.findUnique({ where: { id: req.params.id } });
+  if (!session) throw new AppError('Knowledge-sharing session not found', 404);
+  if (!canManageSession(session, req)) throw new AppError('Only the organiser or an admin can upload meeting notes', 403);
+  const files = (req.files || []) as Express.Multer.File[];
+  if (!files.length) throw new AppError('Choose meeting notes to upload', 400);
+  if (files.some(file => !meetingNoteMimeTypes.has(file.mimetype) && !meetingNoteExtensions.test(file.originalname))) throw new AppError('Meeting notes must be PDF, Word, PowerPoint, Excel, Jupyter notebook, or ZIP files', 400);
+
+  const notes = await Promise.all(files.map(async file => {
+    const uploaded = await uploadFile(CONTAINERS.COE_TRANSCRIPTS, file.buffer, file.originalname, file.mimetype || 'application/octet-stream', undefined, undefined, `knowledge-sessions/${session.id}/meeting-notes`);
+    return prisma.coeSessionMeetingNote.create({ data: { sessionId: session.id, fileName: file.originalname, fileUrl: uploaded.url, mimeType: file.mimetype || null, uploadedById: req.user!.id } });
+  }));
+  res.status(201).json({ notes });
+});
+
+router.get('/sessions/:id/meeting-notes/:noteId/download', async (req: AuthRequest, res: Response) => {
+  const note = await prisma.coeSessionMeetingNote.findFirst({ where: { id: req.params.noteId, sessionId: req.params.id } });
+  if (!note) throw new AppError('Meeting note not found', 404);
+  res.json({ downloadUrl: generateSasUrl({ containerName: CONTAINERS.COE_TRANSCRIPTS, blobName: extractBlobName(note.fileUrl), permissions: 'r', expiryMinutes: 30 }), fileName: note.fileName });
+});
+
+router.delete('/sessions/:id/meeting-notes/:noteId', async (req: AuthRequest, res: Response) => {
+  const session = await prisma.coeKnowledgeSession.findUnique({ where: { id: req.params.id } });
+  if (!session) throw new AppError('Knowledge-sharing session not found', 404);
+  if (!canManageSession(session, req)) throw new AppError('Only the organiser or an admin can remove meeting notes', 403);
+  const note = await prisma.coeSessionMeetingNote.findFirst({ where: { id: req.params.noteId, sessionId: session.id } });
+  if (!note) throw new AppError('Meeting note not found', 404);
+  await deleteFile(CONTAINERS.COE_TRANSCRIPTS, extractBlobName(note.fileUrl));
+  await prisma.coeSessionMeetingNote.delete({ where: { id: note.id } });
+  res.json({ message: 'Meeting note removed' });
 });
 
 router.post('/sessions/:id/transcript/summarize', async (_req: AuthRequest, res: Response) => {
