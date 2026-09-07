@@ -684,6 +684,7 @@ model User {
   coeResources CoeLearningResource[]
   coeTickets   CoeTicket[] @relation("CoeTicketCreator")
   coeKnowledgeSessions CoeKnowledgeSession[] @relation("CoeSessionOrganizer")
+  coeSessionMeetingNotes CoeSessionMeetingNote[]
   learningProjects LearningProject[] @relation("LearningProjectCreator")
   learningProjectUpdates LearningProjectMilestoneUpdate[] @relation("LearningProjectUpdateCreator")
   learningProjectAssets LearningProjectAsset[] @relation("LearningProjectAssetUploader")
@@ -821,6 +822,9 @@ model CoeKnowledgeSession {
   organizerId           String
   endedAt               DateTime?
   attendanceSummary     String?          @db.Text
+  meetingNotesFileName  String?
+  meetingNotesFileUrl   String?
+  meetingNotesMimeType  String?
   transcriptFileName    String?
   transcriptFileUrl     String?
   transcriptMimeType    String?
@@ -833,9 +837,26 @@ model CoeKnowledgeSession {
 
   organizer   User                   @relation("CoeSessionOrganizer", fields: [organizerId], references: [id], onDelete: Cascade)
   attendance  CoeSessionAttendance[]
+  meetingNotes CoeSessionMeetingNote[]
 
   @@index([status, scheduledAt])
   @@map("coe_knowledge_sessions")
+}
+
+model CoeSessionMeetingNote {
+  id          String   @id @default(cuid())
+  sessionId   String
+  fileName    String
+  fileUrl     String
+  mimeType    String?
+  uploadedById String
+  createdAt   DateTime @default(now())
+
+  session    CoeKnowledgeSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  uploadedBy User                @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
+
+  @@index([sessionId, createdAt])
+  @@map("coe_session_meeting_notes")
 }
 
 model CoeSessionAttendance {
