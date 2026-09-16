@@ -17,8 +17,11 @@ jobs:
         image: postgres:16
         env:
           POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
           POSTGRES_DB: teamtracker
+          # No password: this container lives and dies inside this job and is
+          # reachable only on the runner's localhost. `trust` keeps a throwaway
+          # credential out of the file entirely rather than committing one.
+          POSTGRES_HOST_AUTH_METHOD: trust
         ports: ['5432:5432']
         options: >-
           --health-cmd pg_isready
@@ -31,8 +34,8 @@ jobs:
         working-directory: backend
 
     env:
-      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/teamtracker
-      DIRECT_URL: postgresql://postgres:postgres@localhost:5432/teamtracker
+      DATABASE_URL: postgresql://postgres@localhost:5432/teamtracker
+      DIRECT_URL: postgresql://postgres@localhost:5432/teamtracker
 
     steps:
       - uses: actions/checkout@v4
