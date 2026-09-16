@@ -3,12 +3,17 @@ import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import crypto from 'crypto';
 import { deleteFile, generateSasUrl, extractBlobName, CONTAINERS, accountName } from '../services/blobStorage';
-import { authenticateToken, AuthRequest } from '../middleware/auth';
+import { authenticateToken, AuthRequest, requirePermission } from '../middleware/auth';
 import { AppError } from '../middleware/errorHandler';
 
 const router = Router();
 
 router.use(authenticateToken);
+
+// Every mutating route below is admin-only. Reads stay open to any authenticated
+// user because the GTM page sits in the sidebar for everyone — only /logs and
+// /admin/credentials are admin-only there — so gating reads would blank the page
+// rather than secure it.
 
 // Standardized GTM stages
 const gtmStages = [
@@ -31,7 +36,7 @@ router.get('/', async (_req: Request, res: Response) => {
 
 // POST /api/gtm
 // Create GTM plan
-router.post('/', async (req: Request, res: Response) => {
+router.post('/', requirePermission('manageTeam'), async (req: Request, res: Response) => {
   const { name, clientName, category } = req.body;
 
   if (!name || !clientName) {
@@ -57,7 +62,7 @@ router.post('/', async (req: Request, res: Response) => {
 
 // PATCH /api/gtm/:id/stage
 // Update current stage index for a GTM plan
-router.patch('/:id/stage', async (req: Request, res: Response) => {
+router.patch('/:id/stage', requirePermission('manageTeam'), async (req: Request, res: Response) => {
   const { id } = req.params;
   const { stageIndex } = req.body;
 
@@ -87,7 +92,7 @@ router.patch('/:id/stage', async (req: Request, res: Response) => {
 
 // DELETE /api/gtm
 // Delete matching GTM plans
-router.delete('/', async (req: Request, res: Response) => {
+router.delete('/', requirePermission('manageTeam'), async (req: Request, res: Response) => {
   const name = req.query.name as string;
   const clientName = req.query.clientName as string;
   const category = req.query.category as string;
@@ -114,7 +119,7 @@ router.delete('/', async (req: Request, res: Response) => {
 
 // PUT /api/gtm
 // Update GTM plan name and client name
-router.put('/', async (req: Request, res: Response) => {
+router.put('/', requirePermission('manageTeam'), async (req: Request, res: Response) => {
   const { oldName, oldClientName, newName, newClientName } = req.body;
 
   if (!oldName || !oldClientName || !newName || !newClientName) {
@@ -163,7 +168,7 @@ router.get('/partners', async (_req: Request, res: Response) => {
 
 // POST /api/gtm/partners
 // Create partner with requirements
-router.post('/partners', async (req: Request, res: Response) => {
+router.post('/partners', requirePermission('manageTeam'), async (req: Request, res: Response) => {
   const { name, tier, renewalDate, requirements } = req.body;
 
   if (!name || !tier || !renewalDate) {
@@ -190,7 +195,7 @@ router.post('/partners', async (req: Request, res: Response) => {
 
 // PUT /api/gtm/partners/:id
 // Update partner and requirements
-router.put('/partners/:id', async (req: Request, res: Response) => {
+router.put('/partners/:id', requirePermission('manageTeam'), async (req: Request, res: Response) => {
   const { id } = req.params;
   const { name, tier, renewalDate, requirements } = req.body;
 
@@ -222,7 +227,7 @@ router.put('/partners/:id', async (req: Request, res: Response) => {
 
 // DELETE /api/gtm/partners/:id
 // Delete partner
-router.delete('/partners/:id', async (req: Request, res: Response) => {
+router.delete('/partners/:id', requirePermission('manageTeam'), async (req: Request, res: Response) => {
   const { id } = req.params;
   await prisma.gtmPartner.delete({ where: { id } });
   res.json({ success: true });
@@ -282,7 +287,7 @@ router.get('/campaigns', async (_req: Request, res: Response) => {
 
 // POST /api/gtm/campaigns
 // Create campaign
-router.post('/campaigns', async (req: Request, res: Response) => {
+router.post('/campaigns', requirePermission('manageTeam'), async (req: Request, res: Response) => {
   const { name, launchId, partnerId, status, startDate, endDate, description } = req.body;
 
   if (!name || !status) {
@@ -307,7 +312,7 @@ router.post('/campaigns', async (req: Request, res: Response) => {
 
 // PUT /api/gtm/campaigns/:id
 // Update campaign
-router.put('/campaigns/:id', async (req: Request, res: Response) => {
+router.put('/campaigns/:id', requirePermission('manageTeam'), async (req: Request, res: Response) => {
   const { id } = req.params;
   const { name, launchId, partnerId, status, startDate, endDate, description } = req.body;
 
@@ -334,7 +339,7 @@ router.put('/campaigns/:id', async (req: Request, res: Response) => {
 
 // DELETE /api/gtm/campaigns/:id
 // Delete campaign
-router.delete('/campaigns/:id', async (req: Request, res: Response) => {
+router.delete('/campaigns/:id', requirePermission('manageTeam'), async (req: Request, res: Response) => {
   const { id } = req.params;
   await prisma.gtmCampaign.delete({ where: { id } });
   res.json({ success: true });
@@ -363,7 +368,7 @@ router.get('/collaterals', async (req: Request, res: Response) => {
 
 // POST /api/gtm/collaterals/upload-url
 // Request a SAS URL to upload file directly to Azure
-router.post('/collaterals/upload-url', async (req: Request, res: Response) => {
+router.post('/collaterals/upload-url', requirePermission('manageTeam'), async (req: Request, res: Response) => {
   const { fileName, fileType } = req.body;
 
   if (!fileName) {
@@ -384,7 +389,7 @@ router.post('/collaterals/upload-url', async (req: Request, res: Response) => {
 
 // POST /api/gtm/collaterals
 // Save collateral file metadata
-router.post('/collaterals', async (req: Request, res: Response) => {
+router.post('/collaterals', requirePermission('manageTeam'), async (req: Request, res: Response) => {
   const { blobName, fileName, fileType, size, uploadedBy, launchId, partnerId } = req.body;
 
   if (!blobName || !fileName || !uploadedBy) {
@@ -435,7 +440,7 @@ router.get('/collaterals/:id/download-url', async (req: Request, res: Response) 
 
 // DELETE /api/gtm/collaterals/:id
 // Delete collateral file from database & Azure storage
-router.delete('/collaterals/:id', async (req: Request, res: Response) => {
+router.delete('/collaterals/:id', requirePermission('manageTeam'), async (req: Request, res: Response) => {
   const { id } = req.params;
 
   const collateral = await prisma.gtmCollateral.findUnique({

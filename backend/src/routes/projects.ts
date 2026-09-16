@@ -3,6 +3,7 @@ import { Router, Request, Response } from 'express';
 import { PrismaClient, ProjectStatus, Priority } from '@prisma/client';
 import { AppError } from '../middleware/errorHandler';
 import { authenticateToken, AuthRequest, requirePermission } from '../middleware/auth';
+import { verifyBlockerAccess } from '../lib/contextAccess';
 
 const router = Router();
 
@@ -111,6 +112,9 @@ router.get('/:id/pulse', async (req: Request, res: Response) => {
 
 // PATCH /api/projects/:id/blockers/:blockerId/status
 router.patch('/:id/blockers/:blockerId/status', async (req: Request, res: Response) => {
+  // Outside the try: that block turns everything into a 500, which would report
+  // a 403 as a server error.
+  await verifyBlockerAccess(req.params.blockerId, (req as AuthRequest).user);
   try {
     const { blockerId } = req.params;
     const { status } = req.body;
@@ -157,7 +161,7 @@ router.get('/:id', async (req: Request, res: Response) => {
 });
 
 // POST /api/projects
-router.post('/', async (req: Request, res: Response) => {
+router.post('/', requirePermission('manageTeam'), async (req: Request, res: Response) => {
   const { name, description, client, startDate, endDate, priority, status, progress, memberIds, managerId } = req.body;
 
   if (!name || !startDate) throw new AppError('Name and start date are required', 400);
@@ -232,7 +236,7 @@ router.post('/', async (req: Request, res: Response) => {
 });
 
 // PUT /api/projects/:id
-router.put('/:id', async (req: Request, res: Response) => {
+router.put('/:id', requirePermission('manageTeam'), async (req: Request, res: Response) => {
   const { name, description, client, startDate, endDate, priority, status, progress, managerId } = req.body;
 
   const existing = await prisma.project.findUnique({ where: { id: req.params.id } });
@@ -272,7 +276,7 @@ router.put('/:id', async (req: Request, res: Response) => {
 });
 
 // DELETE /api/projects/:id
-router.delete('/:id', async (req: Request, res: Response) => {
+router.delete('/:id', requirePermission('manageTeam'), async (req: Request, res: Response) => {
   const existing = await prisma.project.findUnique({ where: { id: req.params.id } });
   if (!existing) throw new AppError('Project not found', 404);
   await prisma.project.delete({ where: { id: req.params.id } });
@@ -280,7 +284,7 @@ router.delete('/:id', async (req: Request, res: Response) => {
 });
 
 // POST /api/projects/:id/members - Add member to project
-router.post('/:id/members', async (req: Request, res: Response) => {
+router.post('/:id/members', requirePermission('manageTeam'), async (req: Request, res: Response) => {
   const { memberId, role } = req.body;
   if (!memberId) throw new AppError('memberId is required', 400);
 
@@ -304,7 +308,7 @@ router.post('/:id/members', async (req: Request, res: Response) => {
 });
 
 // PUT /api/projects/:id/members/:memberId - Update a member's role in a project
-router.put('/:id/members/:memberId', async (req: Request, res: Response) => {
+router.put('/:id/members/:memberId', requirePermission('manageTeam'), async (req: Request, res: Response) => {
   const { role } = req.body;
   const result = await prisma.projectMember.updateMany({
     where: { projectId: req.params.id, memberId: req.params.memberId },
@@ -315,7 +319,7 @@ router.put('/:id/members/:memberId', async (req: Request, res: Response) => {
 });
 
 // DELETE /api/projects/:id/members/:memberId
-router.delete('/:id/members/:memberId', async (req: Request, res: Response) => {
+router.delete('/:id/members/:memberId', requirePermission('manageTeam'), async (req: Request, res: Response) => {
   await prisma.projectMember.deleteMany({
     where: { projectId: req.params.id, memberId: req.params.memberId },
   });

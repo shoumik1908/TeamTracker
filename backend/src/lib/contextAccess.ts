@@ -74,3 +74,13 @@ export async function verifyTeamsMeetingAccess(meetingId: string, user?: any) {
   await verifyContextMember(meeting.projectId ?? undefined, undefined, user);
   return meeting;
 }
+
+/** A blocker inherits the access rule of the project/opportunity it was raised on. */
+export async function verifyBlockerAccess(blockerId: string, user?: any) {
+  const blocker = await prisma.blockerRisk.findUnique({
+    where: { id: blockerId },
+    select: { projectId: true, opportunityId: true },
+  });
+  if (!blocker) throw new AppError('Blocker not found', 404);
+  await verifyContextMember(blocker.projectId ?? undefined, blocker.opportunityId ?? undefined, user);
+}
