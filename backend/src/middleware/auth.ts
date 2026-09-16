@@ -4,8 +4,7 @@ import jwt from 'jsonwebtoken';
 import { PrismaClient } from '@prisma/client';
 import { AppError } from './errorHandler';
 import { requestContext } from '../lib/context';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-key-do-not-use-in-prod';
+import { JWT_SECRET } from '../lib/jwtSecret';
 
 export interface AuthRequest extends Request {
   user?: {
