@@ -2,6 +2,28 @@ import prisma from './prisma';
 import { AppError } from '../middleware/errorHandler';
 
 /**
+ * The member id to scope a non-admin's query by.
+ *
+ * A caller with no linked team member must match NOTHING. Passing `undefined` into a
+ * Prisma filter drops the constraint, and skipping the filter entirely has the same
+ * effect — both spellings of that bug silently returned the whole table.
+ */
+export function scopedMemberId(user?: any): string {
+  return user?.teamMemberId ?? '__no_team_member__';
+}
+
+/**
+ * Pure decision: may this caller act on a record owned by `ownerMemberId`?
+ * Admins may act on anything; everyone else only on their own. Kept free of Express
+ * and Prisma so it can be unit-tested directly.
+ */
+export function canActOnOwnedRecord(ownerMemberId: string | null | undefined, user?: any): boolean {
+  if (user?.permissions?.manageTeam) return true;
+  if (!user?.teamMemberId) return false;
+  return ownerMemberId === user.teamMemberId;
+}
+
+/**
  * Access rule for anything that hangs off a project or a pre-sales opportunity.
  *
  * Lifted verbatim from documentation.ts, which was the only router enforcing it,

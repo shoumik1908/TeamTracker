@@ -348,6 +348,12 @@ router.put('/:id', uploadImage.single('profilePicture'), async (req: Request, re
 // GET /api/members/:id/resume-profile
 router.get('/:id/resume-profile', async (req: Request, res: Response) => {
   const { id } = req.params;
+  // Raw CV text and generated resumes are personal: same rule this file already
+  // applies to viewing and editing a profile.
+  const user = (req as AuthRequest).user;
+  if (!user?.permissions?.manageTeam && user?.teamMemberId !== id) {
+    throw new AppError('Forbidden: You can only view your own resume profile', 403);
+  }
   const resumeProfile = await prisma.resumeProfile.findFirst({
     where: { memberId: id },
     orderBy: { uploadedAt: 'desc' },

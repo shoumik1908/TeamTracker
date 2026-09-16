@@ -10,6 +10,7 @@ import { matchCertificateTitle } from '../services/certMatcher';
 import { matchTeamMember } from '../utils/fuzzyMatch';
 import { buildEditRequestUpdate, createEditRequestNotificationMessage } from '../services/certificateEditRequest';
 import { normalizeCredentialId } from '../services/certificateVerification';
+import { canActOnOwnedRecord } from '../lib/contextAccess';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const fuzz = require('fuzzball') as {
@@ -19,6 +20,14 @@ const fuzz = require('fuzzball') as {
 const router = Router();
 
 router.use(authenticateToken);
+
+// An assignment belongs to a member: admins act on any, everyone else only on their
+// own. PUT /assignments/:id already enforced this inline; the routes below did not.
+function assertOwnsAssignment(assignmentMemberId: string, req: Request, action: string) {
+  if (!canActOnOwnedRecord(assignmentMemberId, (req as AuthRequest).user)) {
+    throw new AppError(`Forbidden: You can only ${action} your own certification assignments`, 403);
+  }
+}
 
 // ============ CERTIFICATION CATALOG ============
 
@@ -80,7 +89,7 @@ router.get('/:id', async (req: Request, res: Response) => {
 });
 
 // POST /api/certifications - Create catalog entry
-router.post('/', async (req: Request, res: Response) => {
+router.post('/', requirePermission('manageTeam'), async (req: Request, res: Response) => {
   const { name, provider, description, duration, learningLink } = req.body;
   if (!name || !provider) throw new AppError('Name and provider are required', 400);
 
@@ -91,7 +100,7 @@ router.post('/', async (req: Request, res: Response) => {
 });
 
 // PUT /api/certifications/:id
-router.put('/:id', async (req: Request, res: Response) => {
+router.put('/:id', requirePermission('manageTeam'), async (req: Request, res: Response) => {
   const { name, provider, description, duration, learningLink } = req.body;
   const cert = await prisma.certification.update({
     where: { id: req.params.id },
@@ -101,7 +110,7 @@ router.put('/:id', async (req: Request, res: Response) => {
 });
 
 // DELETE /api/certifications/:id
-router.delete('/:id', async (req: Request, res: Response) => {
+router.delete('/:id', requirePermission('manageTeam'), async (req: Request, res: Response) => {
   await prisma.certification.delete({ where: { id: req.params.id } });
   res.json({ message: 'Certification deleted' });
 });
@@ -160,7 +169,7 @@ router.get('/assignments/all', async (req: Request, res: Response) => {
 });
 
 // POST /api/certifications/assign - Assign cert to member
-router.post('/assign', async (req: Request, res: Response) => {
+router.post('/assign', requirePermission('manageTeam'), async (req: Request, res: Response) => {
   const { memberId, certificationId, deadline, priority, notes, assignedDate, credentialId } = req.body;
 
   if (!memberId || !certificationId || !deadline) {
@@ -425,6 +434,9 @@ router.post('/certificate/upload-universal', upload.single('certificate'), async
   const normalizedCredentialId = normalizeCredentialId(credentialId);
   if (!memberId || !certificationId) throw new AppError('memberId and certificationId are required', 400);
 
+  // memberId is caller-supplied: a non-admin may only upload against themselves.
+  assertOwnsAssignment(memberId, req, 'upload certificates for');
+
   const member = await prisma.teamMember.findUnique({
     where: { id: memberId },
     select: { name: true }
@@ -562,6 +574,7 @@ router.post('/assignments/:id/certificate', upload.single('certificate'), async 
     include: { member: true, certification: true },
   });
   if (!existing) throw new AppError('Assignment not found', 404);
+  assertOwnsAssignment(existing.memberId, req, 'upload certificates for');
 
   let url = existing.certificateUrl;
   let uploadDate = existing.uploadDate;
@@ -637,6 +650,8 @@ router.delete('/assignments/:id/certificate', async (req: Request, res: Response
     where: { id },
   });
   if (!existing) throw new AppError('Assignment not found', 404);
+  // Before the blob is touched, not after.
+  assertOwnsAssignment(existing.memberId, req, 'delete certificates from');
 
   // 1. Delete file from storage if it exists
   if (existing.certificateUrl) {
@@ -681,6 +696,7 @@ router.delete('/assignments/:id/certificate', async (req: Request, res: Response
 router.delete('/assignments/:id', async (req: Request, res: Response) => {
   const existing = await prisma.assignedCertification.findUnique({ where: { id: req.params.id } });
   if (!existing) throw new AppError('Assignment not found', 404);
+  assertOwnsAssignment(existing.memberId, req, 'delete');
 
   if (existing.certificateUrl) {
     const blobName = extractBlobName(existing.certificateUrl);

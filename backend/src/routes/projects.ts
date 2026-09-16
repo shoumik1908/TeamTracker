@@ -3,7 +3,7 @@ import { Router, Request, Response } from 'express';
 import { PrismaClient, ProjectStatus, Priority } from '@prisma/client';
 import { AppError } from '../middleware/errorHandler';
 import { authenticateToken, AuthRequest, requirePermission } from '../middleware/auth';
-import { verifyBlockerAccess } from '../lib/contextAccess';
+import { verifyBlockerAccess, verifyContextMember, scopedMemberId } from '../lib/contextAccess';
 
 const router = Router();
 
@@ -35,7 +35,7 @@ router.get('/', async (req: Request, res: Response) => {
   if (!user?.permissions?.manageTeam) {
     where.members = {
       some: {
-        memberId: user?.teamMemberId
+        memberId: scopedMemberId(user)
       }
     };
   }
@@ -64,13 +64,16 @@ router.get('/', async (req: Request, res: Response) => {
 
 // GET /api/projects/:id/pulse
 router.get('/:id/pulse', async (req: Request, res: Response) => {
+  // Outside the try: it converts everything to a 500, which would report a 403 as a
+  // server error.
+  await verifyContextMember(req.params.id, undefined, (req as AuthRequest).user);
   try {
     const projectId = req.params.id;
     
     const [openActionItems, openBlockers, recentDecisions, project] = await Promise.all([
       prisma.meetingActionItem.findMany({
         where: { meetingRecord: { projectId }, status: 'open' },
-        include: { assignedTo: true, meetingRecord: { select: { meetingDate: true, meetingTitle: true } } },
+        include: { assignedTo: { select: { id: true, name: true, profilePictureUrl: true, designation: true } }, meetingRecord: { select: { meetingDate: true, meetingTitle: true } } },
         orderBy: { dueDate: 'asc' }
       }),
       prisma.blockerRisk.findMany({

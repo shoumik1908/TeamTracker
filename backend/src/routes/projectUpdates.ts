@@ -3,6 +3,7 @@ import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { AppError } from '../middleware/errorHandler';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
+import { verifyContextMember } from '../lib/contextAccess';
 
 const router = Router();
 
@@ -47,6 +48,8 @@ router.post('/', async (req: Request, res: Response) => {
   const memberId = user?.permissions?.manageTeam ? req.body.memberId || user?.teamMemberId : user?.teamMemberId;
 
   if (!projectId && !opportunityId) throw new AppError('projectId or opportunityId is required', 400);
+  // Posting an update to a project you are not on was previously unrestricted.
+  await verifyContextMember(projectId, opportunityId, user);
   if (!memberId) throw new AppError('memberId is required (User is not linked to a team member profile)', 400);
   if (!updateText?.trim()) throw new AppError('updateText is required', 400);
   if (!updateType) throw new AppError('updateType is required', 400);

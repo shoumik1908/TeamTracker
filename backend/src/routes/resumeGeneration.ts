@@ -1,7 +1,8 @@
 import prisma from '../lib/prisma';
 import { Router, Request, Response, NextFunction } from 'express';
 import { PrismaClient } from '@prisma/client';
-import { authenticateToken } from '../middleware/auth';
+import { authenticateToken, AuthRequest } from '../middleware/auth';
+import { canActOnOwnedRecord } from '../lib/contextAccess';
 import { AppError } from '../middleware/errorHandler';
 import { tailorResumeForJD, extractCvWithAI } from '../services/aiExtractor';
 import { uploadFile, CONTAINERS, sanitizeDirectoryName } from '../services/blobStorage';
@@ -44,6 +45,15 @@ import { createCvDocx } from '../services/docxGenerator';
 
 router.use(authenticateToken);
 
+// The :id in these routes is a team member id, and the handlers read that member's CV
+// and generate documents from it. They authenticated but never authorized.
+function assertOwnMember(req: Request) {
+  const id = (req.params as { id?: string }).id;
+  if (!canActOnOwnedRecord(id, (req as AuthRequest).user)) {
+    throw new AppError("Forbidden: You can only generate resumes for your own profile", 403);
+  }
+}
+
 // Helper function to generate DOCX and upload to Blob Storage
 async function generateAndUploadDocx(docBuffer: Buffer, fileName: string, memberId: string, memberName: string): Promise<string> {
   // Upload to Blob Storage
@@ -63,6 +73,9 @@ async function generateAndUploadDocx(docBuffer: Buffer, fileName: string, member
 
 // POST /api/resume-generation/:id/generate
 router.post('/:id/generate', async (req: Request, res: Response, next: NextFunction) => {
+  // Outside the try: it converts everything to a 500, which would report a 403 as a
+  // server error.
+  assertOwnMember(req);
   try {
     const { id } = req.params;
     
@@ -114,6 +127,7 @@ router.post('/:id/generate', async (req: Request, res: Response, next: NextFunct
 
 // POST /api/resume-generation/:id/generate-tailored
 router.post('/:id/generate-tailored', jdUpload, async (req: Request, res: Response, next: NextFunction) => {
+  assertOwnMember(req);
   try {
     const { id } = req.params;
     let { jobDescription } = req.body;

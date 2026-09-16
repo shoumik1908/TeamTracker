@@ -4,7 +4,7 @@ import { PrismaClient, Prisma } from '@prisma/client';
 import { generateSasUrl, extractBlobName, CONTAINERS, deleteFile } from '../services/blobStorage';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
 import { AppError } from '../middleware/errorHandler';
-import { verifyContextMember } from '../lib/contextAccess';
+import { verifyContextMember, scopedMemberId } from '../lib/contextAccess';
 
 const router = Router();
 
@@ -18,10 +18,12 @@ router.get('/', async (req: Request, res: Response) => {
 
     const files = [];
 
+    // A non-admin with no linked team member must see nothing, not everything: each
+    // guard below previously skipped its filter entirely when memberId was null.
     // 1. Fetch CVs
     const cvsWhere: any = { cvBlobUrl: { not: null } };
-    if (!isAdmin && memberId) {
-      cvsWhere.id = memberId;
+    if (!isAdmin) {
+      cvsWhere.id = scopedMemberId(user);
     }
 
     const membersWithCvs = await prisma.teamMember.findMany({
@@ -47,8 +49,8 @@ router.get('/', async (req: Request, res: Response) => {
 
     // 2. Fetch Certificates
     const certsWhere: any = { certificateUrl: { not: null } };
-    if (!isAdmin && memberId) {
-      certsWhere.memberId = memberId;
+    if (!isAdmin) {
+      certsWhere.memberId = scopedMemberId(user);
     }
 
     const assignedCerts = await prisma.assignedCertification.findMany({
@@ -77,9 +79,9 @@ router.get('/', async (req: Request, res: Response) => {
 
     // 3. Fetch PreSales/GTM Documents (StageChangeLogs)
     const oppsWhere: any = {};
-    if (!isAdmin && memberId) {
+    if (!isAdmin) {
       oppsWhere.assignments = {
-        some: { memberId }
+        some: { memberId: scopedMemberId(user) }
       };
     }
 
@@ -123,9 +125,9 @@ router.get('/', async (req: Request, res: Response) => {
     // 4. Fetch ProjectFile records
     // Determine allowed project IDs
     const projWhere: any = {};
-    if (!isAdmin && memberId) {
+    if (!isAdmin) {
       projWhere.members = {
-        some: { memberId }
+        some: { memberId: scopedMemberId(user) }
       };
     }
     const userProjects = await prisma.project.findMany({
@@ -138,7 +140,7 @@ router.get('/', async (req: Request, res: Response) => {
     // (a) it has a projectId and the user is in that project
     // (b) it has an opportunityId and the user is in that opportunity
     const pFilesWhere: any = {};
-    if (!isAdmin && memberId) {
+    if (!isAdmin) {
       pFilesWhere.OR = [
         { projectId: { in: Array.from(allowedProjectIds) } },
         { opportunityId: { in: Array.from(allowedOppIds) } }
