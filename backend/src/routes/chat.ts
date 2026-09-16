@@ -2,36 +2,78 @@ import prisma from '../lib/prisma';
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import { aiProvider, ChatMessage } from '../services/aiProvider';
+import { authenticateToken, AuthRequest } from '../middleware/auth';
 
 const router = express.Router();
 
-// Build live context from database
-async function buildContext(): Promise<string> {
+// This endpoint reads the database and feeds it to a model, so it must never be
+// anonymous. Everything below the gate is scoped to the caller.
+router.use(authenticateToken);
+
+// Build live context from database, scoped to what this caller may already
+// fetch through the REST API:
+//   - projects            -> projects.ts and dashboard.ts show a non-admin only
+//                            the projects they are a member of
+//   - certification data  -> dashboard.ts scopes assignments to the caller
+//   - notifications       -> notifications.ts scopes to their own + admin ones
+//   - roster and catalog  -> members.ts / certifications.ts expose these to any
+//                            authenticated user, so they stay org-wide
+// An admin (manageTeam) still gets the full organisation view, unchanged.
+async function buildContext(user: AuthRequest['user']): Promise<string> {
+  const isAdmin = !!user?.permissions?.manageTeam;
+  const teamMemberId = user?.teamMemberId ?? null;
+
+  // A non-admin with no linked roster entry has no data of their own; match
+  // nothing rather than falling through to everything.
+  const ownMember = { memberId: teamMemberId ?? '__no_team_member__' };
+  const certWhere = isAdmin ? {} : ownMember;
+  const projectWhere = isAdmin ? {} : { members: { some: ownMember } };
+
+  // An admin keeps the organisation-wide activity feed. They already receive
+  // every member, project and certification in this same context, so notification
+  // text about those entities exposes no new class of data — and scoping it here
+  // would silently empty a section that works today. A non-admin gets only their
+  // own, matching notifications.ts.
+  const notificationWhere = isAdmin
+    ? {}
+    : teamMemberId
+      ? { memberId: teamMemberId }
+      : { id: '__no_results__' };
+
   const [members, certifications, assignedCerts, projects, notifications] = await Promise.all([
     prisma.teamMember.findMany({
       include: {
-        assignedCertifications: {
-          include: { certification: true },
-        },
+        // Other people's completion detail is admin-only; the count matches
+        // what GET /api/members already returns to everyone.
+        _count: { select: { assignedCertifications: true } },
+        ...(isAdmin
+          ? { assignedCertifications: { include: { certification: true } } }
+          : {}),
         projectMembers: {
+          where: isAdmin
+            ? {}
+            : { project: { OR: [{ status: { not: 'COMPLETED' as const } }, { progress: { lt: 100 } }] } },
           include: { project: true },
         },
       },
     }),
     prisma.certification.findMany(),
     prisma.assignedCertification.findMany({
+      where: certWhere,
       include: {
         member: true,
         certification: true,
       },
     }),
     prisma.project.findMany({
+      where: projectWhere,
       include: {
         manager: true,
         members: { include: { member: true } },
       },
     }),
     prisma.notification.findMany({
+      where: notificationWhere,
       orderBy: { createdAt: 'desc' },
       take: 10,
       include: { member: true },
@@ -68,44 +110,59 @@ async function buildContext(): Promise<string> {
   const catalogList = certifications.slice(0, CATALOG_CAP).map(c => `• ${c.name} (${c.provider})`).join('\n')
     + (certifications.length > CATALOG_CAP ? `\n…and ${certifications.length - CATALOG_CAP} more` : '');
 
+  const scopeLabel = isAdmin
+    ? 'ORGANISATION-WIDE (you are talking to an administrator)'
+    : 'THIS USER ONLY — certifications, deadlines, projects and activity below belong to the person asking';
+
   const context = `
 === TEAM TRACKER DASHBOARD — LIVE DATA ===
 
 DATE: ${today.toDateString()}
+SCOPE: ${scopeLabel}
 
 --- SUMMARY ---
 Members: ${members.length}
 Certification catalog: ${certifications.length}
-Certification assignments: ${assignedCerts.length} (${statusSummary})
-Overdue certifications: ${overdue.length}
-Projects: ${projects.length} (${activeProjects.length} active, ${completedProjects.length} completed)
+Certification assignments${isAdmin ? '' : ' (yours)'}: ${assignedCerts.length} (${statusSummary})
+Overdue certifications${isAdmin ? '' : ' (yours)'}: ${overdue.length}
+Projects${isAdmin ? '' : ' (yours)'}: ${projects.length} (${activeProjects.length} active, ${completedProjects.length} completed)
 
---- TEAM MEMBERS (${members.length}) — per-member certification summary ---
+--- TEAM MEMBERS (${members.length}) ---
 ${members.map(m => {
-    const acs = m.assignedCertifications;
+    const projectNames = m.projectMembers.map(pm => pm.project?.name).filter(Boolean).join(', ') || 'None';
+    if (!isAdmin) {
+      // Matches GET /api/members: name, designation, active projects, cert count.
+      return `• ${m.name} (${m.designation || '—'}) | Certs: ${m._count.assignedCertifications} assigned | Projects: ${projectNames}`;
+    }
+    const acs = m.assignedCertifications ?? [];
     const done = acs.filter(a => a.status === 'COMPLETED').length;
-    return `• ${m.name} (${m.designation || '—'}) | Certs: ${acs.length} total, ${done} completed | Projects: ${m.projectMembers.map(pm => pm.project?.name).filter(Boolean).join(', ') || 'None'}`;
+    return `• ${m.name} (${m.designation || '—'}) | Certs: ${acs.length} total, ${done} completed | Projects: ${projectNames}`;
   }).join('\n')}
 
 --- CERTIFICATION CATALOG (${certifications.length}) ---
 ${catalogList}
 
---- OVERDUE CERTIFICATIONS (${overdue.length}) ---
+--- OVERDUE CERTIFICATIONS${isAdmin ? '' : ' — YOURS'} (${overdue.length}) ---
 ${overdue.length === 0 ? 'None! Great job.' : overdue.map(ac => `• ${ac.member?.name} → ${ac.certification?.name} (Deadline was: ${new Date(ac.deadline).toDateString()}, Progress: ${ac.progress}%)`).join('\n')}
 
---- UPCOMING DEADLINES (within 7 days, ${upcoming.length}) ---
+--- UPCOMING DEADLINES${isAdmin ? '' : ' — YOURS'} (within 7 days, ${upcoming.length}) ---
 ${upcoming.length === 0 ? 'None this week.' : upcoming.map(ac => {
     const daysLeft = Math.ceil((new Date(ac.deadline).getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
     return `• ${ac.member?.name} → ${ac.certification?.name} (${daysLeft} day${daysLeft === 1 ? '' : 's'} left)`;
   }).join('\n')}
 
---- PROJECTS (${projects.length} total) ---
+--- PROJECTS${isAdmin ? '' : ' — YOURS'} (${projects.length} total) ---
 ${projects.map(p => `• ${p.name} | Status: ${p.status} | Progress: ${p.progress}% | Priority: ${p.priority} | Team: ${p.members.map(pm => pm.member.name).join(', ') || 'None'}${p.endDate ? ` | Ends ${new Date(p.endDate).toDateString()}` : ''}`).join('\n')}
 
---- RECENT ACTIVITY (last 10 events) ---
+--- RECENT ACTIVITY${isAdmin ? '' : ' — YOURS'} (last 10 events) ---
 ${notifications.map(n => `• ${n.title}: ${n.message}`).join('\n')}
 
 ===========================================
+
+NOTE: This context is already filtered to what the person asking is allowed to
+see. If they ask about someone else's certifications, deadlines, or a project
+they are not on, say you can only report on their own and suggest they ask an
+administrator — do not guess, extrapolate, or imply the data exists.
 
 NOTE: The full list of every individual certification assignment is not included to keep responses fast. You have per-member totals, all overdue items, and all upcoming deadlines. If asked for a specific member's detailed certifications, answer from their summary and suggest opening that member's profile page for the full breakdown.
   `;
@@ -116,6 +173,7 @@ NOTE: The full list of every individual certification assignment is not included
 // POST /api/chat
 router.post('/', async (req, res) => {
   try {
+    const user = (req as AuthRequest).user;
     const { message, history = [] } = req.body;
 
     if (!message || typeof message !== 'string') {
@@ -127,7 +185,7 @@ router.post('/', async (req, res) => {
     }
 
     // Build live database context
-    const context = await buildContext();
+    const context = await buildContext(user);
 
     // System prompt
     const systemPrompt = `You are an intelligent AI assistant embedded inside the Team Tracker Dashboard — an enterprise tool for tracking team members, certifications, and projects.
