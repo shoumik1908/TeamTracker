@@ -4,6 +4,7 @@ import { PrismaClient, Prisma } from '@prisma/client';
 import { generateSasUrl, extractBlobName, CONTAINERS, deleteFile } from '../services/blobStorage';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
 import { AppError } from '../middleware/errorHandler';
+import { verifyContextMember } from '../lib/contextAccess';
 
 const router = Router();
 
@@ -213,30 +214,84 @@ router.get('/', async (req: Request, res: Response) => {
   }
 });
 
-// POST /api/files/sas
-// Generates a short-lived SAS URL for a given blobUrl and container
-router.post('/sas', async (req: Request, res: Response) => {
-  try {
-    const { blobUrl, container } = req.body;
-    
-    if (!blobUrl || !container) {
-      return res.status(400).json({ error: 'blobUrl and container are required.' });
-    }
+// Resolve one of the file ids produced by GET / back to the blob it refers to,
+// re-running that endpoint's ownership rules.
+//
+// The container is derived here from the record, never taken from the caller.
+// The previous version signed whatever { blobUrl, container } pair it was given,
+// so any authenticated member could mint a read URL for any object in the
+// storage account — other people's CVs and certificates included.
+async function resolveOwnedBlob(fileId: string, user: AuthRequest['user']) {
+  const isAdmin = !!user?.permissions?.manageTeam;
+  const memberId = user?.teamMemberId ?? null;
+  const denied = () => new AppError('Forbidden: you do not have access to this file', 403);
 
-    const blobName = extractBlobName(blobUrl);
-    
-    const sasUrl = generateSasUrl({
-      containerName: container,
-      blobName: blobName,
-      permissions: 'r', // read only
-      expiryMinutes: 15
-    });
-
-    res.json({ data: { sasUrl } });
-  } catch (error: any) {
-    console.error('Error generating SAS URL:', error);
-    res.status(500).json({ error: 'Failed to generate access URL.' });
+  if (fileId.startsWith('cv-')) {
+    const id = fileId.slice('cv-'.length);
+    const member = await prisma.teamMember.findUnique({ where: { id }, select: { cvBlobUrl: true } });
+    if (!member?.cvBlobUrl) throw new AppError('File not found', 404);
+    if (!isAdmin && id !== memberId) throw denied();
+    return { container: CONTAINERS.CVS, blobUrl: member.cvBlobUrl };
   }
+
+  if (fileId.startsWith('cert-')) {
+    const id = fileId.slice('cert-'.length);
+    const cert = await prisma.assignedCertification.findUnique({
+      where: { id },
+      select: { certificateUrl: true, memberId: true },
+    });
+    if (!cert?.certificateUrl) throw new AppError('File not found', 404);
+    if (!isAdmin && cert.memberId !== memberId) throw denied();
+    return { container: CONTAINERS.CERTIFICATES, blobUrl: cert.certificateUrl };
+  }
+
+  if (fileId.startsWith('presales-')) {
+    const id = fileId.slice('presales-'.length);
+    const log = await prisma.stageChangeLog.findUnique({
+      where: { id },
+      select: { blobUrl: true, opportunityId: true },
+    });
+    if (!log?.blobUrl) throw new AppError('File not found', 404);
+    await verifyContextMember(undefined, log.opportunityId, user);
+    return { container: CONTAINERS.PRESALES_DOCS, blobUrl: log.blobUrl };
+  }
+
+  if (fileId.startsWith('file-')) {
+    const id = fileId.slice('file-'.length);
+    const pFile = await prisma.projectFile.findUnique({
+      where: { id },
+      select: { url: true, projectId: true, opportunityId: true },
+    });
+    if (!pFile?.url) throw new AppError('File not found', 404);
+    await verifyContextMember(pFile.projectId ?? undefined, pFile.opportunityId ?? undefined, user);
+    // Same derivation GET / uses when listing the file.
+    const isProjectDoc = pFile.url.includes(`/${CONTAINERS.PROJECT_DOCS}/`) || !!pFile.projectId;
+    return { container: isProjectDoc ? CONTAINERS.PROJECT_DOCS : CONTAINERS.PRESALES_DOCS, blobUrl: pFile.url };
+  }
+
+  throw new AppError('Unrecognised file id', 400);
+}
+
+// POST /api/files/sas
+// Generates a short-lived read SAS for a file the caller is allowed to see.
+// Takes the file id from GET /api/files — never a raw blob path.
+router.post('/sas', async (req: Request, res: Response) => {
+  const { fileId } = req.body;
+
+  if (!fileId || typeof fileId !== 'string') {
+    throw new AppError('fileId is required.', 400);
+  }
+
+  const { container, blobUrl } = await resolveOwnedBlob(fileId, (req as AuthRequest).user);
+
+  const sasUrl = generateSasUrl({
+    containerName: container,
+    blobName: extractBlobName(blobUrl),
+    permissions: 'r', // read only
+    expiryMinutes: 15,
+  });
+
+  res.json({ data: { sasUrl } });
 });
 
 // DELETE /api/files/:id

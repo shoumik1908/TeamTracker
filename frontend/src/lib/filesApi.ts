@@ -27,8 +27,10 @@ export const filesApi = {
     return res.data;
   },
 
-  getSasUrl: async (blobUrl: string, container: string): Promise<{ data: { sasUrl: string } }> => {
-    const res = await api.post('/files/sas', { blobUrl, container });
+  // Send the file's id, not its blob path: the server resolves the blob and
+  // re-checks ownership, so a caller cannot ask for an arbitrary object.
+  getSasUrl: async (fileId: string): Promise<{ data: { sasUrl: string } }> => {
+    const res = await api.post('/files/sas', { fileId });
     return res.data;
   },
 

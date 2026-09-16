@@ -28,7 +28,7 @@ export default function FilesPage() {
   const queryClient = useQueryClient();
 
   const sasMutation = useMutation({
-    mutationFn: (vars: { blobUrl: string; container: string }) => filesApi.getSasUrl(vars.blobUrl, vars.container)
+    mutationFn: (fileId: string) => filesApi.getSasUrl(fileId)
   });
 
   const deleteMutation = useMutation({
@@ -56,7 +56,7 @@ export default function FilesPage() {
   };
 
   const handleAction = (file: FileItem, action: 'view' | 'download') => {
-    sasMutation.mutate({ blobUrl: file.blobUrl, container: file.container }, {
+    sasMutation.mutate(file.id, {
       onSuccess: (res) => {
         if (action === 'view') {
           window.open(res.data.sasUrl, '_blank');
