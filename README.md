@@ -69,6 +69,11 @@ npm run dev                      # Start frontend on http://localhost:5173
 5. Copy the connection string to `backend/.env`
 6. Run `npx prisma migrate deploy` to create tables
 
+> **Already have a populated database?** The migration history was squashed to a
+> single `0_init` baseline. Existing databases need a one-time
+> `npx prisma migrate resolve --applied 0_init` before the next deploy — see
+> [`backend/prisma/migrations/README.md`](backend/prisma/migrations/README.md).
+
 ## ☁️ Azure Blob Storage Setup
 
 1. Go to Azure Portal → Storage Account → Containers
