@@ -2,7 +2,6 @@ import 'dotenv/config';
 import 'express-async-errors';
 import express from 'express';
 import http from 'http';
-import jwt from 'jsonwebtoken';
 import cors from 'cors';
 import morgan from 'morgan';
 import compression from 'compression';
@@ -46,7 +45,6 @@ initMeetingMinutesRetryJob();
 initCoeSessionReminderJob();
 
 const PORT = process.env.PORT || 3001;
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-key-do-not-use-in-prod';
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 
 
