@@ -1,6 +1,7 @@
 # Render Blueprint — deploys the Team Tracker backend (Express + Prisma).
 # In Render: New + → Blueprint → pick this repo. Then set the secret env vars
-# (marked sync:false) in the dashboard. The DB/Blob are your existing Azure resources.
+# (marked sync:false) in the dashboard. The database is Supabase PostgreSQL; Blob
+# storage is Azure.
 services:
   - type: web
     name: teamtracker-backend
