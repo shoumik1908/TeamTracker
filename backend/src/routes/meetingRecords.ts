@@ -5,10 +5,22 @@ import { PrismaClient } from '@prisma/client';
 import { uploadFile, deleteFile, CONTAINERS, generateSasUrl, extractBlobName, getContainerNameFromUrl, sanitizeDirectoryName } from '../services/blobStorage';
 import { generateMeetingMinutes  } from '../services/azureOpenAIService';
 import { matchTeamMember, correctNamesInTranscript } from '../utils/fuzzyMatch';
+import { authenticateToken, AuthRequest } from '../middleware/auth';
+import { verifyContextMember, verifyMeetingRecordAccess, verifyActionItemAccess } from '../lib/contextAccess';
 
 const upload = multer({ storage: multer.memoryStorage() });
 
 const router = Router({ mergeParams: true });
+
+// These handlers return transcripts, AI minutes and freshly minted Azure SAS
+// read URLs, and can trigger paid re-analysis, so the router is authenticated
+// and every handler additionally checks the caller belongs to the project or
+// opportunity the record hangs off.
+//
+// The access checks deliberately sit OUTSIDE each handler's try/catch: those
+// blocks turn everything into a 500, which would report a 403 as a server
+// error. Thrown outside, they reach the centralized error handler intact.
+router.use(authenticateToken);
 
 // Helper to extract text from a buffer (reused from CV logic)
 async function extractText(buffer: Buffer, originalname: string, mimetype: string): Promise<string> {
@@ -42,6 +54,7 @@ async function extractText(buffer: Buffer, originalname: string, mimetype: strin
 
 // PATCH /api/meeting-records/action-items/:id/status
 router.patch('/action-items/:itemId/status', async (req, res) => {
+  await verifyActionItemAccess((req.params as any).itemId, (req as AuthRequest).user);
   try {
     const { itemId } = req.params as any;
     const { status } = req.body;
@@ -57,6 +70,10 @@ router.patch('/action-items/:itemId/status', async (req, res) => {
 
 // GET /api/projects/:projectId/meeting-records
 router.get('/', async (req, res) => {
+  {
+    const { projectId, opportunityId } = req.params as any;
+    await verifyContextMember(projectId, opportunityId, (req as AuthRequest).user);
+  }
   try {
     const { projectId, opportunityId } = req.params as any;
     const records = await prisma.meetingRecord.findMany({
@@ -101,6 +118,10 @@ router.get('/', async (req, res) => {
 
 // POST /api/projects/:projectId/meeting-records
 router.post('/', upload.fields([{ name: 'recordingFile', maxCount: 1 }, { name: 'transcriptFile', maxCount: 1 }]), async (req, res) => {
+  {
+    const { projectId, opportunityId } = req.params as any;
+    await verifyContextMember(projectId, opportunityId, (req as AuthRequest).user);
+  }
   try {
     const { projectId, opportunityId } = req.params as any;
     const { meetingTitle, meetingDate, recordingType, recordingLink, transcriptSource, transcriptPasted } = req.body;
@@ -438,6 +459,7 @@ router.post('/', upload.fields([{ name: 'recordingFile', maxCount: 1 }, { name: 
 
 // DELETE /api/projects/:projectId/meeting-records/:id
 router.delete('/:id', async (req, res) => {
+  await verifyMeetingRecordAccess((req.params as any).id, (req as AuthRequest).user);
   try {
     const { projectId, opportunityId, id } = req.params as any;
 
@@ -488,6 +510,7 @@ router.delete('/:id', async (req, res) => {
 
 // PATCH /api/projects/:projectId/meeting-records/:recordId/transcript
 router.patch('/:recordId/transcript', async (req, res) => {
+  await verifyMeetingRecordAccess((req.params as any).recordId, (req as AuthRequest).user);
   try {
     const { projectId, opportunityId, recordId } = req.params as any;
     const { transcriptText } = req.body;
@@ -512,6 +535,7 @@ router.patch('/:recordId/transcript', async (req, res) => {
 
 // PATCH /api/projects/:projectId/meeting-records/action-items/:itemId
 router.patch('/action-items/:itemId', async (req, res) => {
+  await verifyActionItemAccess((req.params as any).itemId, (req as AuthRequest).user);
   try {
     const { itemId } = req.params as any;
     const { completed } = req.body;
@@ -534,6 +558,7 @@ router.patch('/action-items/:itemId', async (req, res) => {
 
 // PATCH /api/projects/:projectId/meeting-records/:recordId/reanalyze
 router.post('/:recordId/reanalyze', async (req, res) => {
+  await verifyMeetingRecordAccess((req.params as any).recordId, (req as AuthRequest).user);
   try {
     const { projectId, opportunityId, recordId } = req.params as any;
 

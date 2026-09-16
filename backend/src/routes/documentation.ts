@@ -5,42 +5,11 @@ import crypto from 'crypto';
 import { deleteFile, generateSasUrl, extractBlobName, CONTAINERS, accountName } from '../services/blobStorage';
 import { AppError } from '../middleware/errorHandler';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
+import { verifyContextMember } from '../lib/contextAccess';
 
 const router = Router({ mergeParams: true });
 
 router.use(authenticateToken);
-
-// Helper to verify that the team member is assigned to the context (project or opportunity)
-async function verifyContextMember(projectId?: string, opportunityId?: string, user?: any) {
-  if (!user) {
-    throw new AppError('User context is required to perform this action.', 401);
-  }
-  
-  if (user.permissions?.manageTeam) {
-    return; // Admin always has access
-  }
-
-  const memberId = user.teamMemberId;
-  if (!memberId) {
-    throw new AppError('Access denied. No team member profile associated.', 403);
-  }
-
-  if (projectId) {
-    const isMember = await prisma.projectMember.findFirst({
-      where: { projectId, memberId },
-    });
-    if (isMember) return;
-    const project = await prisma.project.findUnique({ where: { id: projectId } });
-    if (project && project.managerId === memberId) return;
-  } else if (opportunityId) {
-    const isMember = await prisma.projectMember.findFirst({
-      where: { opportunityId, memberId },
-    });
-    if (isMember) return;
-  }
-
-  throw new AppError('Access denied. Only team members assigned to this context can view its documentation.', 403);
-}
 
 // GET /api/projects/:projectId/documentation (or presales/:opportunityId)
 // Fetch all files, links, and notes for the project/opportunity
