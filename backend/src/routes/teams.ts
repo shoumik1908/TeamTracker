@@ -2,12 +2,20 @@ import prisma from '../lib/prisma';
 import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { generateMeetingSummary } from '../services/aiSummaryService';
+import { authenticateToken, AuthRequest } from '../middleware/auth';
+import { verifyContextMember, verifyTeamsMeetingAccess } from '../lib/contextAccess';
 
 const router = Router();
 
+// index.ts mounts this router at the bare '/api' prefix, so a blanket
+// router.use(authenticateToken) would also run for every unmatched /api path and
+// turn today's 404 into a 401. Gate each route instead.
+
 // GET /api/projects/:projectId/meetings - Fetch meetings from DB
-router.get('/projects/:projectId/meetings', async (req: Request, res: Response) => {
+router.get('/projects/:projectId/meetings', authenticateToken, async (req: Request, res: Response) => {
   const { projectId } = req.params;
+  await verifyContextMember(projectId, undefined, (req as AuthRequest).user);
+
   const meetings = await prisma.teamsMeeting.findMany({
     where: { projectId },
     orderBy: { startTime: 'desc' },
@@ -16,8 +24,9 @@ router.get('/projects/:projectId/meetings', async (req: Request, res: Response) 
 });
 
 // POST /api/projects/:projectId/sync-meetings - Fetch new meetings (MOCK)
-router.post('/projects/:projectId/sync-meetings', async (req: Request, res: Response) => {
+router.post('/projects/:projectId/sync-meetings', authenticateToken, async (req: Request, res: Response) => {
   const { projectId } = req.params;
+  await verifyContextMember(projectId, undefined, (req as AuthRequest).user);
 
   const project = await prisma.project.findUnique({
     where: { id: projectId },
@@ -51,8 +60,12 @@ router.post('/projects/:projectId/sync-meetings', async (req: Request, res: Resp
 });
 
 // POST /api/meetings/:meetingId/summary - Generate AI summary
-router.post('/meetings/:meetingId/summary', async (req: Request, res: Response) => {
+router.post('/meetings/:meetingId/summary', authenticateToken, async (req: Request, res: Response) => {
   const { meetingId } = req.params;
+
+  // Resolves the meeting's project and applies the same membership rule, so this
+  // paid AI call cannot be driven by someone with no claim to the meeting.
+  await verifyTeamsMeetingAccess(meetingId, (req as AuthRequest).user);
 
   const meeting = await prisma.teamsMeeting.findUnique({ where: { id: meetingId } });
   if (!meeting) return res.status(404).json({ error: 'Meeting not found' });
