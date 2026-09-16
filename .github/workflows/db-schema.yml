@@ -1,0 +1,68 @@
+# Guards audit findings TT-001 and TT-002: the committed migration history must
+# build a database from empty, and the result must match schema.prisma exactly.
+name: Database schema
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  migrations:
+    name: Migrations build the schema
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: teamtracker
+          # No password: this container lives and dies inside this job and is
+          # reachable only on the runner's localhost. `trust` keeps a throwaway
+          # credential out of the file entirely rather than committing one.
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    defaults:
+      run:
+        working-directory: backend
+
+    env:
+      DATABASE_URL: postgresql://postgres@localhost:5432/teamtracker
+      DIRECT_URL: postgresql://postgres@localhost:5432/teamtracker
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - run: npm ci
+
+      # TT-001: this is the exact command README.md and render.yaml run. Before the
+      # squash it aborted with 42P01 "relation users does not exist".
+      - name: migrate deploy against an empty database
+        run: npx prisma migrate deploy
+
+      # TT-002: the database the migrations just built must equal schema.prisma.
+      # --exit-code makes a non-empty diff fail the job, so drift cannot be merged.
+      - name: migration history matches schema.prisma
+        run: |
+          npx prisma migrate diff \
+            --from-url "$DATABASE_URL" \
+            --to-schema-datamodel prisma/schema.prisma \
+            --script \
+            --exit-code
+
+      # Prisma Client must generate against that same schema for the build to work.
+      - name: prisma generate
+        run: npx prisma generate
