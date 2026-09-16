@@ -1,6 +1,7 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AuthProvider, type User, useAuth } from './AuthContext';
+import { SESSION_EXPIRED_EVENT } from '../lib/api';
 
 const user: User = {
   id: 'user-1',
@@ -58,6 +59,53 @@ describe('AuthProvider inactivity timeout', () => {
     expect(screen.getByText('signed-in')).toBeInTheDocument();
 
     act(() => vi.advanceTimersByTime(60 * 1000));
+    expect(screen.getByText('signed-out')).toBeInTheDocument();
+  });
+});
+
+describe('AuthProvider session-expiry handling', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  it('signs out when the api client reports an expired session', () => {
+    render(<AuthProvider><SessionHarness /></AuthProvider>);
+    fireEvent.click(screen.getByRole('button', { name: 'Sign in' }));
+    expect(screen.getByText('signed-in')).toBeInTheDocument();
+
+    act(() => {
+      window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));
+    });
+
+    expect(screen.getByText('signed-out')).toBeInTheDocument();
+    expect(localStorage.getItem('token')).toBeNull();
+    expect(localStorage.getItem('user')).toBeNull();
+  });
+
+  it('ignores a failure belonging to a session the user already replaced', () => {
+    render(<AuthProvider><SessionHarness /></AuthProvider>);
+    fireEvent.click(screen.getByRole('button', { name: 'Sign in' }));
+
+    act(() => {
+      window.dispatchEvent(new CustomEvent(SESSION_EXPIRED_EVENT, { detail: { token: 'a-previous-token' } }));
+    });
+
+    expect(screen.getByText('signed-in')).toBeInTheDocument();
+    expect(localStorage.getItem('token')).toBe('test-token');
+  });
+
+  it('ignores the event when nobody is signed in', () => {
+    render(<AuthProvider><SessionHarness /></AuthProvider>);
+    expect(screen.getByText('signed-out')).toBeInTheDocument();
+
+    act(() => {
+      window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));
+    });
+
     expect(screen.getByText('signed-out')).toBeInTheDocument();
   });
 });

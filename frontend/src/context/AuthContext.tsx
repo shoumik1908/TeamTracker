@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import { toast } from 'sonner';
+import { SESSION_EXPIRED_EVENT, type SessionExpiredDetail } from '../lib/api';
 
 const INACTIVITY_TIMEOUT_MS = 12 * 60 * 1000;
 const LAST_ACTIVITY_KEY = 'sessionLastActivity';
@@ -84,6 +86,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (permissions.manageTeam === true) return true;
     return permissions[action] === true;
   };
+
+  // The api client raises this when the server rejects our token — after a
+  // secret rotation, an expiry, or a deactivated account. Without it the app
+  // keeps rendering with a dead token and every request fails silently.
+  useEffect(() => {
+    const handleSessionExpired = (event: Event) => {
+      const rejected = (event as CustomEvent<SessionExpiredDetail>).detail?.token;
+      // Ignore duplicates, and ignore a late failure belonging to a session the
+      // user has already replaced by signing back in.
+      if (rejected && rejected !== localStorage.getItem('token')) return;
+      if (!localStorage.getItem('token')) return;
+      logout();
+      toast.error('Your session has expired. Please sign in again.');
+    };
+
+    window.addEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired);
+    return () => window.removeEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired);
+  }, []);
 
   useEffect(() => {
     if (!token) {

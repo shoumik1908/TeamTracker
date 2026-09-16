@@ -1,5 +1,26 @@
 const baseURL = (import.meta as any).env.VITE_API_URL || '/api';
 
+// Broadcast when the server rejects our token, so AuthContext can sign the user
+// out. This client runs outside React and cannot navigate on its own.
+export const SESSION_EXPIRED_EVENT = 'auth:session-expired';
+
+// Carries the token that was rejected, so a late failure from an already
+// replaced session cannot sign out a user who has since signed back in.
+export type SessionExpiredDetail = { token: string };
+
+function announceSessionExpired(token: string) {
+  window.dispatchEvent(new CustomEvent<SessionExpiredDetail>(SESSION_EXPIRED_EVENT, { detail: { token } }));
+}
+
+// 401 always means the session is gone. 403 is ambiguous: the API returns it
+// both for a dead token and for ordinary permission denials ("Forbidden:
+// Missing X permission", "Only Admins can view logs"). Signing out on every 403
+// would eject a member who merely opened a page they cannot access, so the
+// token message is the only 403 that counts.
+function isSessionExpired(status: number, error?: unknown) {
+  return status === 401 || (status === 403 && error === 'Invalid or expired token');
+}
+
 // Typed error for duplicate-certificate 409 responses
 export class DuplicateCertificateError extends Error {
   existingAssignmentId: string;
@@ -46,7 +67,11 @@ async function fetchApi(method: string, url: string, data?: any, config?: any) {
   const res = await fetch(fullUrl, options);
 
   if (config?.responseType === 'blob') {
-    if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+    if (!res.ok) {
+      // A blob response carries no readable error body, so only 401 is decidable.
+      if (token && isSessionExpired(res.status)) announceSessionExpired(token);
+      throw new Error(`HTTP error! status: ${res.status}`);
+    }
     return { data: await res.blob(), status: res.status, headers: res.headers };
   }
 
@@ -54,6 +79,11 @@ async function fetchApi(method: string, url: string, data?: any, config?: any) {
   const resData = text ? JSON.parse(text) : {};
 
   if (!res.ok) {
+    // Only a request that actually carried a token can have an expired session;
+    // a 401 from login is bad credentials, not a session to clear.
+    if (token && isSessionExpired(res.status, resData.error)) {
+      announceSessionExpired(token);
+    }
     if (res.status === 409 && resData.error === 'DUPLICATE_CERTIFICATE') {
       throw new DuplicateCertificateError(resData.message, resData.existingAssignmentId);
     }
