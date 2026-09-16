@@ -1,6 +1,7 @@
-# Guards audit findings TT-001 and TT-002: the committed migration history must
-# build a database from empty, and the result must match schema.prisma exactly.
-name: Database schema
+# Guards audit findings TT-001 and TT-002 (the committed migration history must build
+# a database from empty, and the result must match schema.prisma exactly) and runs both
+# test suites, which previously ran nowhere but a developer's machine.
+name: Database schema and tests
 
 on:
   push:
@@ -44,7 +45,9 @@ jobs:
         with:
           node-version: '20'
           cache: npm
-          cache-dependency-path: backend/package-lock.json
+          cache-dependency-path: |
+            backend/package-lock.json
+            frontend/package-lock.json
 
       - run: npm ci
 
@@ -66,3 +69,16 @@ jobs:
       # Prisma Client must generate against that same schema for the build to work.
       - name: prisma generate
         run: npx prisma generate
+
+      # The suites exist but nothing enforced them: this workflow previously stopped at
+      # prisma generate, so a change breaking every test still went green.
+      - name: backend tests
+        run: npm test
+
+      - name: frontend install
+        working-directory: frontend
+        run: npm ci
+
+      - name: frontend tests
+        working-directory: frontend
+        run: npm test
