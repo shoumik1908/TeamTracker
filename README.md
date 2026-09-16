@@ -14,7 +14,7 @@ Tracker/
 
 - Node.js v20 or v22 LTS ([nodejs.org](https://nodejs.org))
 - Git ([git-scm.com](https://git-scm.com))
-- Azure PostgreSQL Flexible Server
+- A PostgreSQL 16 database — production uses [Supabase](https://supabase.com)
 - Azure Blob Storage Account
 
 ## 🔧 Environment Setup
@@ -24,7 +24,8 @@ Tracker/
 Copy `backend/.env.example` to `backend/.env` and fill in:
 
 ```env
-DATABASE_URL="postgresql://USERNAME:PASSWORD@SERVER.postgres.database.azure.com:5432/teamtracker?sslmode=require"
+DATABASE_URL="postgresql://postgres.PROJECT_REF:PASSWORD@aws-0-REGION.pooler.supabase.com:5432/postgres"
+DIRECT_URL="postgresql://postgres.PROJECT_REF:PASSWORD@aws-0-REGION.pooler.supabase.com:5432/postgres"
 AZURE_STORAGE_CONNECTION_STRING="DefaultEndpointsProtocol=https;AccountName=..."
 AZURE_STORAGE_ACCOUNT_NAME="your-storage-account"
 PORT=3001
@@ -47,7 +48,7 @@ VITE_API_URL=http://localhost:3001
 cd backend
 npm install
 npx prisma generate
-npx prisma migrate deploy        # First time: creates tables in Azure PostgreSQL
+npx prisma migrate deploy        # First time: creates tables in PostgreSQL
 npm run seed                     # Load sample data
 npm run dev                      # Start backend on http://localhost:3001
 ```
@@ -60,14 +61,18 @@ npm install
 npm run dev                      # Start frontend on http://localhost:5173
 ```
 
-## 🗄️ Database Setup (Azure PostgreSQL)
+## 🗄️ Database Setup (Supabase PostgreSQL)
 
-1. Go to [Azure Portal](https://portal.azure.com)
-2. Create **Azure Database for PostgreSQL – Flexible Server**
-3. Create a database named `teamtracker`
-4. Add your IP to the firewall rules
-5. Copy the connection string to `backend/.env`
-6. Run `npx prisma migrate deploy` to create tables
+1. Go to the [Supabase dashboard](https://supabase.com/dashboard) and create a project
+2. Open **Project Settings → Database** and copy the connection string
+3. Set both `DATABASE_URL` and `DIRECT_URL` in `backend/.env` — `schema.prisma`
+   declares `directUrl`, and Prisma uses it for migrations and other DDL. Prefer
+   the direct/session connection for `DIRECT_URL`; the transaction pooler can
+   stall admin queries.
+4. Run `npx prisma migrate deploy` to create tables
+
+Any PostgreSQL 16 instance works for local development — nothing in the schema is
+Supabase-specific. Production happens to run on Supabase (`ap-northeast-1`).
 
 > **Already have a populated database?** The migration history was squashed to a
 > single `0_init` baseline. Existing databases need a one-time
