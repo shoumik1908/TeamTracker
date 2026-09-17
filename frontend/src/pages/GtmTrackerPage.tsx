@@ -36,6 +36,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { GtmPlan, GtmCategory, GtmPartner, GtmCampaign } from '@/types';
+import { errorMessage } from '../lib/errors';
 
 // Hashing avatar background colors
 function getAvatarBg(name: string): string {
@@ -338,7 +339,7 @@ export default function GtmTrackerPage() {
       showToast('Partner added successfully.', 'success');
       closePartnerModal();
     },
-    onError: (err: any) => showToast(err.response?.data?.error || 'Failed to save partner.', 'info')
+    onError: (err: any) => showToast(errorMessage(err, 'Failed to save partner.'), 'info')
   });
 
   const updatePartnerMutation = useMutation({
@@ -349,7 +350,7 @@ export default function GtmTrackerPage() {
       showToast('Partner updated successfully.', 'success');
       closePartnerModal();
     },
-    onError: (err: any) => showToast(err.response?.data?.error || 'Failed to update partner.', 'info')
+    onError: (err: any) => showToast(errorMessage(err, 'Failed to update partner.'), 'info')
   });
 
   const deletePartnerMutation = useMutation({
@@ -359,7 +360,7 @@ export default function GtmTrackerPage() {
       queryClient.invalidateQueries({ queryKey: ['gtm-audit'] });
       showToast('Partner deleted successfully.', 'success');
     },
-    onError: (err: any) => showToast(err.response?.data?.error || 'Failed to delete partner.', 'info')
+    onError: (err: any) => showToast(errorMessage(err, 'Failed to delete partner.'), 'info')
   });
 
   const openAddPartner = () => {
@@ -491,7 +492,7 @@ export default function GtmTrackerPage() {
       showToast('Campaign created successfully.', 'success');
       closeCampaignModal();
     },
-    onError: (err: any) => showToast(err.response?.data?.error || 'Failed to save campaign.', 'info')
+    onError: (err: any) => showToast(errorMessage(err, 'Failed to save campaign.'), 'info')
   });
 
   const updateCampaignMutation = useMutation({
@@ -501,7 +502,7 @@ export default function GtmTrackerPage() {
       showToast('Campaign updated successfully.', 'success');
       closeCampaignModal();
     },
-    onError: (err: any) => showToast(err.response?.data?.error || 'Failed to update campaign.', 'info')
+    onError: (err: any) => showToast(errorMessage(err, 'Failed to update campaign.'), 'info')
   });
 
   const deleteCampaignMutation = useMutation({
@@ -510,7 +511,7 @@ export default function GtmTrackerPage() {
       queryClient.invalidateQueries({ queryKey: ['gtm-campaigns'] });
       showToast('Campaign deleted successfully.', 'success');
     },
-    onError: (err: any) => showToast(err.response?.data?.error || 'Failed to delete campaign.', 'info')
+    onError: (err: any) => showToast(errorMessage(err, 'Failed to delete campaign.'), 'info')
   });
 
   const openAddCampaign = () => {
@@ -629,7 +630,7 @@ export default function GtmTrackerPage() {
     },
     onError: (err: any) => {
       setUploadProgress(false);
-      setUploadError(err.response?.data?.error || err.message || 'Failed to upload collateral.');
+      setUploadError(errorMessage(err, 'Failed to upload collateral.'));
     }
   });
 
@@ -639,7 +640,7 @@ export default function GtmTrackerPage() {
       queryClient.invalidateQueries({ queryKey: ['gtm-collaterals'] });
       showToast('Collateral file deleted successfully.', 'success');
     },
-    onError: (err: any) => showToast(err.response?.data?.error || 'Failed to delete collateral.', 'info')
+    onError: (err: any) => showToast(errorMessage(err, 'Failed to delete collateral.'), 'info')
   });
 
   const handleCollateralDownload = async (id: string) => {
@@ -647,7 +648,7 @@ export default function GtmTrackerPage() {
       const { downloadUrl } = await gtmApi.getCollateralDownloadUrl(id);
       window.open(downloadUrl, "_blank");
     } catch (err: any) {
-      showToast(err.response?.data?.error || 'Failed to generate download url.', 'info');
+      showToast(errorMessage(err, 'Failed to generate download url.'), 'info');
     }
   };
 

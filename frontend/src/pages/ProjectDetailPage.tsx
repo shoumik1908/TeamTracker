@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { notifyError } from '../lib/errors';
 
 // Helper to format byte sizes
 function formatBytes(bytes: number, decimals = 2) {
@@ -434,7 +435,8 @@ export default function ProjectDetailPage() {
     mutationFn: (recordId: string) => meetingRecordsApi.delete(projectId || '', recordId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['meeting-records', projectId] });
-    }
+    },
+    onError: (err) => notifyError(err, 'Could not delete the meeting record.'),
   });
 
   const toggleActionItemMutation = useMutation({
@@ -443,7 +445,8 @@ export default function ProjectDetailPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['meeting-records', projectId] });
       queryClient.invalidateQueries({ queryKey: ['project-pulse', projectId] });
-    }
+    },
+    onError: (err) => notifyError(err, 'Could not update the action item.'),
   });
 
   const reanalyzeMutation = useMutation({

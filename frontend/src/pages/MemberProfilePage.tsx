@@ -37,6 +37,7 @@ function CircularGauge({ score, size = 64 }: { score: number, size?: number }) {
 }
 import AddCertificationModal from '@/components/AddCertificationModal';
 import AddProjectModal from '@/components/AddProjectModal';
+import { notifyError } from '../lib/errors';
 
 const STATUSES = ['NOT_STARTED', 'IN_PROGRESS', 'COMPLETED', 'OVERDUE', 'EXPIRED'];
 
@@ -241,7 +242,8 @@ export default function MemberProfilePage() {
     onSuccess: (data) => {
       if (data.pdfUrl) window.open(data.pdfUrl, '_blank');
       invalidate();
-    }
+    },
+    onError: (err) => notifyError(err, 'Could not generate the resume.'),
   });
 
   const generateTailoredMutation = useMutation({
@@ -255,7 +257,8 @@ export default function MemberProfilePage() {
       setJdText('');
       if (data.pdfUrl) window.open(data.pdfUrl, '_blank');
       invalidate();
-    }
+    },
+    onError: (err) => notifyError(err, 'Could not generate the tailored resume.'),
   });
 
   const uploadCvMutation = useMutation({
@@ -290,6 +293,7 @@ export default function MemberProfilePage() {
       return membersApi.update(id!, fd);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['member'] }),
+    onError: (err) => notifyError(err, 'Could not upload the photo.'),
   });
 
   const handleCvFile = (file: File) => {

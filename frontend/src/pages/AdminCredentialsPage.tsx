@@ -2,6 +2,8 @@ import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ShieldCheck, Power, KeyRound, AlertTriangle, Search } from 'lucide-react';
 import { adminApi } from '../lib/api';
+import { toast } from 'sonner';
+import { notifyError } from '../lib/errors';
 import { getInitials } from '../lib/utils';
 
 export default function AdminCredentialsPage() {
@@ -22,21 +24,26 @@ export default function AdminCredentialsPage() {
   const updateRoleMutation = useMutation({
     mutationFn: ({ userId, roleId }: { userId: string; roleId: string }) => 
       adminApi.updateRole(userId, roleId),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-users'] })
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-users'] }),
+    onError: (err) => notifyError(err, 'Could not change the role.'),
   });
 
   const updateStatusMutation = useMutation({
     mutationFn: ({ userId, isActive }: { userId: string; isActive: boolean }) => 
       adminApi.updateStatus(userId, isActive),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-users'] })
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-users'] }),
+    onError: (err) => notifyError(err, 'Could not change the account status.'),
   });
 
   const resetPasswordMutation = useMutation({
     mutationFn: (userId: string) => adminApi.resetPassword(userId),
     onSuccess: () => {
-      alert('Password reset successfully to the default (firstname+xebia)');
+      // The old alert() blocked the page and spelled out the default password scheme,
+      // so anyone glancing at the screen learned how to guess every reset password.
+      toast.success('Password reset. The user must set a new one at next sign-in.');
       setSelectedUser(null);
-    }
+    },
+    onError: (err) => notifyError(err, 'Could not reset the password.'),
   });
 
   const filteredUsers = useMemo(() => {

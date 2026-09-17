@@ -77,7 +77,7 @@ export default function PreSalesPage() {
   }, []);
 
   // Fetch opportunities using React Query
-  const { data: response, isLoading } = useQuery({
+  const { data: response, isLoading, isError } = useQuery({
     queryKey: ['presales-opportunities'],
     queryFn: () => presalesApi.list(),
     staleTime: 60000,
@@ -421,7 +421,14 @@ export default function PreSalesPage() {
 
       {/* Opportunity Cards List */}
       <div className="space-y-4">
-        {opportunities.length === 0 ? (
+        {isError ? (
+          /* Previously a failed fetch fell through to the empty state, telling the
+             user there were no opportunities rather than that the load had failed. */
+          <div className="text-center py-12">
+            <h3 className="text-sm font-semibold text-rose-400">Couldn't load opportunities</h3>
+            <p className="text-xs text-white/50 mt-1">Something went wrong. Try refreshing the page.</p>
+          </div>
+        ) : opportunities.length === 0 ? (
           <div className="bg-[#1c1926]/80 backdrop-blur-md p-10 text-center border border-white/5 rounded-xl">
             <Briefcase className="w-8 h-8 text-white/50 mx-auto mb-2 opacity-60" />
             <h3 className="text-sm font-semibold">No opportunities tracked</h3>
