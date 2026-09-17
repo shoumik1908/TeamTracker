@@ -20,9 +20,10 @@ export function errorMessage(err: unknown, fallback = 'Something went wrong. Ple
 }
 
 /**
- * Surface a failure to the user. sonner is the only toast library with a mounted
- * <Toaster> (App.tsx) — react-hot-toast is a dependency but renders nothing, so
- * anything routed through it was silently invisible.
+ * Surface a failure to the user. sonner is the app's toast library and the only
+ * one with a mounted <Toaster> (App.tsx). ProjectsPage used to import
+ * react-hot-toast, which had no <Toaster> anywhere, so everything routed through
+ * it was invisible; that dependency has since been dropped.
  */
 export function notifyError(err: unknown, fallback?: string): void {
   toast.error(errorMessage(err, fallback));
