@@ -1,5 +1,6 @@
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import { errorMessage, notifyError } from './errors';
+import { OpaqueHttpError } from './api';
 
 vi.mock('sonner', () => ({ toast: { error: vi.fn() } }));
 import { toast } from 'sonner';
@@ -26,6 +27,20 @@ describe('errorMessage', () => {
 
   it('accepts a bare string rejection', () => {
     expect(errorMessage('something broke')).toBe('something broke');
+  });
+
+  it('prefers the fallback over a blob request\'s status-code message', () => {
+    // Report exports use responseType: 'blob', whose only message is
+    // `HTTP error! status: NNN`. Showing that to a user is worse than the
+    // caller's own wording, so the fallback wins.
+    expect(errorMessage(new OpaqueHttpError(403), 'Could not generate that report.')).toBe(
+      'Could not generate that report.',
+    );
+  });
+
+  it('still has a usable default when a blob request fails with no fallback given', () => {
+    expect(errorMessage(new OpaqueHttpError(500))).toMatch(/went wrong/i);
+    expect(errorMessage(new OpaqueHttpError(500))).not.toMatch(/HTTP error/);
   });
 
   it('has a generic default so a caller can omit the fallback', () => {

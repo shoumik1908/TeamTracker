@@ -304,7 +304,7 @@ export default function MembersPage() {
       qc.invalidateQueries({ queryKey: ['members'] });
       setCvUploadingId(null);
     },
-    onError: (err) => { setCvUploadingId(null); notifyError(err, 'Could not save the team member.'); },
+    onError: (err) => { setCvUploadingId(null); notifyError(err, 'Could not upload the CV.'); },
   });
 
   // Client-side filtering and sorting
@@ -368,6 +368,8 @@ export default function MembersPage() {
     try {
       const response = await reportsApi.workExperience(Math.floor(minimum));
       downloadBlob(response.data, `xebia-work-experience-${Math.floor(minimum)}-years-and-above.xlsx`);
+    } catch (err) {
+      notifyError(err, 'Could not generate the work experience export.');
     } finally {
       setIsExperienceExporting(false);
     }

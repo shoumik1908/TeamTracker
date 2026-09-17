@@ -21,6 +21,20 @@ function isSessionExpired(status: number, error?: unknown) {
   return status === 401 || (status === 403 && error === 'Invalid or expired token');
 }
 
+/**
+ * A failed blob request. The response body is a download, not JSON, so there is
+ * no server message to show the user — only a status code. Typed so callers can
+ * fall back to their own copy instead of surfacing "HTTP error! status: 500".
+ */
+export class OpaqueHttpError extends Error {
+  status: number;
+  constructor(status: number) {
+    super(`HTTP error! status: ${status}`);
+    this.name = 'OpaqueHttpError';
+    this.status = status;
+  }
+}
+
 // Typed error for duplicate-certificate 409 responses
 export class DuplicateCertificateError extends Error {
   existingAssignmentId: string;
@@ -70,7 +84,7 @@ async function fetchApi(method: string, url: string, data?: any, config?: any) {
     if (!res.ok) {
       // A blob response carries no readable error body, so only 401 is decidable.
       if (token && isSessionExpired(res.status)) announceSessionExpired(token);
-      throw new Error(`HTTP error! status: ${res.status}`);
+      throw new OpaqueHttpError(res.status);
     }
     return { data: await res.blob(), status: res.status, headers: res.headers };
   }

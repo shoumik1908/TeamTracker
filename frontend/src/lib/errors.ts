@@ -1,4 +1,5 @@
 import { toast } from 'sonner';
+import { OpaqueHttpError } from './api';
 
 /**
  * Pull a human-readable message off whatever a mutation rejected with.
@@ -9,6 +10,10 @@ import { toast } from 'sonner';
  * those handlers always fell through to their generic fallback (audit TT-142).
  */
 export function errorMessage(err: unknown, fallback = 'Something went wrong. Please try again.'): string {
+  // A blob request carries no readable body, so its message is only ever
+  // `HTTP error! status: NNN` — a status code is not something to put in front
+  // of a user, so the caller's own wording wins.
+  if (err instanceof OpaqueHttpError) return fallback;
   if (err instanceof Error && err.message) return err.message;
   if (typeof err === 'string' && err) return err;
   return fallback;
