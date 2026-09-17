@@ -4,6 +4,7 @@ import { PrismaClient } from '@prisma/client';
 import crypto from 'crypto';
 import { deleteFile, generateSasUrl, extractBlobName, CONTAINERS, accountName } from '../services/blobStorage';
 import { authenticateToken, AuthRequest, requirePermission } from '../middleware/auth';
+import { canActOnOwnedRecord, scopedMemberId } from '../lib/contextAccess';
 import { AppError } from '../middleware/errorHandler';
 
 const router = Router();
@@ -353,9 +354,12 @@ router.get('/collaterals', async (req: Request, res: Response) => {
   const user = (req as AuthRequest).user;
   const isAdmin = user?.permissions?.manageTeam;
   
+  // Not `if (!isAdmin && user?.teamMemberId)`: a non-admin with no linked team member
+  // then had no filter applied at all and saw every collateral. Same defect as
+  // projects.ts and presales.ts, though the audit lists it only there.
   const where: any = {};
-  if (!isAdmin && user?.teamMemberId) {
-    where.uploadedBy = user.teamMemberId;
+  if (!isAdmin) {
+    where.uploadedBy = scopedMemberId(user);
   }
 
   const collaterals = await prisma.gtmCollateral.findMany({
@@ -425,6 +429,12 @@ router.get('/collaterals/:id/download-url', async (req: Request, res: Response) 
 
   if (!collateral) {
     return res.status(404).json({ error: 'Collateral not found.' });
+  }
+
+  // Mirrors the scoping GET /collaterals applies: minting a read SAS must not hand out
+  // a file the caller cannot see in the listing.
+  if (!canActOnOwnedRecord(collateral.uploadedBy, (req as AuthRequest).user)) {
+    throw new AppError('Forbidden: you do not have access to this collateral', 403);
   }
 
   const blobName = extractBlobName(collateral.url);

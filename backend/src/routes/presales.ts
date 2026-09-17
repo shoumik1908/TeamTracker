@@ -8,6 +8,7 @@ import { analyzePresalesDocWithAI } from '../services/aiExtractor';
 import { generateProposalSummary, generateSingleSection } from '../services/azureOpenAIService';
 import { AppError } from '../middleware/errorHandler';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
+import { verifyContextMember, scopedMemberId } from '../lib/contextAccess';
 
 const router = Router();
 
@@ -78,7 +79,7 @@ router.get('/', async (req: Request, res: Response) => {
   const user = (req as AuthRequest).user;
   const where: any = {};
   if (!user?.permissions?.manageTeam) {
-    where.assignments = { some: { memberId: user?.teamMemberId } };
+    where.assignments = { some: { memberId: scopedMemberId(user) } };
   }
 
   const opportunities = await prisma.preSalesOpportunity.findMany({
@@ -543,6 +544,8 @@ router.delete('/docs/:id', async (req: Request, res: Response) => {
 
   const log = await prisma.stageChangeLog.findUnique({ where: { id } });
   if (!log) throw new AppError('Document record not found', 404);
+  // Before the blob is deleted, not after.
+  await verifyContextMember(undefined, log.opportunityId, (req as AuthRequest).user);
   if (!log.blobUrl) throw new AppError('Document already deleted or missing', 400);
 
   // Delete from ADLS Gen2

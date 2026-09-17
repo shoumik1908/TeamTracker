@@ -81,7 +81,12 @@ router.post('/files', async (req: Request, res: Response) => {
   if (!user?.permissions?.manageTeam) throw new AppError('Forbidden: Only Admins can upload documents', 403);
 
   const { projectId, opportunityId } = req.params;
-  const { blobName, fileName, fileType, size, uploadedBy } = req.body;
+  const { blobName, fileName, fileType, size } = req.body;
+  // Never from the body: this is the value the delete handler authorizes on, so
+  // accepting it from the client let a caller grant themselves delete rights.
+  // If ownership cannot be attributed, refuse rather than invent an owner.
+  const uploadedBy = (req as AuthRequest).user?.teamMemberId;
+  if (!uploadedBy) throw new AppError('No team member profile associated with this account.', 403);
 
   if (!blobName || !fileName) {
     throw new AppError('Missing required file metadata.', 400);
@@ -182,7 +187,10 @@ router.post('/links', async (req: Request, res: Response) => {
   if (!user?.permissions?.manageTeam) throw new AppError('Forbidden: Only Admins can add links', 403);
 
   const { projectId, opportunityId } = req.params;
-  const { title, url, description, addedBy } = req.body;
+  const { title, url, description } = req.body;
+  // Same reasoning as files: addedBy drives the delete check.
+  const addedBy = (req as AuthRequest).user?.teamMemberId;
+  if (!addedBy) throw new AppError('No team member profile associated with this account.', 403);
 
   if (!title || !url) {
     throw new AppError('title, url are required.', 400);
@@ -208,7 +216,7 @@ router.put('/links/:linkId', async (req: Request, res: Response) => {
   if (!user?.permissions?.manageTeam) throw new AppError('Forbidden: Only Admins can update links', 403);
 
   const { projectId, opportunityId, linkId } = req.params;
-  const { title, url, description, addedBy } = req.body;
+  const { title, url, description } = req.body;
 
   if (!title || !url) {
     throw new AppError('title, url are required.', 400);
@@ -228,7 +236,8 @@ router.put('/links/:linkId', async (req: Request, res: Response) => {
       title: title.trim(),
       url: url.trim(),
       description: description ? description.trim() : null,
-      addedBy,
+      // addedBy is deliberately not updated: editing a title must not silently
+      // reassign ownership, which is what the delete check reads.
     },
   });
 
