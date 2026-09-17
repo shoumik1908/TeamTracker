@@ -5,7 +5,8 @@ import { projectsApi, membersApi } from '@/lib/api';
 import { Plus, Search, Pencil, Trash2, Users, X, Loader2, Calendar, UserPlus, MoreVertical, Video, Play, FileText, Sparkles } from 'lucide-react';
 import { cn, formatDate, formatStatus, getStatusColor, getPriorityColor, getProgressColor } from '@/lib/utils';
 import type { Project, PaginatedResponse, TeamMember, TeamsMeeting } from '@/types';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
+import { notifyError } from '../lib/errors';
 
 const STATUSES = ['PLANNING', 'IN_PROGRESS', 'ON_HOLD', 'COMPLETED'];
 const PRIORITIES = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
@@ -199,9 +200,9 @@ export default function ProjectsPage() {
     queryFn: () => projectsApi.list({ openForEnrollment: 'true', page: 1, limit: 100 }).then(r => r.data),
   });
 
-  const create = useMutation({ mutationFn: (d: Record<string, unknown>) => projectsApi.create(d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['projects'] }); qc.invalidateQueries({ queryKey: ['projects-open'] }); qc.invalidateQueries({ queryKey: ['dashboard-stats'] }); qc.invalidateQueries({ queryKey: ['project-progress-chart'] }); setShowForm(false); } });
-  const update = useMutation({ mutationFn: ({ id, d }: { id: string; d: Record<string, unknown> }) => projectsApi.update(id, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['projects'] }); qc.invalidateQueries({ queryKey: ['projects-open'] }); qc.invalidateQueries({ queryKey: ['dashboard-stats'] }); qc.invalidateQueries({ queryKey: ['project-progress-chart'] }); setEditProject(undefined); } });
-  const del = useMutation({ mutationFn: (id: string) => projectsApi.delete(id), onSuccess: () => { qc.invalidateQueries({ queryKey: ['projects'] }); qc.invalidateQueries({ queryKey: ['projects-open'] }); qc.invalidateQueries({ queryKey: ['dashboard-stats'] }); qc.invalidateQueries({ queryKey: ['project-progress-chart'] }); setDeleteId(null); } });
+  const create = useMutation({ mutationFn: (d: Record<string, unknown>) => projectsApi.create(d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['projects'] }); qc.invalidateQueries({ queryKey: ['projects-open'] }); qc.invalidateQueries({ queryKey: ['dashboard-stats'] }); qc.invalidateQueries({ queryKey: ['project-progress-chart'] }); setShowForm(false); }, onError: (err) => notifyError(err, 'Could not save the project.') });
+  const update = useMutation({ mutationFn: ({ id, d }: { id: string; d: Record<string, unknown> }) => projectsApi.update(id, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['projects'] }); qc.invalidateQueries({ queryKey: ['projects-open'] }); qc.invalidateQueries({ queryKey: ['dashboard-stats'] }); qc.invalidateQueries({ queryKey: ['project-progress-chart'] }); setEditProject(undefined); }, onError: (err) => notifyError(err, 'Could not save the project.') });
+  const del = useMutation({ mutationFn: (id: string) => projectsApi.delete(id), onSuccess: () => { qc.invalidateQueries({ queryKey: ['projects'] }); qc.invalidateQueries({ queryKey: ['projects-open'] }); qc.invalidateQueries({ queryKey: ['dashboard-stats'] }); qc.invalidateQueries({ queryKey: ['project-progress-chart'] }); setDeleteId(null); }, onError: (err) => notifyError(err, 'Could not delete the project.') });
   
   const enroll = useMutation({
     mutationFn: (id: string) => projectsApi.enroll(id),
@@ -211,7 +212,7 @@ export default function ProjectsPage() {
       toast.success('Successfully enrolled in project!');
     },
     onError: (err: any) => {
-      toast.error(err.message || 'Failed to enroll');
+      notifyError(err, 'Failed to enroll');
     }
   });
 

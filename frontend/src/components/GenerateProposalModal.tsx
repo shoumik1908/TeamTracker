@@ -5,6 +5,7 @@ import {
   X, FileText, Trash2, Loader2, Sparkles, CheckCircle2, AlertCircle, FilePlus2, PlusCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { errorMessage } from '@/lib/errors';
 
 export type ProposalModalMode = 'generate' | 'add';
 
@@ -91,7 +92,7 @@ export default function GenerateProposalModal({
     },
     onError: (err: any) => {
       if (stepTimerRef.current) clearInterval(stepTimerRef.current);
-      setErrorMsg(err.response?.data?.error || err.message || 'Operation failed. Please try again.');
+      setErrorMsg(errorMessage(err, 'Operation failed. Please try again.'));
     },
   });
 

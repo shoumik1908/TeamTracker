@@ -10,6 +10,7 @@ import { TaskFormDialog } from './tasks/TaskFormDialog';
 import { useAssignableMembers, useUpdateTask } from '../api/tasksQueries';
 import { toast } from 'sonner';
 import { TaskRow } from '../types/tasks';
+import { errorMessage } from '@/lib/errors';
 
 class ErrorBoundary extends React.Component<any, { hasError: boolean, error: any }> {
   constructor(props: any) { super(props); this.state = { hasError: false, error: null }; }
@@ -89,7 +90,7 @@ function TeamMemberDashboardContent() {
       toast.success('Allocation percentage updated!');
     },
     onError: (err: any) => {
-      toast.error('Failed to update allocation: ' + (err.response?.data?.error || err.message));
+      toast.error(errorMessage(err, 'Failed to update allocation.'));
     }
   });
   

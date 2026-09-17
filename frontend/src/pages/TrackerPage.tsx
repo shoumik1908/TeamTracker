@@ -6,6 +6,7 @@ import { cn, formatDate, formatStatus, getStatusColor, getInitials } from '@/lib
 import type { AssignedCertification, PaginatedResponse, TeamMember, Certification } from '@/types';
 import AddCertificationModal from '@/components/AddCertificationModal';
 import { useAuth } from '@/context/AuthContext';
+import { notifyError } from '../lib/errors';
 
 const STATUSES = ['NOT_STARTED', 'IN_PROGRESS', 'COMPLETED', 'OVERDUE', 'EXPIRED'];
 const PRIORITIES = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
@@ -392,6 +393,7 @@ export default function TrackerPage() {
       qc.invalidateQueries({ queryKey: ['dashboard-stats'] });
       setShowAssign(false);
     },
+    onError: (err) => notifyError(err, 'Could not assign the certification.'),
   });
 
   const updateAssign = useMutation({
@@ -402,6 +404,7 @@ export default function TrackerPage() {
       qc.invalidateQueries({ queryKey: ['dashboard-stats'] });
       setEditAssignment(undefined);
     },
+    onError: (err) => notifyError(err, 'Could not update the assignment.'),
   });
 
   const deleteAssign = useMutation({
@@ -411,6 +414,7 @@ export default function TrackerPage() {
       qc.invalidateQueries({ queryKey: ['certifications'] });
       qc.invalidateQueries({ queryKey: ['dashboard-stats'] });
     },
+    onError: (err) => notifyError(err, 'Could not delete the assignment.'),
   });
 
   const deleteCert = useMutation({
@@ -421,6 +425,7 @@ export default function TrackerPage() {
       qc.invalidateQueries({ queryKey: ['dashboard-stats'] });
       setDeleteCertId(null);
     },
+    onError: (err) => notifyError(err, 'Could not delete the certificate.'),
   });
 
   const uploadCert = useMutation({
@@ -460,7 +465,11 @@ export default function TrackerPage() {
           message: err.message,
           existingAssignmentId: err.existingAssignmentId,
         });
+        return;
       }
+      // Anything that was not a duplicate previously fell off the end of this
+      // handler, so the upload failed in complete silence.
+      notifyError(err, 'Could not upload the certificate.');
     },
   });
 
@@ -750,7 +759,9 @@ export default function TrackerPage() {
           onSave={(changes, requestedBy) => {
             certificationsApi.requestEdit(requestEditFor.id, { proposedChanges: changes, requestedBy })
               .then(() => setRequestEditFor(null))
-              .catch(console.error);
+              // Was .catch(console.error): the request vanished and the modal simply
+              // sat there, so the user could not tell it had failed.
+              .catch((err) => notifyError(err, 'Could not submit the edit request.'));
           }}
         />
       )}

@@ -101,7 +101,10 @@ router.post('/users/:userId/reset-password', async (req: Request, res: Response,
       data: { passwordHash, mustChangePassword: true }
     });
 
-    res.json({ message: 'Password reset to default (firstname+xebia)' });
+    // Deliberately does not name the default scheme: this response is readable
+    // in devtools and in any log that captures bodies, and knowing the pattern
+    // is enough to guess every reset password in the system.
+    res.json({ message: 'Password reset. The user must set a new password at next sign-in.' });
   } catch (error) {
     next(error);
   }

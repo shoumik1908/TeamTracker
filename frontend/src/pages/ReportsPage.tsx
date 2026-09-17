@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { reportsApi } from '@/lib/api';
 import { FileBarChart, Download, Loader2, FileText, Table, FileSpreadsheet } from 'lucide-react';
 import { cn, downloadBlob } from '@/lib/utils';
+import { notifyError } from '../lib/errors';
 
 const REPORT_TYPES = [
   { id: 'team', label: 'Team Report', icon: '👥', description: 'All team members with their certifications and project stats' },
@@ -43,6 +44,10 @@ export default function ReportsPage() {
       };
       const response = await apiFns[type](format);
       downloadBlob(response.data, FILENAMES[type][format]);
+    } catch (err) {
+      // There was no catch at all: a failed export just stopped, leaving the button
+      // to finish its spinner as though the download had succeeded.
+      notifyError(err, 'Could not generate that report.');
     } finally {
       setLoading(null);
     }

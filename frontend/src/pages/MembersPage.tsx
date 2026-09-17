@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { notifyError } from '../lib/errors';
 import { membersApi, projectsApi, reportsApi } from '@/lib/api';
 import { Plus, Search, Pencil, Trash2, X, Upload, Loader2, MoreVertical, Filter, FileUp, FileText, Award, Download } from 'lucide-react';
 import { getInitials, cn, downloadBlob } from '@/lib/utils';
@@ -263,7 +264,7 @@ export default function MembersPage() {
       setShowForm(false); 
       setCvUploadingId(null);
     },
-    onError: () => setCvUploadingId(null)
+    onError: (err) => { setCvUploadingId(null); notifyError(err, 'Could not save the team member.'); }
   });
 
   const updateMember = useMutation({
@@ -282,12 +283,13 @@ export default function MembersPage() {
       setEditMember(undefined); 
       setCvUploadingId(null);
     },
-    onError: () => setCvUploadingId(null)
+    onError: (err) => { setCvUploadingId(null); notifyError(err, 'Could not save the team member.'); }
   });
 
   const deleteMember = useMutation({
     mutationFn: (id: string) => membersApi.delete(id),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['members'] }); qc.invalidateQueries({ queryKey: ['dashboard-stats'] }); setDeleteId(null); },
+    onError: (err) => notifyError(err, 'Could not delete the team member.'),
   });
 
   const [cvUploadingId, setCvUploadingId] = useState<string | null>(null);
@@ -303,7 +305,7 @@ export default function MembersPage() {
       qc.invalidateQueries({ queryKey: ['members'] });
       setCvUploadingId(null);
     },
-    onError: () => setCvUploadingId(null),
+    onError: (err) => { setCvUploadingId(null); notifyError(err, 'Could not upload the CV.'); },
   });
 
   // Client-side filtering and sorting
@@ -367,6 +369,8 @@ export default function MembersPage() {
     try {
       const response = await reportsApi.workExperience(Math.floor(minimum));
       downloadBlob(response.data, `xebia-work-experience-${Math.floor(minimum)}-years-and-above.xlsx`);
+    } catch (err) {
+      notifyError(err, 'Could not generate the work experience export.');
     } finally {
       setIsExperienceExporting(false);
     }

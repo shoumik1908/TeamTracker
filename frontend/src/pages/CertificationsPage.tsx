@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { certificationsApi } from '@/lib/api';
+import { notifyError } from '@/lib/errors';
 import { Plus, Search, Pencil, Trash2, ExternalLink, X, Loader2, ClipboardList } from 'lucide-react';
 import type { Certification, PaginatedResponse } from '@/types';
 
@@ -88,16 +89,19 @@ export default function CertificationsPage() {
   const create = useMutation({
     mutationFn: (d: CertFormData) => certificationsApi.create(d),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['certifications'] }); setShowForm(false); },
+    onError: (err) => notifyError(err, 'Could not create the certification.'),
   });
 
   const update = useMutation({
     mutationFn: ({ id, d }: { id: string; d: CertFormData }) => certificationsApi.update(id, d),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['certifications'] }); setEditCert(undefined); },
+    onError: (err) => notifyError(err, 'Could not update the certification.'),
   });
 
   const del = useMutation({
     mutationFn: (id: string) => certificationsApi.delete(id),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['certifications'] }); setDeleteId(null); },
+    onError: (err) => notifyError(err, 'Could not delete the certification.'),
   });
 
   return (
