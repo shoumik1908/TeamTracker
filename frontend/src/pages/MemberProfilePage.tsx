@@ -384,6 +384,7 @@ export default function MemberProfilePage() {
   const removeProject = useMutation({
     mutationFn: (pm: ProjectMemberWithProject) => projectsApi.removeMember(pm.projectId, member!.id),
     onSuccess: invalidate,
+    onError: (err) => notifyError(err, 'Could not remove the member from that project.'),
   });
 
   const updateRole = useMutation({
@@ -1005,7 +1006,13 @@ export default function MemberProfilePage() {
                         {canEdit && (
                           <ProjectMenu
                             onEditRole={() => { setRoleInput(pm.role || ''); setEditRolePm(pm); }}
-                            onRemove={() => removeProject.mutate(pm)}
+                            onRemove={() => {
+                              // Was an immediate delete. confirm() matches the CV
+                              // removal already in this file.
+                              if (confirm(`Remove ${member?.name ?? 'this member'} from ${pm.project.name}?`)) {
+                                removeProject.mutate(pm);
+                              }
+                            }}
                           />
                         )}
                       </div>

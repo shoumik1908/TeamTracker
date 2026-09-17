@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { cn, formatRelative } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
+import { notifyError } from '@/lib/errors';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -133,6 +134,8 @@ function UpdateForm({
     if (!isEdit && !formProjectId) { setFormError('Please select a project.'); return; }
     if (!isEdit && !formMemberId)  { setFormError('Please select a team member.'); return; }
     if (!formText.trim()) { setFormError('Please enter an update.'); return; }
+    // The counter below the box advertised a 500-character limit that nothing enforced.
+    if (formText.trim().length > 500) { setFormError('Updates are limited to 500 characters.'); return; }
     onSave({
       ...(!isEdit && { projectId: formProjectId, memberId: formMemberId }),
       updateText: formText.trim(),
@@ -220,6 +223,7 @@ function UpdateForm({
             'Share any update with the team…'
           }
           rows={4}
+          maxLength={500}
           className="w-full bg-background border border-white/5 rounded-xl px-3 py-2.5 text-sm text-foreground placeholder:text-white/50/50 focus:outline-none focus:ring-2 focus:ring-azure-500/40 transition-all resize-none"
         />
         <p className="text-right text-xs text-white/50/50 mt-1">{formText.length}/500</p>
@@ -349,6 +353,7 @@ export default function ProjectUpdatesPage() {
   const deleteMutation = useMutation({
     mutationFn: (id: string) => projectUpdatesApi.delete(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['project-updates'] }),
+    onError: (err) => notifyError(err, 'Could not delete the update.'),
   });
 
   // ── Render ───────────────────────────────────────────────────────────────
@@ -461,11 +466,17 @@ export default function ProjectUpdatesPage() {
                         <div className="flex items-center gap-1.5 flex-shrink-0">
                           <span className="text-xs text-white/50/60">{formatRelative(u.createdAt)}</span>
                           {/* ⋮ Three-dot menu */}
+                          {(user?.role?.permissions?.manageTeam || u.memberId === user?.teamMemberId) && (
                           <UpdateMenu
                             onEdit={() => setEditTarget(u)}
-                            onDelete={() => deleteMutation.mutate(u.id)}
+                            onDelete={() => {
+                              if (confirm('Delete this update? This cannot be undone.')) {
+                                deleteMutation.mutate(u.id);
+                              }
+                            }}
                             isDeleting={deleteMutation.isPending && deleteMutation.variables === u.id}
                           />
+                          )}
                         </div>
                       </div>
                       <p className="text-sm text-foreground/90 leading-relaxed">{u.updateText}</p>
