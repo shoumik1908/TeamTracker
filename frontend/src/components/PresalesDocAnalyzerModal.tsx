@@ -15,6 +15,7 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { errorMessage } from '@/lib/errors';
 
 interface GroupedOpportunity {
   name: string;
@@ -82,7 +83,7 @@ export default function PresalesDocAnalyzerModal({ grouped, onClose, onToast }: 
       setPhase('results');
     },
     onError: (err: any) => {
-      setErrorMsg(err?.response?.data?.error || err.message || 'Analysis failed. Please try again.');
+      setErrorMsg(errorMessage(err, 'Analysis failed. Please try again.'));
       setPhase('error');
     },
   });
@@ -95,7 +96,7 @@ export default function PresalesDocAnalyzerModal({ grouped, onClose, onToast }: 
       queryClient.invalidateQueries({ queryKey: ['presales-docs'] });
     },
     onError: (err: any) => {
-      onToast(err?.response?.data?.error || 'Failed to update progress.', 'info');
+      onToast(errorMessage(err, 'Failed to update progress.'), 'info');
     },
   });
 

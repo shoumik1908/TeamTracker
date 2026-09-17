@@ -6,6 +6,7 @@ import {
 import { cn } from '@/lib/utils';
 import { generateReportDocx } from '@/lib/exportDocx';
 import api from '@/lib/api';
+import { errorMessage } from '@/lib/errors';
 
 type WindowType = 'daily' | 'weekly' | 'monthly' | 'custom';
 
@@ -127,7 +128,7 @@ export default function MeetingReportView({ projectId, projectName }: { projectI
       setPeriod({ start, end });
       setReportGenTime(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }) + ' IST');
     } catch (e: any) {
-      setError(e.response?.data?.error || e.response?.data?.message || e.message);
+      setError(errorMessage(e));
     } finally {
       setLoading(false);
     }

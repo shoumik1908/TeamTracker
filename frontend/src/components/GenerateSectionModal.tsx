@@ -5,6 +5,7 @@ import {
   X, FileText, Trash2, Loader2, Sparkles, CheckCircle2, AlertCircle, FilePlus2, Check, ArrowLeft
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { errorMessage } from '@/lib/errors';
 
 interface GenerateSectionModalProps {
   opportunityId: string;
@@ -69,7 +70,7 @@ export default function GenerateSectionModal({
       }
     },
     onError: (err: any) => {
-      setErrorMsg(err.response?.data?.error || err.message || 'Operation failed. Please try again.');
+      setErrorMsg(errorMessage(err, 'Operation failed. Please try again.'));
       setFlowState('upload');
     },
   });
@@ -86,7 +87,7 @@ export default function GenerateSectionModal({
       setTimeout(() => onClose(), 1500);
     },
     onError: (err: any) => {
-      setErrorMsg(err.response?.data?.error || err.message || 'Failed to save section.');
+      setErrorMsg(errorMessage(err, 'Failed to save section.'));
       setFlowState('confirm');
     }
   });

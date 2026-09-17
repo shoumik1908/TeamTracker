@@ -66,6 +66,7 @@ import {
 , Download } from 'lucide-react';
 import { cn, extractMeetingDate } from '@/lib/utils';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { errorMessage } from '@/lib/errors';
 
 // Helper to format byte sizes
 function formatBytes(bytes: number, decimals = 2) {
@@ -255,7 +256,7 @@ export default function PreSalesDetailPage() {
       setUploadError(null);
     },
     onError: (err: any) => {
-      setUploadError(err.response?.data?.error || err.message || 'Failed to upload file.');
+      setUploadError(errorMessage(err, 'Failed to upload file.'));
     }
   });
 
@@ -265,7 +266,7 @@ export default function PreSalesDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['presales-opportunity', opportunityId] });
     },
     onError: (err: any) => {
-      alert(err.response?.data?.error || 'Failed to delete file.');
+      alert(errorMessage(err, 'Failed to delete file.'));
     }
   });
 
@@ -281,7 +282,7 @@ export default function PreSalesDetailPage() {
       closeLinkForm();
     },
     onError: (err: any) => {
-      setLinkError(err.response?.data?.error || 'Failed to save link.');
+      setLinkError(errorMessage(err, 'Failed to save link.'));
     }
   });
 
@@ -291,7 +292,7 @@ export default function PreSalesDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['presales-opportunity', opportunityId] });
     },
     onError: (err: any) => {
-      alert(err.response?.data?.error || 'Failed to delete link.');
+      alert(errorMessage(err, 'Failed to delete link.'));
     }
   });
 
@@ -307,7 +308,7 @@ export default function PreSalesDetailPage() {
       closeNoteForm();
     },
     onError: (err: any) => {
-      setNoteError(err.response?.data?.error || 'Failed to save note.');
+      setNoteError(errorMessage(err, 'Failed to save note.'));
     }
   });
 
@@ -317,7 +318,7 @@ export default function PreSalesDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['presales-opportunity', opportunityId] });
     },
     onError: (err: any) => {
-      alert(err.response?.data?.error || 'Failed to delete note.');
+      alert(errorMessage(err, 'Failed to delete note.'));
     }
   });
 
@@ -418,7 +419,7 @@ export default function PreSalesDetailPage() {
       setEditingSectionKey(null);
     },
     onError: (err: any) => {
-      alert(err.response?.data?.error || 'Failed to update section.');
+      alert(errorMessage(err, 'Failed to update section.'));
     }
   });
 
@@ -434,7 +435,7 @@ export default function PreSalesDetailPage() {
       setSelectedMembersToAssign(new Set());
     },
     onError: (err: any) => {
-      alert(err.response?.data?.error || 'Failed to assign members.');
+      alert(errorMessage(err, 'Failed to assign members.'));
     }
   });
 
@@ -444,7 +445,7 @@ export default function PreSalesDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['presales-opportunity', opportunityId] });
     },
     onError: (err: any) => {
-      alert(err.response?.data?.error || 'Failed to remove member.');
+      alert(errorMessage(err, 'Failed to remove member.'));
     }
   });
 
@@ -471,7 +472,7 @@ export default function PreSalesDetailPage() {
       }
     },
     onError: (err: any) => {
-      alert(err.response?.data?.error || 'Failed to create record');
+      alert(errorMessage(err, 'Failed to create record'));
     }
   });
 
@@ -496,7 +497,7 @@ export default function PreSalesDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['presales-meeting-records', opportunityId] });
     },
     onError: (err: any) => {
-      alert(err.response?.data?.error || 'Failed to re-analyze transcript');
+      alert(errorMessage(err, 'Failed to re-analyze transcript'));
     }
   });
 
@@ -507,7 +508,7 @@ export default function PreSalesDetailPage() {
       setEditingTranscriptId(null);
     },
     onError: (err: any) => {
-      alert(err.response?.data?.error || 'Failed to update transcript');
+      alert(errorMessage(err, 'Failed to update transcript'));
     }
   });
 
@@ -561,7 +562,7 @@ export default function PreSalesDetailPage() {
       const { data: { downloadUrl } } = await presalesDocumentationApi.getDownloadUrl(opportunityId || '', fileId, actingMemberId);
       window.open(downloadUrl, "_blank");
     } catch (err: any) {
-      alert(err.response?.data?.error || 'Failed to generate download link.');
+      alert(errorMessage(err, 'Failed to generate download link.'));
     }
   };
 

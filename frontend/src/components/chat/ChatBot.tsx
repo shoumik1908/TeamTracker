@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { MessageCircle, X, Send, Bot, User, Loader2, Minimize2, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import api from '@/lib/api';
+import { errorMessage } from '@/lib/errors';
 
 interface Message {
   id: string;
@@ -87,7 +88,7 @@ export default function ChatBot() {
 
       setMessages(prev => [...prev, assistantMessage]);
     } catch (error: any) {
-      const errMsg = error.response?.data?.error || 'Something went wrong. Please try again.';
+      const errMsg = errorMessage(error, 'Something went wrong. Please try again.');
       const isRateLimit = error.response?.status === 429;
       setMessages(prev => [...prev, {
         id: (Date.now() + 1).toString(),

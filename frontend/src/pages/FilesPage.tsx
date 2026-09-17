@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import { errorMessage } from '@/lib/errors';
 
 export default function FilesPage() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -37,7 +38,7 @@ export default function FilesPage() {
       queryClient.invalidateQueries({ queryKey: ['files'] });
     },
     onError: (err: any) => {
-      alert(err?.response?.data?.error || 'Failed to delete file.');
+      alert(errorMessage(err, 'Failed to delete file.'));
     }
   });
 
@@ -70,7 +71,7 @@ export default function FilesPage() {
         }
       },
       onError: (err: any) => {
-        alert(err?.response?.data?.error || 'Failed to access file.');
+        alert(errorMessage(err, 'Failed to access file.'));
       }
     });
   };

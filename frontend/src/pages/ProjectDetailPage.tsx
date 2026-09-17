@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { notifyError } from '../lib/errors';
+import { errorMessage, notifyError } from '../lib/errors';
 
 // Helper to format byte sizes
 function formatBytes(bytes: number, decimals = 2) {
@@ -220,7 +220,7 @@ export default function ProjectDetailPage() {
       setUploadError(null);
     },
     onError: (err: any) => {
-      setUploadError(err.response?.data?.error || err.message || 'Failed to upload file.');
+      setUploadError(errorMessage(err, 'Failed to upload file.'));
     }
   });
 
@@ -230,7 +230,7 @@ export default function ProjectDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['project-documentation', projectId] });
     },
     onError: (err: any) => {
-      alert(err.response?.data?.error || 'Failed to delete file.');
+      alert(errorMessage(err, 'Failed to delete file.'));
     }
   });
 
@@ -246,7 +246,7 @@ export default function ProjectDetailPage() {
       closeLinkForm();
     },
     onError: (err: any) => {
-      setLinkError(err.response?.data?.error || 'Failed to save link.');
+      setLinkError(errorMessage(err, 'Failed to save link.'));
     }
   });
 
@@ -256,7 +256,7 @@ export default function ProjectDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['project-documentation', projectId] });
     },
     onError: (err: any) => {
-      alert(err.response?.data?.error || 'Failed to delete link.');
+      alert(errorMessage(err, 'Failed to delete link.'));
     }
   });
 
@@ -272,7 +272,7 @@ export default function ProjectDetailPage() {
       closeNoteForm();
     },
     onError: (err: any) => {
-      setNoteError(err.response?.data?.error || 'Failed to save note.');
+      setNoteError(errorMessage(err, 'Failed to save note.'));
     }
   });
 
@@ -282,7 +282,7 @@ export default function ProjectDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['project-documentation', projectId] });
     },
     onError: (err: any) => {
-      alert(err.response?.data?.error || 'Failed to delete note.');
+      alert(errorMessage(err, 'Failed to delete note.'));
     }
   });
 
@@ -374,7 +374,7 @@ export default function ProjectDetailPage() {
       setIsEditingDescription(false);
     },
     onError: (err: any) => {
-      alert(err.response?.data?.error || 'Failed to update project.');
+      alert(errorMessage(err, 'Failed to update project.'));
     }
   });
 
@@ -392,7 +392,7 @@ export default function ProjectDetailPage() {
       setSelectedMembersToAssign(new Set());
     },
     onError: (err: any) => {
-      alert(err.response?.data?.error || 'Failed to assign members.');
+      alert(errorMessage(err, 'Failed to assign members.'));
     }
   });
 
@@ -402,7 +402,7 @@ export default function ProjectDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['project-documentation', projectId] });
     },
     onError: (err: any) => {
-      alert(err.response?.data?.error || 'Failed to remove member.');
+      alert(errorMessage(err, 'Failed to remove member.'));
     }
   });
 
@@ -427,7 +427,7 @@ export default function ProjectDetailPage() {
       }
     },
     onError: (err: any) => {
-      alert(err.response?.data?.error || 'Failed to create record');
+      alert(errorMessage(err, 'Failed to create record'));
     }
   });
 
@@ -455,7 +455,7 @@ export default function ProjectDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['meeting-records', projectId] });
     },
     onError: (err: any) => {
-      alert(err.response?.data?.error || 'Failed to re-analyze transcript');
+      alert(errorMessage(err, 'Failed to re-analyze transcript'));
     }
   });
 
@@ -466,7 +466,7 @@ export default function ProjectDetailPage() {
       setEditingTranscriptId(null);
     },
     onError: (err: any) => {
-      alert(err.response?.data?.error || 'Failed to update transcript');
+      alert(errorMessage(err, 'Failed to update transcript'));
     }
   });
 
@@ -529,7 +529,7 @@ export default function ProjectDetailPage() {
       const { data: { downloadUrl } } = await documentationApi.getDownloadUrl(projectId || '', fileId, actingMemberId);
       window.open(downloadUrl, "_blank");
     } catch (err: any) {
-      alert(err.response?.data?.error || 'Failed to generate download link.');
+      alert(errorMessage(err, 'Failed to generate download link.'));
     }
   };
 
