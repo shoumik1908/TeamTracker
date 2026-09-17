@@ -289,6 +289,7 @@ export default function MembersPage() {
   const deleteMember = useMutation({
     mutationFn: (id: string) => membersApi.delete(id),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['members'] }); qc.invalidateQueries({ queryKey: ['dashboard-stats'] }); setDeleteId(null); },
+    onError: (err) => notifyError(err, 'Could not delete the team member.'),
   });
 
   const [cvUploadingId, setCvUploadingId] = useState<string | null>(null);
