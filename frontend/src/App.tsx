@@ -2,6 +2,7 @@ import React, { Suspense } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Layout from './components/layout/Layout';
 import LoginPage from './pages/LoginPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import RequirePermission from './components/auth/RequirePermission';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -47,6 +48,8 @@ export default function App() {
         <Toaster richColors position="top-right" />
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          {/* Public: reached from a single-use reset link, so there is no session yet. */}
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/" element={<ProtectedRoute />}>
             <Route element={<Layout />}>
               <Route index element={<DashboardRouter />} />

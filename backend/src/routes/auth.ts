@@ -6,6 +6,7 @@ import jwt from 'jsonwebtoken';
 import { AppError } from '../middleware/errorHandler';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
 import { JWT_SECRET } from '../lib/jwtSecret';
+import { readUserIdFromToken, verifyResetToken } from '../services/passwordResetToken';
 
 const router = Router();
 
@@ -221,6 +222,43 @@ router.post('/change-password', authenticateToken, async (req: AuthRequest, res:
     const token = generateToken(updatedUser, updatedUser.role);
 
     res.json({ message: 'Password updated successfully', token, user: { ...updatedUser, passwordHash: undefined } });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// POST /api/auth/reset-password
+// Public: the caller has a reset link, not a session. Rate limited in index.ts.
+router.post('/reset-password', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { token, newPassword } = req.body;
+    if (!token || !newPassword) {
+      throw new AppError('Reset token and new password are required', 400);
+    }
+    assertPasswordAcceptable(newPassword);
+
+    // Deliberately one generic message for every failure below: a caller must not be
+    // able to tell an unknown token from a spent one, or learn whether an account
+    // exists, by comparing responses.
+    const invalid = () => new AppError('This reset link is invalid or has already been used.', 400);
+
+    const userId = readUserIdFromToken(token);
+    if (!userId) throw invalid();
+
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw invalid();
+
+    // Verified against the user's CURRENT hash, so a link that has already been used
+    // — or that predates any other password change — no longer verifies.
+    if (!verifyResetToken(token, user.passwordHash)) throw invalid();
+
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { passwordHash, mustChangePassword: false },
+    });
+
+    res.json({ message: 'Password updated. You can now sign in.' });
   } catch (error) {
     next(error);
   }

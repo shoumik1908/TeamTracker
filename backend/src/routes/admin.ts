@@ -3,6 +3,7 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
+import { createResetToken, RESET_TOKEN_TTL_MINUTES } from '../services/passwordResetToken';
 import { AppError } from '../middleware/errorHandler';
 import { authenticateToken, AuthRequest, requirePermission } from '../middleware/auth';
 
@@ -139,23 +140,31 @@ router.post('/users/:userId/reset-password', async (req: Request, res: Response,
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new AppError('User not found', 404);
 
-    // TT-028: the reset password used to be `firstname+xebia`, so knowing anyone's
-    // name was enough to take their account after a reset — and the scheme is the
-    // same for every user. Now a one-time random value.
-    const newPwd = crypto.randomBytes(18).toString('base64url');
-    const passwordHash = await bcrypt.hash(newPwd, 10);
+    // TT-028: the reset password used to be `firstname+xebia`, so knowing a name was
+    // enough to take an account after a reset. Making it random fixed that but left
+    // nobody able to tell the user what it was, so a reset now issues a single-use
+    // link instead of a password.
+    //
+    // The stored hash is overwritten with an unusable random value first: this is a
+    // reset, so the old password must stop working immediately, and the token is
+    // derived from the new hash so it dies the moment it is used.
+    const unusable = crypto.randomBytes(32).toString('base64url');
+    const passwordHash = await bcrypt.hash(unusable, 10);
 
     await prisma.user.update({
       where: { id: userId },
       data: { passwordHash, mustChangePassword: true }
     });
 
-    // Returned once, to the admin who just performed the reset, so they can pass it
-    // on — there is no email delivery in this system. It is single-use in practice:
-    // mustChangePassword forces a change at next sign-in.
+    const resetToken = createResetToken(userId, passwordHash);
+
+    // The token, not a password. There is no mail delivery here, so the admin passes
+    // the link on through whatever channel they already use; it is single-use and
+    // expires, and the account is unreachable until someone uses it.
     res.json({
-      message: 'Password reset. Share this one-time password with the user; they must change it at next sign-in.',
-      temporaryPassword: newPwd,
+      message: 'Reset link generated. Share it with the user — it can only be used once.',
+      resetToken,
+      expiresInMinutes: RESET_TOKEN_TTL_MINUTES,
     });
   } catch (error) {
     next(error);

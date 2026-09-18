@@ -9,6 +9,9 @@ import { getInitials } from '../lib/utils';
 export default function AdminCredentialsPage() {
   const qc = useQueryClient();
   const [selectedUser, setSelectedUser] = useState<any>(null);
+  // Shown once, after a reset. The API never returns it again.
+  const [resetLink, setResetLink] = useState<{ name: string; url: string; minutes: number } | null>(null);
+  const [copied, setCopied] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
   const { data: users, isLoading, isError, error } = useQuery({
@@ -37,10 +40,22 @@ export default function AdminCredentialsPage() {
 
   const resetPasswordMutation = useMutation({
     mutationFn: (userId: string) => adminApi.resetPassword(userId),
-    onSuccess: () => {
-      // The old alert() blocked the page and spelled out the default password scheme,
-      // so anyone glancing at the screen learned how to guess every reset password.
-      toast.success('Password reset. The user must set a new one at next sign-in.');
+    onSuccess: (res: any, userId: string) => {
+      // The response body used to be discarded here, which meant the generated
+      // credential existed and nobody could ever see it — the admin had no way to
+      // tell the user how to get back in. The link is surfaced once, below.
+      const data = res?.data ?? res;
+      const name = users?.find((u: any) => u.id === userId)?.name ?? 'this user';
+      if (data?.resetToken) {
+        setResetLink({
+          name,
+          url: `${window.location.origin}/reset-password?token=${encodeURIComponent(data.resetToken)}`,
+          minutes: data.expiresInMinutes ?? 60,
+        });
+        setCopied(false);
+      } else {
+        toast.success('Password reset.');
+      }
       setSelectedUser(null);
     },
     onError: (err) => notifyError(err, 'Could not reset the password.'),
@@ -183,8 +198,9 @@ export default function AdminCredentialsPage() {
               <h3 className="text-lg font-semibold text-foreground">Confirm Password Reset</h3>
             </div>
             <p className="text-white/50 text-sm mb-6">
-              Are you sure you want to reset the password for <strong>{selectedUser.name}</strong>? 
-              This will set their password to the default format and force them to change it on their next login.
+              Reset the password for <strong>{selectedUser.name}</strong>? Their current
+              password stops working immediately, and you will get a single-use link to
+              pass on so they can choose a new one.
             </p>
             <div className="flex justify-end gap-3">
               <button
@@ -199,6 +215,53 @@ export default function AdminCredentialsPage() {
                 className="px-4 py-2 text-sm font-medium text-white bg-amber-600 hover:bg-amber-700 rounded-lg transition-colors disabled:opacity-50"
               >
                 {resetPasswordMutation.isPending ? 'Resetting...' : 'Yes, Reset Password'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Shown once: this is the only time the link is available. */}
+      {resetLink && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-[#1c1926]/80 backdrop-blur-md rounded-xl shadow-xl w-full max-w-lg p-6">
+            <div className="flex items-center gap-3 mb-4 text-azure-400">
+              <KeyRound className="w-6 h-6" />
+              <h3 className="text-lg font-semibold text-foreground">Reset link for {resetLink.name}</h3>
+            </div>
+            <p className="text-white/60 text-sm mb-3">
+              Send this to {resetLink.name}. It can be used once and expires in {resetLink.minutes} minutes.
+              <strong className="text-amber-400"> It will not be shown again.</strong>
+            </p>
+            <div className="flex gap-2 mb-5">
+              <input
+                readOnly
+                value={resetLink.url}
+                aria-label="Password reset link"
+                onFocus={e => e.currentTarget.select()}
+                className="flex-1 px-3 py-2 text-xs bg-background border border-white/10 rounded-lg text-foreground font-mono"
+              />
+              <button
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(resetLink.url);
+                    setCopied(true);
+                  } catch {
+                    // Clipboard access can be refused; the field is selectable as a fallback.
+                    toast.error('Could not copy. Select the link and copy it manually.');
+                  }
+                }}
+                className="px-3 py-2 text-xs font-medium bg-azure-500 text-white rounded-lg hover:bg-azure-600 whitespace-nowrap"
+              >
+                {copied ? 'Copied' : 'Copy'}
+              </button>
+            </div>
+            <div className="flex justify-end">
+              <button
+                onClick={() => setResetLink(null)}
+                className="px-4 py-2 text-sm font-medium text-white bg-muted hover:bg-muted/80 rounded-lg"
+              >
+                Done
               </button>
             </div>
           </div>

@@ -19,8 +19,11 @@ export default function ChangePasswordPage() {
   const [success, setSuccess] = useState(false);
 
   const passwordRules = [
-    { label: 'At least 8 characters', ok: newPassword.length >= 8 },
-    { label: 'At least one uppercase letter', ok: /[A-Z]/.test(newPassword) },
+    // Must match assertPasswordAcceptable in backend/src/routes/auth.ts — this page
+    // previously promised 8 characters while the server required 10, so a password
+    // the form called valid came back as a 400.
+    { label: 'At least 10 characters', ok: newPassword.length >= 10 },
+    { label: 'At least one letter', ok: /[a-zA-Z]/.test(newPassword) },
     { label: 'At least one number', ok: /[0-9]/.test(newPassword) },
   ];
   const allRulesOk = passwordRules.every(r => r.ok);
