@@ -50,6 +50,8 @@ interface Props {
 }
 
 const ACCEPTED_TYPES = '.pdf,.docx,.txt,.eml';
+const MAX_UPLOAD_MB = 15;
+const MAX_UPLOAD_BYTES = MAX_UPLOAD_MB * 1024 * 1024;
 
 /** Given a percent and stage list, return the stage name it falls into */
 function percentToStageName(percent: number, stages: string[]): string {
@@ -146,7 +148,22 @@ export default function PresalesDocAnalyzerModal({ grouped, onClose, onToast }: 
     setCards(newCards);
   }
 
+  // TT-127: any file of any size was accepted and sent straight to the AI document
+  // endpoint. The accept attribute below is only a picker hint — it is trivially
+  // bypassed by drag-and-drop — so the check belongs here too.
   function handleFileSelect(file: File) {
+    const dot = file.name.lastIndexOf('.');
+    const ext = dot === -1 ? '' : file.name.slice(dot + 1).toLowerCase();
+    if (!ACCEPTED_TYPES.includes(`.${ext}`)) {
+      setSelectedFile(null);
+      setErrorMsg(`Unsupported file type ".${ext || 'unknown'}". Accepted: ${ACCEPTED_TYPES}`);
+      return;
+    }
+    if (file.size > MAX_UPLOAD_BYTES) {
+      setSelectedFile(null);
+      setErrorMsg(`That file is ${(file.size / 1024 / 1024).toFixed(1)}MB. The limit is ${MAX_UPLOAD_MB}MB.`);
+      return;
+    }
     setSelectedFile(file);
     setErrorMsg(null);
   }
@@ -292,6 +309,17 @@ export default function PresalesDocAnalyzerModal({ grouped, onClose, onToast }: 
                   </div>
                 )}
               </div>
+
+              {/* handleFileSelect rejects a file by setting errorMsg, but errorMsg was
+                  only rendered in the 'error' phase — which a client-side rejection
+                  never enters. The file was silently dropped and the user was left
+                  with a reset drop zone and a disabled button, with no reason given. */}
+              {errorMsg && (
+                <div role="alert" className="flex items-start gap-2.5 p-3 rounded-xl bg-red-950/20 border border-red-900/30">
+                  <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+                  <p className="text-xs text-red-300">{errorMsg}</p>
+                </div>
+              )}
 
               <button
                 onClick={handleAnalyze}

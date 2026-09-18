@@ -7,8 +7,37 @@ import { generateMeetingMinutes  } from '../services/azureOpenAIService';
 import { matchTeamMember, correctNamesInTranscript } from '../utils/fuzzyMatch';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
 import { verifyContextMember, verifyMeetingRecordAccess, verifyActionItemAccess } from '../lib/contextAccess';
+import { AppError } from '../middleware/errorHandler';
 
-const upload = multer({ storage: multer.memoryStorage() });
+// TT-044: this multer instance had no limits and no filter whatsoever. Combined with
+// memoryStorage that is an out-of-memory vector — an unbounded body is buffered in
+// the process — quite apart from accepting any file type.
+//
+// The two fields carry very different payloads, so they are filtered separately, to
+// match what the UI offers (video/mp4|webm|quicktime for recordings, .txt/.doc/.docx/
+// .pdf for transcripts).
+const MEETING_RECORDING_TYPES = ['video/mp4', 'video/webm', 'video/quicktime', 'audio/mpeg', 'audio/mp4', 'audio/wav', 'audio/webm'];
+const MEETING_TRANSCRIPT_EXTENSIONS = ['txt', 'doc', 'docx', 'pdf'];
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 200 * 1024 * 1024, files: 2 },
+  fileFilter: (_req, file, cb) => {
+    if (file.fieldname === 'recordingFile') {
+      return MEETING_RECORDING_TYPES.includes(file.mimetype)
+        ? cb(null, true)
+        : cb(new AppError(`Recordings must be audio or video. Received: ${file.mimetype}`, 400));
+    }
+    if (file.fieldname === 'transcriptFile') {
+      const dot = file.originalname.lastIndexOf('.');
+      const ext = dot === -1 ? '' : file.originalname.slice(dot + 1).toLowerCase();
+      return MEETING_TRANSCRIPT_EXTENSIONS.includes(ext)
+        ? cb(null, true)
+        : cb(new AppError(`Transcripts must be ${MEETING_TRANSCRIPT_EXTENSIONS.join(', ')}. Received: .${ext || 'unknown'}`, 400));
+    }
+    return cb(new AppError(`Unexpected upload field: ${file.fieldname}`, 400));
+  },
+});
 
 const router = Router({ mergeParams: true });
 

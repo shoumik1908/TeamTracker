@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { MulterError } from 'multer';
 
 export class AppError extends Error {
   statusCode: number;
@@ -21,6 +22,19 @@ export const errorHandler = (
     return res.status(err.statusCode).json({
       error: err.message,
     });
+  }
+
+  // A rejected upload is the caller's mistake, not a server fault. Without this it
+  // fell through to the 500 below, which both mislabelled it and — in production —
+  // replaced the explanation with "Internal server error", so the allow-list and
+  // size-limit messages never reached the person who needed them.
+  if (err instanceof MulterError) {
+    const readable: Record<string, string> = {
+      LIMIT_FILE_SIZE: 'That file is too large.',
+      LIMIT_FILE_COUNT: 'Too many files in one upload.',
+      LIMIT_UNEXPECTED_FILE: `Unexpected upload field "${err.field ?? ''}".`,
+    };
+    return res.status(400).json({ error: readable[err.code] ?? err.message });
   }
 
   // Prisma errors
