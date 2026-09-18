@@ -94,6 +94,23 @@ export function correctNamesInTranscript(
   const tokens = transcriptText.split(/(\b\w+\b)/);
   const corrections: { original: string; corrected: string; score: number }[] = [];
 
+  // TT-065: this ran fuzz.ratio for every token against every member, on transcripts up
+  // to 300k characters, inside a cron that fires every two minutes. Levenshtein on that
+  // many pairs blocks the event loop for seconds at a time, stalling every other request
+  // the process is serving.
+  //
+  // Two cheap changes remove almost all of that work without changing which names match:
+  // a length-delta pre-filter (fuzz.ratio cannot reach the 80/82 thresholds when the
+  // strings differ greatly in length), and a cache, since transcripts repeat the same
+  // words constantly.
+  const singleWordCache = new Map<string, { name: string; clean: string; score: number } | null>();
+  const plausibleLength = (a: string, b: string) => {
+    const longer = Math.max(a.length, b.length);
+    if (longer === 0) return false;
+    // ratio <= 2*min/(a+b); below this the best possible score is under the threshold.
+    return (2 * Math.min(a.length, b.length)) / (a.length + b.length) >= 0.75;
+  };
+
   for (let i = 1; i < tokens.length; i += 2) {
     const word1 = tokens[i];
     if (!word1) continue;
@@ -107,14 +124,26 @@ export function correctNamesInTranscript(
         const twoWords = `${word1} ${word2}`;
         const twoWordsClean = twoWords.toLowerCase().trim();
 
+        // TT-064: the single-word path below refuses short tokens and stopwords, but this
+        // two-word path had no such guard, so ordinary phrases were rewritten into people's
+        // names — in the only stored copy of the transcript, which the minutes' evidence
+        // quotes are supposed to be checkable against.
+        const w1 = word1.toLowerCase().trim();
+        const w2 = word2.toLowerCase().trim();
+        const bothPlausible =
+          w1.length >= 3 && w2.length >= 3 && !STOPWORDS.has(w1) && !STOPWORDS.has(w2);
+
         let bestScore = 0;
         let bestTarget = null;
 
-        for (const target of memberTargets) {
-          const score = fuzz.ratio(twoWordsClean, target.fullNameLower);
-          if (score > bestScore) {
-            bestScore = score;
-            bestTarget = target;
+        if (bothPlausible) {
+          for (const target of memberTargets) {
+            if (!plausibleLength(twoWordsClean, target.fullNameLower)) continue;
+            const score = fuzz.ratio(twoWordsClean, target.fullNameLower);
+            if (score > bestScore) {
+              bestScore = score;
+              bestTarget = target;
+            }
           }
         }
 
@@ -143,27 +172,36 @@ export function correctNamesInTranscript(
       continue;
     }
 
-    let bestScore = 0;
-    let bestTarget = null;
+    let cached = singleWordCache.get(wordClean);
+    if (cached === undefined) {
+      let bestScore = 0;
+      let bestTarget: { name: string; clean: string } | null = null;
 
-    for (const target of memberTargets) {
-      // Match against first name
-      if (target.firstNameLower) {
-        const score = fuzz.ratio(wordClean, target.firstNameLower);
-        if (score > bestScore) {
-          bestScore = score;
-          bestTarget = { name: target.member.name, clean: target.firstNameLower };
+      for (const target of memberTargets) {
+        // Match against first name
+        if (target.firstNameLower && plausibleLength(wordClean, target.firstNameLower)) {
+          const score = fuzz.ratio(wordClean, target.firstNameLower);
+          if (score > bestScore) {
+            bestScore = score;
+            bestTarget = { name: target.member.name, clean: target.firstNameLower };
+          }
+        }
+        // Match against last name (only if it's not a common stopword)
+        if (target.lastNameLower && target.lastNameLower.length >= 3 && !STOPWORDS.has(target.lastNameLower)
+            && plausibleLength(wordClean, target.lastNameLower)) {
+          const score = fuzz.ratio(wordClean, target.lastNameLower);
+          if (score > bestScore) {
+            bestScore = score;
+            bestTarget = { name: target.member.name, clean: target.lastNameLower };
+          }
         }
       }
-      // Match against last name (only if it's not a common stopword)
-      if (target.lastNameLower && target.lastNameLower.length >= 3 && !STOPWORDS.has(target.lastNameLower)) {
-        const score = fuzz.ratio(wordClean, target.lastNameLower);
-        if (score > bestScore) {
-          bestScore = score;
-          bestTarget = { name: target.member.name, clean: target.lastNameLower };
-        }
-      }
+      cached = bestTarget ? { ...bestTarget, score: bestScore } : null;
+      singleWordCache.set(wordClean, cached);
     }
+
+    const bestTarget = cached;
+    const bestScore = cached ? cached.score : 0;
 
     if (bestTarget && bestScore >= 82) {
       if (wordClean !== bestTarget.clean) {

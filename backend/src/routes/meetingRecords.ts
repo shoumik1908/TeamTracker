@@ -273,9 +273,12 @@ router.post('/', upload.fields([{ name: 'recordingFile', maxCount: 1 }, { name: 
         if (opp) contextMembers = opp.assignments.map(a => a.member);
       }
 
-      // Pre-process transcript to correct names using the context roster
+      // Pre-process transcript to correct names using the context roster.
+      // TT-064: the corrected text is what the model sees, but it is no longer what gets
+      // stored — the record keeps the transcript as it was actually supplied, so the
+      // minutes' evidence quotes stay checkable against it. What was changed is recorded
+      // in aiMinutes.name_corrections.
       const { correctedText, corrections } = correctNamesInTranscript(finalTranscriptText, contextMembers);
-      finalTranscriptText = correctedText;
 
       // Find context for PM tracking (open blockers & action items)
       if (projectId || opportunityId) {
@@ -310,7 +313,9 @@ router.post('/', upload.fields([{ name: 'recordingFile', maxCount: 1 }, { name: 
 
       // Call LLM
       try {
-        finalAiMinutes = await generateMeetingMinutes(finalTranscriptText, priorActionItems, priorBlockers, 1, contextMembers);
+        // correctedText, not finalTranscriptText: the model still gets the roster-corrected
+        // names, while finalTranscriptText — what actually gets stored — stays as supplied.
+        finalAiMinutes = await generateMeetingMinutes(correctedText, priorActionItems, priorBlockers, 1, contextMembers);
         if (finalAiMinutes && (finalAiMinutes as any).status !== 'TOKENS_EXCEEDED') {
           (finalAiMinutes as any).name_corrections = corrections;
         }
@@ -696,14 +701,9 @@ router.post('/:recordId/reanalyze', async (req, res) => {
       }));
     }
 
-    // Pre-process transcript to correct names using the context roster
+    // Pre-process transcript to correct names using the context roster.
+    // TT-064: no longer written back over the stored transcript — see the POST path above.
     const { correctedText, corrections } = correctNamesInTranscript(record.transcriptText || '', contextMembers);
-    if (corrections.length > 0) {
-      await prisma.meetingRecord.update({
-        where: { id: recordId },
-        data: { transcriptText: correctedText }
-      });
-    }
 
     // Call LLM — deliberately before the transaction opens. It takes minutes, and holding
     // a database transaction across it would pin a connection for the duration.

@@ -1729,6 +1729,32 @@ export default function PreSalesDetailPage() {
                                   </div>
                                 </div>
                               </div>
+                            ) : (r.aiMinutes as any).status === 'ANALYSIS_FAILED' ? (
+                              <div className="p-4 space-y-4 bg-zinc-950 border border-rose-500/20 rounded-xl mt-2">
+                                <div className="flex items-center justify-between pb-3 border-b border-rose-500/10">
+                                  <div className="flex items-center gap-2">
+                                    <BrainCircuit className="w-4 h-4 text-rose-500" />
+                                    <h5 className="text-xs font-bold text-rose-400 uppercase tracking-wider">AI Generated Minutes</h5>
+                                  </div>
+                                  <button
+                                    onClick={(e) => { e.preventDefault(); reanalyzeMutation.mutate(r.id); }}
+                                    disabled={reanalyzeMutation.isPending}
+                                    className="text-xs font-medium text-indigo-400 hover:text-indigo-300 flex items-center gap-1.5 px-2 py-1.5 rounded-md hover:bg-indigo-500/10 transition-colors"
+                                  >
+                                    <RefreshCw className={cn("w-3.5 h-3.5", reanalyzeMutation.isPending ? "animate-spin" : "")} />
+                                    Retry Generation
+                                  </button>
+                                </div>
+                                <div className="flex items-start gap-3 p-3.5 bg-rose-500/5 border border-rose-500/15 rounded-lg">
+                                  <AlertTriangle className="w-4 h-4 text-rose-500 mt-0.5 flex-shrink-0" />
+                                  <div className="space-y-1">
+                                    <p className="text-xs font-semibold text-rose-700">AI analysis could not be completed</p>
+                                    <p className="text-[10px] text-rose-700">
+                                      Automatic retries have stopped{(r.aiMinutes as any).retry_attempts ? ` after ${(r.aiMinutes as any).retry_attempts} attempts` : ''}. Your transcript is saved and unchanged — use "Retry Generation" above once the underlying issue is resolved.
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
                             ) : (
                               <AiGeneratedMinutesBox
                                 aiMinutes={r.aiMinutes}
