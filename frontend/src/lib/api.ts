@@ -45,6 +45,15 @@ export class DuplicateCertificateError extends Error {
   }
 }
 
+function httpStatusMessage(status: number): string {
+  if (status === 502 || status === 503 || status === 504) {
+    return 'The server is unavailable right now. Please try again in a moment.';
+  }
+  if (status === 404) return 'That endpoint could not be found.';
+  if (status >= 500) return `The server failed to handle the request (HTTP ${status}).`;
+  return `The request was rejected (HTTP ${status}).`;
+}
+
 async function fetchApi(method: string, url: string, data?: any, config?: any) {
   let fullUrl = url.startsWith('http') ? url : `${baseURL}${url}`;
   
@@ -89,8 +98,22 @@ async function fetchApi(method: string, url: string, data?: any, config?: any) {
     return { data: await res.blob(), status: res.status, headers: res.headers };
   }
 
+  // TT-071: this was `text ? JSON.parse(text) : {}`, unguarded and ahead of the res.ok
+  // check. Any non-JSON body — a proxy's 502 HTML page, a gateway timeout, the Vite dev
+  // index.html when a path is wrong — threw a SyntaxError from inside the client, which
+  // LoginPage and friends then showed to the user verbatim as
+  // "Unexpected token '<'...". The real status was lost entirely.
   const text = await res.text();
-  const resData = text ? JSON.parse(text) : {};
+  let resData: any = {};
+  let bodyWasJson = true;
+  if (text) {
+    try {
+      resData = JSON.parse(text);
+    } catch {
+      bodyWasJson = false;
+      resData = {};
+    }
+  }
 
   if (!res.ok) {
     // Only a request that actually carried a token can have an expired session;
@@ -101,8 +124,20 @@ async function fetchApi(method: string, url: string, data?: any, config?: any) {
     if (res.status === 409 && resData.error === 'DUPLICATE_CERTIFICATE') {
       throw new DuplicateCertificateError(resData.message, resData.existingAssignmentId);
     }
-    const message = resData.error || resData.message || 'Something went wrong';
+    // A non-JSON error body has no server message worth showing, so say something
+    // truthful about the status instead of leaking a parse error.
+    const message = resData.error || resData.message
+      || (bodyWasJson ? 'Something went wrong' : httpStatusMessage(res.status));
     throw new Error(message);
+  }
+
+  if (!bodyWasJson && text) {
+    // A 2xx that is not JSON means we are talking to something that is not the API —
+    // a dev-server fallback or a proxy. Failing here is clearer than handing a caller
+    // an empty object it will quietly treat as valid data.
+    throw new Error(
+      'The server returned an unexpected response. If this persists, check that the API is reachable.',
+    );
   }
 
   return { data: resData, status: res.status, headers: res.headers };
