@@ -7,11 +7,13 @@ import { Plus, Search, Pencil, Trash2, X, Upload, Loader2, MoreVertical, Filter,
 import { getInitials, cn, downloadBlob } from '@/lib/utils';
 import type { TeamMember, PaginatedResponse } from '@/types';
 import { useAuth } from '@/context/AuthContext';
+import ResetLinkDialog, { buildResetLink, type ResetLink } from '@/components/ResetLinkDialog';
 
 interface MemberFormData {
   name: string;
   email: string;
   phone: string;
+  linkedinUrl: string;
   designation?: string;
   managerId: string;
   status: string;
@@ -19,7 +21,7 @@ interface MemberFormData {
 }
 
 const INITIAL_FORM: MemberFormData = {
-  name: '', email: '', phone: '',
+  name: '', email: '', phone: '', linkedinUrl: '',
   designation: '', managerId: '', status: 'Active', yearsOfExperience: ''
 };
 
@@ -89,6 +91,7 @@ function MemberFormModal({
   const [form, setForm] = useState<MemberFormData>(
     member ? {
       name: member.name, email: member.email || '', phone: member.phone || '',
+      linkedinUrl: member.linkedinUrl || '',
       designation: member.designation,
       managerId: member.managerId || '',
       status: member.status || 'Active',
@@ -175,6 +178,11 @@ function MemberFormModal({
               { label: 'Email *', key: 'email', placeholder: 'alice@example.com', required: true, type: 'email' },
               { label: 'Phone', key: 'phone', placeholder: '+1-555-0101', type: 'text' },
               { label: 'Designation', key: 'designation', placeholder: 'Senior Engineer', type: 'text' },
+              // Deliberately text, not url: the server accepts a bare "linkedin.com/in/me"
+              // and adds the scheme. type="url" rejected that in the browser and blocked
+              // the whole form submit with a tooltip that is easy to miss, so the member
+              // was never created. The server is the single authority on the format.
+              { label: 'LinkedIn Profile URL', key: 'linkedinUrl', placeholder: 'https://linkedin.com/in/username', type: 'text' },
               { label: 'Work experience (years)', key: 'yearsOfExperience', placeholder: '5', type: 'number' },
             ].map(({ label, key, placeholder, required, type }) => (
               <div key={key}>
@@ -262,6 +270,18 @@ export default function MembersPage() {
     queryFn: () => membersApi.list({ search, projectId, limit: 1000 }).then(r => r.data),
   });
 
+  // TT-046: saving a member with an email creates their sign-in account. It used to be
+  // given the password `firstname+xebia`; now it gets a single-use link, and this is
+  // the only moment that link is available to the admin who triggered it.
+  const [resetLink, setResetLink] = useState<ResetLink | null>(null);
+
+  const showResetLinkIfIssued = (res: any) => {
+    const data = res?.data ?? res;
+    if (data?.resetToken) {
+      setResetLink(buildResetLink(data.name ?? 'this member', data.resetToken, data.expiresInMinutes));
+    }
+  };
+
   const createMember = useMutation({
     mutationFn: async ({ fd, cvFile }: { fd: FormData; cvFile: File | null }) => {
       const res = await membersApi.create(fd);
@@ -274,11 +294,12 @@ export default function MembersPage() {
       }
       return res;
     },
-    onSuccess: () => { 
-      qc.invalidateQueries({ queryKey: ['members'] }); 
-      qc.invalidateQueries({ queryKey: ['dashboard-stats'] }); 
-      setShowForm(false); 
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ['members'] });
+      qc.invalidateQueries({ queryKey: ['dashboard-stats'] });
+      setShowForm(false);
       setCvUploadingId(null);
+      showResetLinkIfIssued(res);
     },
     onError: (err) => { setCvUploadingId(null); notifyError(err, 'Could not save the team member.'); }
   });
@@ -294,10 +315,11 @@ export default function MembersPage() {
       }
       return res;
     },
-    onSuccess: () => { 
-      qc.invalidateQueries({ queryKey: ['members'] }); 
-      setEditMember(undefined); 
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ['members'] });
+      setEditMember(undefined);
       setCvUploadingId(null);
+      showResetLinkIfIssued(res);
     },
     onError: (err) => { setCvUploadingId(null); notifyError(err, 'Could not save the team member.'); }
   });
@@ -688,6 +710,9 @@ export default function MembersPage() {
           </div>
         </div>
       )}
+
+      {/* Shown once: this is the only time the new member's sign-in link is available. */}
+      {resetLink && <ResetLinkDialog link={resetLink} onClose={() => setResetLink(null)} />}
     </div>
   );
 }
