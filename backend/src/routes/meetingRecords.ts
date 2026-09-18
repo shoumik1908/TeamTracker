@@ -7,6 +7,7 @@ import { generateMeetingMinutes  } from '../services/azureOpenAIService';
 import { matchTeamMember, correctNamesInTranscript } from '../utils/fuzzyMatch';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
 import { verifyContextMember, verifyMeetingRecordAccess, verifyActionItemAccess } from '../lib/contextAccess';
+import { assertActionItemStatus, onlyIdsOfferedToTheModel, completedActionItemIds } from '../lib/meetingContinuity';
 import { AppError } from '../middleware/errorHandler';
 
 // TT-044: this multer instance had no limits and no filter whatsoever. Combined with
@@ -51,16 +52,25 @@ const router = Router({ mergeParams: true });
 // error. Thrown outside, they reach the centralized error handler intact.
 router.use(authenticateToken);
 
+
 // Helper to extract text from a buffer (reused from CV logic)
 async function extractText(buffer: Buffer, originalname: string, mimetype: string): Promise<string> {
   if (mimetype === 'application/pdf') {
+    // TT-039: this called PDFParse(buffer) — but in pdf-parse v2 PDFParse is a class, so
+    // invoking it without `new` threw a TypeError that the catch below turned into ''.
+    // Every PDF transcript upload therefore failed with the generic "could not extract
+    // text" 400, with the real cause only in the logs. Matches the other call sites
+    // (presales.ts, members.ts, resumeGeneration.ts).
     const { PDFParse } = require('pdf-parse');
+    const parser = new PDFParse({ data: buffer });
     try {
-      const data = await PDFParse(buffer);
-      return data.text || '';
+      const result = await parser.getText();
+      return result.text || '';
     } catch (e) {
       console.error('[MeetingRecord pdf-parse error]:', e);
       return '';
+    } finally {
+      if (typeof parser.destroy === 'function') await parser.destroy();
     }
   } else if (
     mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
@@ -86,13 +96,14 @@ router.patch('/action-items/:itemId/status', async (req, res) => {
   await verifyActionItemAccess((req.params as any).itemId, (req as AuthRequest).user);
   try {
     const { itemId } = req.params as any;
-    const { status } = req.body;
+    const status = assertActionItemStatus(req.body?.status);
     await prisma.meetingActionItem.update({
       where: { id: itemId },
       data: { status, completed: status === 'completed' }
     });
     res.json({ success: true });
   } catch (error: any) {
+    if (error instanceof AppError) return res.status(error.statusCode).json({ error: error.message });
     res.status(500).json({ error: error.message });
   }
 });
@@ -241,6 +252,10 @@ router.post('/', upload.fields([{ name: 'recordingFile', maxCount: 1 }, { name: 
     }
 
     let finalAiMinutes = null;
+    // Declared out here because the continuity writes further down need to intersect the
+    // model's answer against exactly what it was shown (TT-040).
+    let priorActionItems: { id: string; task: string; owner: string | null }[] = [];
+    let priorBlockers: { id: string; description: string }[] = [];
     if (finalTranscriptText) {
       // Find context (project or opp) to get members for fuzzy matching
       let contextMembers: any[] = [];
@@ -263,9 +278,6 @@ router.post('/', upload.fields([{ name: 'recordingFile', maxCount: 1 }, { name: 
       finalTranscriptText = correctedText;
 
       // Find context for PM tracking (open blockers & action items)
-      let priorActionItems: { id: string; task: string; owner: string | null }[] = [];
-      let priorBlockers: { id: string; description: string }[] = [];
-
       if (projectId || opportunityId) {
         const whereClause = projectId ? { projectId } : { opportunityId };
         
@@ -324,7 +336,15 @@ router.post('/', upload.fields([{ name: 'recordingFile', maxCount: 1 }, { name: 
       finalMeetingDate = new Date(meetingDate);
     }
 
-    const newRecord = await prisma.meetingRecord.create({
+    // ── Create Relational PM Tracking Data ─────────────────────────────────────────
+    // TT-043: the record was committed here and its attendees, decisions, action items
+    // and blockers were then written as a loose sequence of independent statements. A
+    // malformed field anywhere below — a null task from the model is enough — threw a
+    // 500 and left a meeting record with some of its children and not the rest, with
+    // nothing to tell anyone it was incomplete. Creating the record inside the same
+    // transaction means a failure leaves no record at all, which is honest.
+    const newRecord = await prisma.$transaction(async (tx) => {
+    const newRecord = await tx.meetingRecord.create({
       data: {
         projectId: projectId || null,
         opportunityId: opportunityId || null,
@@ -336,11 +356,15 @@ router.post('/', upload.fields([{ name: 'recordingFile', maxCount: 1 }, { name: 
         transcriptText: finalTranscriptText,
         transcriptSource: finalTranscriptSource,
         aiMinutes: finalAiMinutes ? (finalAiMinutes as any) : null,
-        createdBy: 'System', // In a real app, from auth token
+        // TT-110: this was the literal 'System'. The delete handler authorizes with
+        // `record.createdBy === user.teamMemberId`, and 'System' can never equal a cuid,
+        // so the uploader branch was dead — only admins could ever delete a record, and
+        // there was no audit trail of who uploaded one. Records created before this keep
+        // 'System' and stay admin-only to delete, which is the safe direction.
+        createdBy: (req as AuthRequest).user?.teamMemberId ?? 'System',
       }
     });
 
-    // ── Create Relational PM Tracking Data ─────────────────────────────────────────
     if (finalAiMinutes && (finalAiMinutes as any).status !== 'TOKENS_EXCEEDED') {
       // Find context (project or opp) to get members for fuzzy matching
       let contextMembers: any[] = [];
@@ -373,7 +397,7 @@ router.post('/', upload.fields([{ name: 'recordingFile', maxCount: 1 }, { name: 
             memberId
           };
         });
-        await prisma.meetingAttendee.createMany({ data: attendeesToCreate });
+        await tx.meetingAttendee.createMany({ data: attendeesToCreate });
       }
 
       // 2. Action Items
@@ -405,7 +429,7 @@ router.post('/', upload.fields([{ name: 'recordingFile', maxCount: 1 }, { name: 
             completed
           };
         });
-        await prisma.meetingActionItem.createMany({ data: itemsToCreate });
+        await tx.meetingActionItem.createMany({ data: itemsToCreate });
       }
 
       // 3. Key Decisions
@@ -425,7 +449,7 @@ router.post('/', upload.fields([{ name: 'recordingFile', maxCount: 1 }, { name: 
             decidedById
           };
         });
-        await prisma.keyDecision.createMany({ data: decisionsToCreate });
+        await tx.keyDecision.createMany({ data: decisionsToCreate });
       }
 
       // 4. New Blockers & Risks
@@ -443,14 +467,17 @@ router.post('/', upload.fields([{ name: 'recordingFile', maxCount: 1 }, { name: 
             resolvedInMeetingId: status === 'resolved' ? newRecord.id : null,
           };
         });
-        await prisma.blockerRisk.createMany({ data: blockersToCreate });
+        await tx.blockerRisk.createMany({ data: blockersToCreate });
       }
 
       // 5. Cross-Meeting Continuity: Resolve prior blockers
-      if (finalAiMinutes.resolved_previous_blocker_ids && finalAiMinutes.resolved_previous_blocker_ids.length > 0) {
-        await prisma.blockerRisk.updateMany({
+      // Restricted to the blockers actually shown to the model — see TT-040 above.
+      const resolvableBlockerIds = onlyIdsOfferedToTheModel(
+        finalAiMinutes.resolved_previous_blocker_ids, priorBlockers);
+      if (resolvableBlockerIds.length > 0) {
+        await tx.blockerRisk.updateMany({
           where: {
-            id: { in: finalAiMinutes.resolved_previous_blocker_ids },
+            id: { in: resolvableBlockerIds },
             status: 'open'
           },
           data: {
@@ -461,17 +488,21 @@ router.post('/', upload.fields([{ name: 'recordingFile', maxCount: 1 }, { name: 
       }
 
       // 6. Cross-Meeting Continuity: Complete prior action items
-      if (finalAiMinutes.updated_previous_action_items && finalAiMinutes.updated_previous_action_items.length > 0) {
-        for (const update of finalAiMinutes.updated_previous_action_items) {
-          if (update.new_status === 'completed') {
-            await prisma.meetingActionItem.update({
-              where: { id: update.id },
-              data: { status: 'completed', completed: true }
-            });
-          }
-        }
+      const completableItemIds = onlyIdsOfferedToTheModel(
+        completedActionItemIds(finalAiMinutes.updated_previous_action_items),
+        priorActionItems);
+      if (completableItemIds.length > 0) {
+        // updateMany rather than a loop of update(): an id that has since been deleted
+        // no longer throws mid-write and abandons a half-populated meeting record.
+        await tx.meetingActionItem.updateMany({
+          where: { id: { in: completableItemIds } },
+          data: { status: 'completed', completed: true }
+        });
       }
     }
+
+    return newRecord;
+    });
 
     // Return the created record with action items for immediate UI rendering
     const createdWithItems = await prisma.meetingRecord.findUnique({
@@ -503,21 +534,28 @@ router.delete('/:id', async (req, res) => {
       return res.status(400).json({ error: 'Record does not belong to context' });
     }
 
-    if (record.recordingType === 'file' && record.recordingUrl) {
-      const bName = extractBlobName(record.recordingUrl);
-      try {
-        await deleteFile(projectId ? CONTAINERS.PROJECT_DOCS : CONTAINERS.PRESALES_DOCS, bName);
-      } catch (err) {
-        console.error('Failed to delete blob', err);
-      }
-    }
-
+    // TT-042: this authorization block used to sit *below* the blob deletion. An
+    // unauthorized caller was told 403 — after their request had already destroyed the
+    // recording. Nothing is deleted now until the caller is known to be allowed to.
     const user = (req as any).user;
     const isUploader = record.createdBy === user?.teamMemberId;
     const isAdmin = user?.permissions?.manageTeam;
 
     if (!isAdmin && !isUploader) {
       return res.status(403).json({ error: 'Forbidden: Only Admins or the uploader can delete this record' });
+    }
+
+    if (record.recordingType === 'file' && record.recordingUrl) {
+      const bName = extractBlobName(record.recordingUrl);
+      // Also TT-042: this passed PROJECT_DOCS, but recordings are uploaded to
+      // PROJECT_RECORDINGS (see the upload path above), so the delete targeted a blob
+      // that does not exist there and every real recording was orphaned in storage.
+      // Reading the container back off the stored URL cannot drift from the upload.
+      try {
+        await deleteFile(getContainerNameFromUrl(record.recordingUrl), bName);
+      } catch (err) {
+        console.error('Failed to delete blob', err);
+      }
     }
 
     await prisma.meetingRecord.delete({ where: { id } });
@@ -567,7 +605,10 @@ router.patch('/action-items/:itemId', async (req, res) => {
   await verifyActionItemAccess((req.params as any).itemId, (req as AuthRequest).user);
   try {
     const { itemId } = req.params as any;
-    const { completed } = req.body;
+    if (typeof req.body?.completed !== 'boolean') {
+      throw new AppError('completed must be true or false.', 400);
+    }
+    const completed: boolean = req.body.completed;
 
     const updated = await prisma.meetingActionItem.update({
       where: { id: itemId },
@@ -580,6 +621,7 @@ router.patch('/action-items/:itemId', async (req, res) => {
 
     res.json(updated);
   } catch (error: any) {
+    if (error instanceof AppError) return res.status(error.statusCode).json({ error: error.message });
     console.error(error);
     res.status(500).json({ error: error.message });
   }
@@ -663,20 +705,35 @@ router.post('/:recordId/reanalyze', async (req, res) => {
       });
     }
 
-    // Call LLM
+    // Call LLM — deliberately before the transaction opens. It takes minutes, and holding
+    // a database transaction across it would pin a connection for the duration.
     const finalAiMinutes = await generateMeetingMinutes(correctedText, priorActionItems, priorBlockers, 1, contextMembers);
     if (finalAiMinutes) {
       (finalAiMinutes as any).name_corrections = corrections;
     }
 
-    // Delete old relational items
-    await prisma.meetingAttendee.deleteMany({ where: { meetingRecordId: recordId } });
-    await prisma.meetingActionItem.deleteMany({ where: { meetingRecordId: recordId } });
-    await prisma.keyDecision.deleteMany({ where: { meetingRecordId: recordId } });
-    await prisma.blockerRisk.deleteMany({ where: { firstRaisedMeetingId: recordId } });
+    // TT-043: the four deleteMany calls below used to run unconditionally, before this
+    // check and outside any transaction. If the model returned nothing — a timeout, a
+    // token limit, a parse failure — the record's attendees, action items, decisions and
+    // blockers were wiped and never recreated, destroying manually curated PM tracking
+    // data with no way back. Nothing is deleted now unless there is something to put in
+    // its place, and the whole swap is one transaction so a failure part-way rolls back.
+    if (!finalAiMinutes) {
+      throw new AppError(
+        'Re-analysis did not return usable minutes, so the existing minutes were left untouched. Try again.',
+        502,
+      );
+    }
 
-    // Re-create relational items
-    if (finalAiMinutes) {
+    const updatedWithItems = await prisma.$transaction(async (tx) => {
+      // Delete old relational items
+      await tx.meetingAttendee.deleteMany({ where: { meetingRecordId: recordId } });
+      await tx.meetingActionItem.deleteMany({ where: { meetingRecordId: recordId } });
+      await tx.keyDecision.deleteMany({ where: { meetingRecordId: recordId } });
+      await tx.blockerRisk.deleteMany({ where: { firstRaisedMeetingId: recordId } });
+
+      // Re-create relational items
+      {
       // 1. Attendees
       const attendeesList = finalAiMinutes.attendees_present || finalAiMinutes.attendees_mentioned || [];
       if (attendeesList.length > 0) {
@@ -692,7 +749,7 @@ router.post('/:recordId/reanalyze', async (req, res) => {
             memberId
           };
         });
-        await prisma.meetingAttendee.createMany({ data: attendeesToCreate });
+        await tx.meetingAttendee.createMany({ data: attendeesToCreate });
       }
 
       // 2. Action Items
@@ -724,7 +781,7 @@ router.post('/:recordId/reanalyze', async (req, res) => {
             completed
           };
         });
-        await prisma.meetingActionItem.createMany({ data: itemsToCreate });
+        await tx.meetingActionItem.createMany({ data: itemsToCreate });
       }
 
       // 3. Key Decisions
@@ -744,7 +801,7 @@ router.post('/:recordId/reanalyze', async (req, res) => {
             decidedById
           };
         });
-        await prisma.keyDecision.createMany({ data: decisionsToCreate });
+        await tx.keyDecision.createMany({ data: decisionsToCreate });
       }
 
       // 4. New Blockers & Risks
@@ -762,14 +819,16 @@ router.post('/:recordId/reanalyze', async (req, res) => {
             resolvedInMeetingId: status === 'resolved' ? recordId : null,
           };
         });
-        await prisma.blockerRisk.createMany({ data: blockersToCreate });
+        await tx.blockerRisk.createMany({ data: blockersToCreate });
       }
 
-      // 5. Cross-Meeting Continuity: Resolve prior blockers
-      if (finalAiMinutes.resolved_previous_blocker_ids && finalAiMinutes.resolved_previous_blocker_ids.length > 0) {
-        await prisma.blockerRisk.updateMany({
+      // 5. Cross-Meeting Continuity: Resolve prior blockers — TT-040, as in the POST path.
+      const resolvableBlockerIds = onlyIdsOfferedToTheModel(
+        finalAiMinutes.resolved_previous_blocker_ids, priorBlockers);
+      if (resolvableBlockerIds.length > 0) {
+        await tx.blockerRisk.updateMany({
           where: {
-            id: { in: finalAiMinutes.resolved_previous_blocker_ids },
+            id: { in: resolvableBlockerIds },
             status: 'open'
           },
           data: {
@@ -780,39 +839,42 @@ router.post('/:recordId/reanalyze', async (req, res) => {
       }
 
       // 6. Cross-Meeting Continuity: Complete prior action items
-      if (finalAiMinutes.updated_previous_action_items && finalAiMinutes.updated_previous_action_items.length > 0) {
-        for (const update of finalAiMinutes.updated_previous_action_items) {
-          if (update.new_status === 'completed') {
-            await prisma.meetingActionItem.update({
-              where: { id: update.id },
-              data: { status: 'completed', completed: true }
-            });
-          }
+      const completableItemIds = onlyIdsOfferedToTheModel(
+        completedActionItemIds(finalAiMinutes.updated_previous_action_items),
+        priorActionItems);
+      if (completableItemIds.length > 0) {
+        await tx.meetingActionItem.updateMany({
+          where: { id: { in: completableItemIds } },
+          data: { status: 'completed', completed: true }
+        });
+      }
+      }
+
+      let updatedMeetingDate = record.meetingDate;
+      if ((finalAiMinutes as any).meeting_date) {
+        let dateStr = String((finalAiMinutes as any).meeting_date);
+        dateStr = dateStr.replace(/(\d)(AM|PM)/i, '$1 $2').replace(/\bIST\b/i, '+05:30');
+        const parsedDate = new Date(dateStr);
+        if (!isNaN(parsedDate.getTime())) {
+          updatedMeetingDate = parsedDate;
         }
       }
-    }
 
-    let updatedMeetingDate = record.meetingDate;
-    if (finalAiMinutes && (finalAiMinutes as any).meeting_date) {
-      let dateStr = String((finalAiMinutes as any).meeting_date);
-      dateStr = dateStr.replace(/(\d)(AM|PM)/i, '$1 $2').replace(/\bIST\b/i, '+05:30');
-      const parsedDate = new Date(dateStr);
-      if (!isNaN(parsedDate.getTime())) {
-        updatedMeetingDate = parsedDate;
-      }
-    }
-
-    const updatedWithItems = await prisma.meetingRecord.update({
-      where: { id: recordId },
-      data: { 
-        aiMinutes: finalAiMinutes ? (finalAiMinutes as any) : null,
-        meetingDate: updatedMeetingDate
-      },
-      include: { actionItems: { include: { assignedTo: true } } }
+      // Inside the transaction too: the stored aiMinutes and the relational rows are two
+      // views of the same analysis, and they must not be able to disagree.
+      return tx.meetingRecord.update({
+        where: { id: recordId },
+        data: {
+          aiMinutes: finalAiMinutes as any,
+          meetingDate: updatedMeetingDate
+        },
+        include: { actionItems: { include: { assignedTo: true } } }
+      });
     });
 
     res.json(updatedWithItems);
   } catch (error: any) {
+    if (error instanceof AppError) return res.status(error.statusCode).json({ error: error.message });
     console.error(error);
     res.status(500).json({ error: error.message });
   }
