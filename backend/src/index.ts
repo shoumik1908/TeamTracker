@@ -5,7 +5,6 @@ import http from 'http';
 import cors from 'cors';
 import morgan from 'morgan';
 import compression from 'compression';
-import rateLimit from 'express-rate-limit';
 import { validateAiConfig } from './services/aiProvider';
 
 // Validate AI environment configuration
@@ -72,22 +71,7 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// TT-022: /api/auth/login and /api/auth/register had no rate limiting, so both were
-// open to unlimited credential stuffing. The store is in-memory, which means the
-// limit is per instance — correct on a single Render instance, and worth revisiting
-// behind a shared store if this is ever scaled out.
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  limit: 10,
-  standardHeaders: 'draft-7',
-  legacyHeaders: false,
-  message: { error: 'Too many attempts. Please wait a few minutes and try again.' },
-});
-
 // Routes
-app.use('/api/auth/login', authLimiter);
-app.use('/api/auth/register', authLimiter);
-app.use('/api/auth/change-password', authLimiter);
 app.use('/api/auth', authRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/members', membersRouter);
