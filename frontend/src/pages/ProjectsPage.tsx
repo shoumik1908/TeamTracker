@@ -65,7 +65,15 @@ function ProjectMenu({ onEdit, onDelete }: {
   );
 }
 
-function ProjectModal({ project, onClose, onSave }: { project?: Project; onClose: () => void; onSave: (d: Record<string, unknown>) => void }) {
+function ProjectModal({ project, onClose, onSave, isPending = false }: { project?: Project; onClose: () => void; onSave: (d: Record<string, unknown>) => void; isPending?: boolean }) {
+  const [formError, setFormError] = useState<string | null>(null);
+  // `disabled={isPending}` only takes effect once React re-renders, so two clicks
+  // dispatched in the same frame both reached mutate() and created two projects.
+  // This ref is set synchronously and is what actually stops the second one; the
+  // disabled state remains the visual cue. Cleared when the request settles so a
+  // failed save can be retried.
+  const submittingRef = useRef(false);
+  useEffect(() => { if (!isPending) submittingRef.current = false; }, [isPending]);
   const [form, setForm] = useState<ProjectFormData>(project ? {
     name: project.name, description: project.description || '', client: project.client || '',
     startDate: project.startDate.split('T')[0], endDate: project.endDate?.split('T')[0] || '',
@@ -165,10 +173,29 @@ function ProjectModal({ project, onClose, onSave }: { project?: Project; onClose
             </div>
           )}
         </div>
+        {/* The save button used to be `if (name && startDate) onSave(...)` with no
+            else branch, so a blank required field made the button do nothing at all
+            and gave the user no reason why. */}
+        {formError && (
+          <p className="px-6 pt-3 text-xs text-rose-400">{formError}</p>
+        )}
         <div className="flex gap-3 px-6 py-4 border-t border-white/5">
-          <button onClick={onClose} className="flex-1 px-4 py-2 text-sm border border-white/5 rounded-lg hover:bg-muted bg-[#1c1926]/80 backdrop-blur-md">Cancel</button>
-          <button onClick={() => { if (form.name && form.startDate) onSave({ ...form, progress: parseInt(form.progress), memberIds: selectedMembers, managerId: form.managerId || null }); }}
-            className="flex-1 px-4 py-2 text-sm bg-azure-500 text-white rounded-lg hover:bg-azure-600">
+          <button onClick={onClose} disabled={isPending} className="flex-1 px-4 py-2 text-sm border border-white/5 rounded-lg hover:bg-muted bg-[#1c1926]/80 backdrop-blur-md disabled:opacity-50">Cancel</button>
+          <button
+            disabled={isPending}
+            onClick={() => {
+              const missing = [!form.name && 'a project name', !form.startDate && 'a start date'].filter(Boolean);
+              if (missing.length) {
+                setFormError(`Please provide ${missing.join(' and ')}.`);
+                return;
+              }
+              if (submittingRef.current) return;
+              submittingRef.current = true;
+              setFormError(null);
+              onSave({ ...form, progress: parseInt(form.progress), memberIds: selectedMembers, managerId: form.managerId || null });
+            }}
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 text-sm bg-azure-500 text-white rounded-lg hover:bg-azure-600 disabled:opacity-60 disabled:cursor-not-allowed">
+            {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
             {project ? 'Save Changes' : 'Create Project'}
           </button>
         </div>
@@ -398,7 +425,7 @@ export default function ProjectsPage() {
 
 
       {(showForm || editProject) && (
-        <ProjectModal project={editProject} onClose={() => { setShowForm(false); setEditProject(undefined); }}
+        <ProjectModal project={editProject} isPending={create.isPending || update.isPending} onClose={() => { setShowForm(false); setEditProject(undefined); }}
           onSave={d => { if (editProject) update.mutate({ id: editProject.id, d }); else create.mutate(d); }} />
       )}
 

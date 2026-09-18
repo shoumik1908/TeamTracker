@@ -79,11 +79,12 @@ function MemberMenu({ onEdit, onDelete, onUploadCv }: {
 }
 
 function MemberFormModal({
-  member, onClose, onSave,
+  member, onClose, onSave, isPending = false,
 }: {
   member?: TeamMember;
   onClose: () => void;
   onSave: (form: FormData, cvFile: File | null) => void;
+  isPending?: boolean;
 }) {
   const [form, setForm] = useState<MemberFormData>(
     member ? {
@@ -110,8 +111,17 @@ function MemberFormModal({
     }
   };
 
+  // Same race as ProjectsPage: `disabled={isPending}` only applies after React
+  // re-renders, so a fast double-click fired two requests. Here the duplicate was
+  // masked by the backend's unique-email constraint (the second POST 409'd) rather
+  // than prevented. Set synchronously; cleared when the request settles.
+  const submittingRef = useRef(false);
+  useEffect(() => { if (!isPending) submittingRef.current = false; }, [isPending]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     const fd = new FormData();
     Object.entries(form).forEach(([k, v]) => {
       if (v !== undefined && v !== null) {
@@ -132,7 +142,7 @@ function MemberFormModal({
           <h2 className="font-semibold text-lg">{member ? 'Edit Member' : 'Add Team Member'}</h2>
           <button onClick={onClose} className="text-white/50 hover:text-foreground"><X className="w-5 h-5" /></button>
         </div>
-        <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+        <form id="member-form" onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
           {/* Avatar Upload */}
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 rounded-full bg-azure-50 flex items-center justify-center overflow-hidden flex-shrink-0 border-2 border-azure-200">
@@ -204,8 +214,14 @@ function MemberFormModal({
 
         </form>
         <div className="flex gap-3 px-6 py-4 border-t border-white/5">
-          <button onClick={onClose} className="flex-1 px-4 py-2 text-sm font-medium border border-white/5 rounded-lg hover:bg-muted transition-colors">Cancel</button>
-          <button onClick={handleSubmit as any} className="flex-1 px-4 py-2 text-sm font-medium bg-azure-500 text-white rounded-lg hover:bg-azure-600 transition-colors">
+          <button type="button" onClick={onClose} disabled={isPending} className="flex-1 px-4 py-2 text-sm font-medium border border-white/5 rounded-lg hover:bg-muted transition-colors disabled:opacity-50">Cancel</button>
+          <button
+            type="submit"
+            form="member-form"
+            disabled={isPending}
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium bg-azure-500 text-white rounded-lg hover:bg-azure-600 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
             {member ? 'Save Changes' : 'Add Member'}
           </button>
         </div>
@@ -645,6 +661,7 @@ export default function MembersPage() {
         <MemberFormModal
           member={editMember}
           onClose={() => { setShowForm(false); setEditMember(undefined); }}
+          isPending={createMember.isPending || updateMember.isPending}
           onSave={(fd, cvFile) => {
             if (editMember) {
               updateMember.mutate({ id: editMember.id, fd, cvFile });

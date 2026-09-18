@@ -71,8 +71,13 @@ function QuickUpdateMenu({
   );
 }
 
-function AssignModal({ onClose, onSave }: { onClose: () => void; onSave: (d: Record<string, string>) => void }) {
+function AssignModal({ onClose, onSave, isPending = false }: { onClose: () => void; onSave: (d: Record<string, string>) => void; isPending?: boolean }) {
   const [form, setForm] = useState({ memberId: '', certificationId: '', deadline: '', priority: 'MEDIUM', notes: '' });
+  const [assignError, setAssignError] = useState<string | null>(null);
+  // This modal had no in-flight guard at all, so a double-click sent two assign
+  // requests. Same synchronous-ref fix as ProjectsPage and MembersPage.
+  const submittingRef = useRef(false);
+  useEffect(() => { if (!isPending) submittingRef.current = false; }, [isPending]);
 
   const { data: members } = useQuery<PaginatedResponse<TeamMember>>({
     queryKey: ['members-simple'],
@@ -128,10 +133,30 @@ function AssignModal({ onClose, onSave }: { onClose: () => void; onSave: (d: Rec
               placeholder="Optional notes..." />
           </div>
         </div>
+        {assignError && <p className="px-6 pt-3 text-xs text-rose-400">{assignError}</p>}
         <div className="flex gap-3 px-6 py-4 border-t border-white/5">
-          <button onClick={onClose} className="flex-1 px-4 py-2 text-sm border border-white/5 rounded-lg hover:bg-muted">Cancel</button>
-          <button onClick={() => { if (form.memberId && form.certificationId && form.deadline) onSave(form); }}
-            className="flex-1 px-4 py-2 text-sm bg-azure-500 text-white rounded-lg hover:bg-azure-600">
+          <button onClick={onClose} disabled={isPending} className="flex-1 px-4 py-2 text-sm border border-white/5 rounded-lg hover:bg-muted disabled:opacity-50">Cancel</button>
+          <button
+            disabled={isPending}
+            onClick={() => {
+              // Previously `if (all three) onSave(form)` with no else: an incomplete
+              // form made the button do nothing and said nothing.
+              const missing = [
+                !form.memberId && 'a team member',
+                !form.certificationId && 'a certification',
+                !form.deadline && 'a deadline',
+              ].filter(Boolean);
+              if (missing.length) {
+                setAssignError(`Please choose ${missing.join(', ')}.`);
+                return;
+              }
+              if (submittingRef.current) return;
+              submittingRef.current = true;
+              setAssignError(null);
+              onSave(form);
+            }}
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 text-sm bg-azure-500 text-white rounded-lg hover:bg-azure-600 disabled:opacity-60 disabled:cursor-not-allowed">
+            {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
             Assign
           </button>
         </div>
@@ -232,6 +257,7 @@ export default function TrackerPage() {
   const [editAssignment, setEditAssignment] = useState<AssignedCertification | undefined>();
   const [uploadId, setUploadId] = useState<string | null>(null);
   const [deleteCertId, setDeleteCertId] = useState<string | null>(null);
+  const [deleteAssignId, setDeleteAssignId] = useState<string | null>(null);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [selectedMemberId, setSelectedMemberId] = useState('');
   const [selectedCertId, setSelectedCertId] = useState('');
@@ -722,7 +748,7 @@ export default function TrackerPage() {
                                 )}
                                 <QuickUpdateMenu
                                   onEdit={() => handleEditClick(a)}
-                                  onDelete={() => deleteAssign.mutate(a.id)}
+                                  onDelete={() => setDeleteAssignId(a.id)}
                                   onDeleteCertificate={a.certificateUrl ? () => setDeleteCertId(a.id) : undefined}
                                 />
                               </div>
@@ -739,7 +765,7 @@ export default function TrackerPage() {
         })}
       </div>
 
-      {showAssign && <AssignModal onClose={() => setShowAssign(false)} onSave={d => assign.mutate(d)} />}
+      {showAssign && <AssignModal onClose={() => setShowAssign(false)} isPending={assign.isPending} onSave={d => assign.mutate(d)} />}
       {addFor && (
         <AddCertificationModal
           memberId={addFor.id}
@@ -791,6 +817,37 @@ export default function TrackerPage() {
       )}
 
       {/* Delete Certificate Confirmation Modal */}
+      {deleteAssignId && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-[#1c1926]/80 backdrop-blur-md rounded-2xl shadow-2xl w-full max-w-sm p-6 border border-white/5">
+            <div className="flex items-center gap-3 text-red-400 mb-3">
+              <AlertTriangle className="w-6 h-6" />
+              <h3 className="font-semibold text-lg text-foreground">Delete Assignment</h3>
+            </div>
+            <p className="text-sm text-white/50 mb-6 leading-relaxed">
+              This removes the certification assignment and any certificate uploaded against it. This can't be undone.
+            </p>
+            <div className="flex gap-3">
+              <button
+                disabled={deleteAssign.isPending}
+                onClick={() => setDeleteAssignId(null)}
+                className="flex-1 px-4 py-2 text-sm border border-white/5 rounded-lg hover:bg-muted font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                disabled={deleteAssign.isPending}
+                onClick={() => deleteAssign.mutate(deleteAssignId, { onSuccess: () => setDeleteAssignId(null) })}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 text-sm bg-red-500 text-white rounded-lg hover:bg-red-600 font-medium disabled:opacity-60"
+              >
+                {deleteAssign.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {deleteCertId && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-fade-in">
           <div className="bg-[#1c1926]/80 backdrop-blur-md rounded-2xl shadow-2xl w-full max-w-sm p-6 border border-white/5">
