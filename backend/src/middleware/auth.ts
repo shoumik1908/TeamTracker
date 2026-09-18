@@ -28,23 +28,36 @@ export const authenticateToken = async (req: AuthRequest, res: Response, next: N
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as any;
-    req.user = decoded;
 
-    // Optional: Double check if user is still active in DB
+    // TT-027: permissions used to be taken from the token, so a role change or a
+    // revoked permission did not take effect until the token expired — up to 24
+    // hours. This lookup already existed for the isActive check; it now also loads
+    // the role, and the request is authorized from the database rather than from a
+    // claim the holder could be carrying from before the change.
     const userInDb = await prisma.user.findUnique({
       where: { id: decoded.id },
-      select: { isActive: true }
+      select: { isActive: true, roleId: true, teamMemberId: true, role: { select: { permissions: true } } },
     });
 
     if (!userInDb || !userInDb.isActive) {
       return next(new AppError('User account is deactivated or not found', 401));
     }
 
-    requestContext.run({ user: decoded }, () => {
+    const user = {
+      ...decoded,
+      roleId: userInDb.roleId,
+      teamMemberId: userInDb.teamMemberId,
+      permissions: userInDb.role?.permissions ?? {},
+    };
+    req.user = user;
+
+    requestContext.run({ user }, () => {
       next();
     });
   } catch (error) {
-    return next(new AppError('Invalid or expired token', 403));
+    // TT-098: an expired or malformed token is an authentication failure, not an
+    // authorization one. 403 is reserved for "you are known but not allowed".
+    return next(new AppError('Invalid or expired token', 401));
   }
 };
 
