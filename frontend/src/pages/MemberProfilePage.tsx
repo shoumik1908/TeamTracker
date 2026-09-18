@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { membersApi, certificationsApi, projectsApi, resumeGenerationApi } from '@/lib/api';
 import type { TeamMemberProfile, AssignedCertification, ProjectMemberWithProject } from '@/types';
-import { ArrowLeft, Phone, Award, FolderKanban, TrendingUp, Pencil, Upload, X, Loader2, FileText, Plus, MoreVertical, Trash2, BrainCircuit, CheckCircle2, RefreshCw, ChevronDown, ChevronUp, ThumbsUp, AlertTriangle, Lightbulb, Wand2, Download } from 'lucide-react';
+import { ArrowLeft, Phone, Award, FolderKanban, TrendingUp, Pencil, Upload, X, Loader2, FileText, Plus, MoreVertical, Trash2, BrainCircuit, CheckCircle2, RefreshCw, ChevronDown, ChevronUp, ThumbsUp, AlertTriangle, Lightbulb, Wand2, Download, Linkedin, ExternalLink } from 'lucide-react';
 import { cn, formatDate, getInitials, formatStatus, getStatusColor, getProgressColor } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 
@@ -338,6 +338,30 @@ export default function MemberProfilePage() {
     updatePhoneMutation.mutate(phoneInput.trim());
   };
 
+  const [isEditingLinkedIn, setIsEditingLinkedIn] = useState(false);
+  const [linkedInInput, setLinkedInInput] = useState('');
+  const [linkedInError, setLinkedInError] = useState<string | null>(null);
+
+  const updateLinkedInMutation = useMutation({
+    mutationFn: async (url: string) => {
+      const fd = new FormData();
+      fd.append('linkedinUrl', url);
+      return membersApi.update(id!, fd);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['member', id] });
+      qc.invalidateQueries({ queryKey: ['members'] });
+      setIsEditingLinkedIn(false);
+    },
+    onError: (err: Error) => {
+      setLinkedInError(err.message);
+    }
+  });
+
+  const handleSaveLinkedIn = () => {
+    updateLinkedInMutation.mutate(linkedInInput.trim());
+  };
+
   const updateSkillsMutation = useMutation({
     mutationFn: async (skillsList: string[]) => {
       const fd = new FormData();
@@ -629,6 +653,74 @@ export default function MemberProfilePage() {
                 ) : (
                   <span className="text-sm font-medium text-foreground">
                     {member.phone || 'No phone number added'}
+                  </span>
+                )}
+              </div>
+
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold text-white/50 uppercase tracking-wider block">LinkedIn Profile</span>
+                  {!isEditingLinkedIn ? (
+                    canEdit && (
+                      <button
+                        onClick={() => {
+                          setLinkedInInput(member.linkedinUrl || '');
+                          setIsEditingLinkedIn(true);
+                          setLinkedInError(null);
+                        }}
+                        className="text-[10px] font-medium text-emerald-400 hover:text-emerald-300 transition-colors flex items-center gap-1"
+                      >
+                        <Pencil className="w-3 h-3" /> Edit
+                      </button>
+                    )
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={handleSaveLinkedIn}
+                        disabled={updateLinkedInMutation.isPending}
+                        className="text-[10px] font-bold text-azure-400 hover:text-azure-300 disabled:opacity-50"
+                      >
+                        {updateLinkedInMutation.isPending ? 'Saving...' : 'Save'}
+                      </button>
+                      <span className="text-white/50 text-[10px]">|</span>
+                      <button
+                        onClick={() => setIsEditingLinkedIn(false)}
+                        className="text-[10px] font-bold text-red-400 hover:text-red-300"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {linkedInError && (
+                  <div className="text-[10px] text-red-400 p-1">
+                    {linkedInError}
+                  </div>
+                )}
+
+                {isEditingLinkedIn ? (
+                  <input
+                    type="text"
+                    value={linkedInInput}
+                    onChange={(e) => setLinkedInInput(e.target.value)}
+                    placeholder="https://linkedin.com/in/username"
+                    className="w-full mt-1 px-3 py-1.5 text-sm border border-white/5 rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-azure-500/30"
+                  />
+                ) : member.linkedinUrl ? (
+                  <a
+                    href={member.linkedinUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm font-medium text-azure-400 hover:text-azure-300 hover:underline flex items-center gap-1.5 truncate group"
+                  >
+                    <Linkedin className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" />
+                    <span className="truncate">{member.linkedinUrl}</span>
+                    <ExternalLink className="w-3 h-3 text-white/40 group-hover:text-azure-300 flex-shrink-0" />
+                  </a>
+                ) : (
+                  <span className="text-sm font-medium text-white/50">
+                    No LinkedIn profile added
                   </span>
                 )}
               </div>

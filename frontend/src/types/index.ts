@@ -22,7 +22,7 @@ export interface TeamMember {
   name: string;
   email?: string;
   phone?: string;
-
+  linkedinUrl?: string | null;
   designation?: string;
   joiningDate: string;
   skills: string[];

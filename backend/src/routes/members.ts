@@ -3,7 +3,10 @@ import { Router, Request, Response } from 'express';
 import { PrismaClient, Prisma } from '@prisma/client';
 import multer from 'multer';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 import { uploadImage } from '../middleware/upload';
+import { normalizeLinkedinUrl } from '../lib/linkedinUrl';
+import { createResetToken, RESET_TOKEN_TTL_MINUTES } from '../services/passwordResetToken';
 import { uploadFile, deleteFile, extractBlobName, CONTAINERS, sanitizeDirectoryName } from '../services/blobStorage';
 import { AppError } from '../middleware/errorHandler';
 import { extractCvWithAI } from '../services/aiExtractor';
@@ -29,6 +32,46 @@ const cvUpload = multer({
 const router = Router();
 
 router.use(authenticateToken);
+
+/**
+ * TT-046: adding a member with an email silently minted a User account whose password
+ * was `firstname+xebia`, so knowing someone's name and address was enough to sign in
+ * as them. The account is still created automatically — that is the feature — but with
+ * an unusable random password and a single-use reset link the admin passes on, exactly
+ * as an admin-initiated reset does (see routes/admin.ts).
+ *
+ * Returns null when there is no "Team Member" role to attach, which is the same
+ * silent no-op the previous code performed.
+ */
+async function createMemberAccount(
+  email: string,
+  name: string,
+  teamMemberId: string,
+): Promise<{ resetToken: string; expiresInMinutes: number } | null> {
+  const teamMemberRole = await prisma.role.findFirst({ where: { name: 'Team Member' } });
+  if (!teamMemberRole) return null;
+
+  // Random and never shown: the account must be unreachable until someone uses the
+  // link, and the token is derived from this hash so it dies the moment it is used.
+  const unusable = crypto.randomBytes(32).toString('base64url');
+  const passwordHash = await bcrypt.hash(unusable, 10);
+
+  const account = await prisma.user.create({
+    data: {
+      email,
+      name,
+      passwordHash,
+      roleId: teamMemberRole.id,
+      teamMemberId,
+      mustChangePassword: true,
+    },
+  });
+
+  return {
+    resetToken: createResetToken(account.id, passwordHash),
+    expiresInMinutes: RESET_TOKEN_TTL_MINUTES,
+  };
+}
 
 // GET /api/members/with-resumes - List members who have at least one resume profile or a cvBlobUrl
 router.get('/with-resumes', async (req: Request, res: Response) => {
@@ -193,11 +236,14 @@ router.post('/', uploadImage.single('profilePicture'), async (req: Request, res:
   const user = (req as AuthRequest).user;
   if (!user?.permissions?.manageTeam) throw new AppError('Forbidden: Only Admins can add members', 403);
 
-  const { name, email, phone, designation, joiningDate, skills, yearsOfExperience } = req.body;
+  const { name, email, phone, designation, joiningDate, skills, yearsOfExperience, linkedinUrl } = req.body;
 
   if (!name || !joiningDate) {
     throw new AppError('Name and joining date are required', 400);
   }
+
+  // Validated before anything is written, so a rejected URL costs nothing.
+  const normalizedLinkedinUrl = normalizeLinkedinUrl(linkedinUrl) ?? null;
 
   let profilePictureUrl: string | undefined;
 
@@ -216,7 +262,7 @@ router.post('/', uploadImage.single('profilePicture'), async (req: Request, res:
       name,
       email,
       phone,
-
+      linkedinUrl: normalizedLinkedinUrl,
       designation,
       joiningDate: new Date(joiningDate),
       skills: Array.isArray(skills) ? skills : (skills ? skills.split(',').map((s: string) => s.trim()) : []),
@@ -226,24 +272,9 @@ router.post('/', uploadImage.single('profilePicture'), async (req: Request, res:
   });
 
   // Auto-create User credentials if email is provided
+  let credentials: { resetToken: string; expiresInMinutes: number } | null = null;
   if (email) {
-    const teamMemberRole = await prisma.role.findFirst({ where: { name: 'Team Member' } });
-    if (teamMemberRole) {
-      const firstName = name.split(' ')[0].toLowerCase();
-      const defaultPassword = `${firstName}+xebia`;
-      const hashedPassword = await bcrypt.hash(defaultPassword, 10);
-      
-      await prisma.user.create({
-        data: {
-          email,
-          name,
-          passwordHash: hashedPassword,
-          roleId: teamMemberRole.id,
-          teamMemberId: member.id,
-          mustChangePassword: true,
-        },
-      });
-    }
+    credentials = await createMemberAccount(email, name, member.id);
   }
 
   // Create notification
@@ -256,7 +287,10 @@ router.post('/', uploadImage.single('profilePicture'), async (req: Request, res:
     },
   });
 
-  res.status(201).json(member);
+  // The reset link rides along on the member the admin just created, so it is in front
+  // of them at the one moment they can act on it. Additive: existing callers that read
+  // only the member fields are unaffected.
+  res.status(201).json({ ...member, ...(credentials ?? {}) });
 });
 
 // PUT /api/members/:id - Update member
@@ -267,7 +301,11 @@ router.put('/:id', uploadImage.single('profilePicture'), async (req: Request, re
     throw new AppError('Forbidden: You can only edit your own profile', 403);
   }
 
-  const { name, email, phone, designation, joiningDate, skills, allocationPercentage, status, yearsOfExperience } = req.body;
+  const { name, email, phone, designation, joiningDate, skills, allocationPercentage, status, yearsOfExperience, linkedinUrl } = req.body;
+
+  // undefined means "not supplied", which leaves the column alone; the spread below
+  // relies on that distinction, so it has to survive normalisation.
+  const normalizedLinkedinUrl = normalizeLinkedinUrl(linkedinUrl);
 
   const existing = await prisma.teamMember.findUnique({ where: { id } });
   if (!existing) throw new AppError('Member not found', 404);
@@ -295,7 +333,7 @@ router.put('/:id', uploadImage.single('profilePicture'), async (req: Request, re
       ...(name && { name }),
       ...(email !== undefined && { email }),
       ...(phone !== undefined && { phone }),
-
+      ...(normalizedLinkedinUrl !== undefined && { linkedinUrl: normalizedLinkedinUrl }),
       ...(designation && { designation }),
       ...(joiningDate && { joiningDate: new Date(joiningDate) }),
       ...(skills !== undefined && {
@@ -309,8 +347,9 @@ router.put('/:id', uploadImage.single('profilePicture'), async (req: Request, re
   });
 
   // Sync User credentials
+  let credentials: { resetToken: string; expiresInMinutes: number } | null = null;
   const existingUser = await prisma.user.findUnique({ where: { teamMemberId: id } });
-  
+
   if (existingUser && (email !== undefined || name)) {
     // If email is explicitly set to empty string or null, we might want to deactivate or delete, 
     // but for now we just update email and name. If it's a unique constraint violation, Prisma handles it.
@@ -323,26 +362,10 @@ router.put('/:id', uploadImage.single('profilePicture'), async (req: Request, re
     });
   } else if (!existingUser && email) {
     // Auto-create User credentials if email is newly provided
-    const teamMemberRole = await prisma.role.findFirst({ where: { name: 'Team Member' } });
-    if (teamMemberRole) {
-      const firstName = (name || existing.name).split(' ')[0].toLowerCase();
-      const defaultPassword = `${firstName}+xebia`;
-      const hashedPassword = await bcrypt.hash(defaultPassword, 10);
-      
-      await prisma.user.create({
-        data: {
-          email,
-          name: name || existing.name,
-          passwordHash: hashedPassword,
-          roleId: teamMemberRole.id,
-          teamMemberId: id,
-          mustChangePassword: true,
-        },
-      });
-    }
+    credentials = await createMemberAccount(email, name || existing.name, id);
   }
 
-  res.json(member);
+  res.json({ ...member, ...(credentials ?? {}) });
 });
 
 // GET /api/members/:id/resume-profile

@@ -26,3 +26,6 @@ Thumbs.db
 # Prisma
 prisma/*.db
 prisma/*.db-journal
+
+# Playwright MCP run artifacts (console logs, screenshots, downloads)
+.playwright-mcp/

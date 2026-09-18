@@ -16,6 +16,7 @@ model TeamMember {
   name                 String
   email                String?  @unique
   phone                String?
+  linkedinUrl          String?
   designation          String?
   joiningDate          DateTime
   skills               String[]

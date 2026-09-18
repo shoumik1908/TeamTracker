@@ -5,13 +5,13 @@ import { adminApi } from '../lib/api';
 import { toast } from 'sonner';
 import { notifyError } from '../lib/errors';
 import { getInitials } from '../lib/utils';
+import ResetLinkDialog, { buildResetLink, type ResetLink } from '../components/ResetLinkDialog';
 
 export default function AdminCredentialsPage() {
   const qc = useQueryClient();
   const [selectedUser, setSelectedUser] = useState<any>(null);
   // Shown once, after a reset. The API never returns it again.
-  const [resetLink, setResetLink] = useState<{ name: string; url: string; minutes: number } | null>(null);
-  const [copied, setCopied] = useState(false);
+  const [resetLink, setResetLink] = useState<ResetLink | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
   const { data: users, isLoading, isError, error } = useQuery({
@@ -47,12 +47,7 @@ export default function AdminCredentialsPage() {
       const data = res?.data ?? res;
       const name = users?.find((u: any) => u.id === userId)?.name ?? 'this user';
       if (data?.resetToken) {
-        setResetLink({
-          name,
-          url: `${window.location.origin}/reset-password?token=${encodeURIComponent(data.resetToken)}`,
-          minutes: data.expiresInMinutes ?? 60,
-        });
-        setCopied(false);
+        setResetLink(buildResetLink(name, data.resetToken, data.expiresInMinutes));
       } else {
         toast.success('Password reset.');
       }
@@ -222,51 +217,7 @@ export default function AdminCredentialsPage() {
       )}
 
       {/* Shown once: this is the only time the link is available. */}
-      {resetLink && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-[#1c1926]/80 backdrop-blur-md rounded-xl shadow-xl w-full max-w-lg p-6">
-            <div className="flex items-center gap-3 mb-4 text-azure-400">
-              <KeyRound className="w-6 h-6" />
-              <h3 className="text-lg font-semibold text-foreground">Reset link for {resetLink.name}</h3>
-            </div>
-            <p className="text-white/60 text-sm mb-3">
-              Send this to {resetLink.name}. It can be used once and expires in {resetLink.minutes} minutes.
-              <strong className="text-amber-400"> It will not be shown again.</strong>
-            </p>
-            <div className="flex gap-2 mb-5">
-              <input
-                readOnly
-                value={resetLink.url}
-                aria-label="Password reset link"
-                onFocus={e => e.currentTarget.select()}
-                className="flex-1 px-3 py-2 text-xs bg-background border border-white/10 rounded-lg text-foreground font-mono"
-              />
-              <button
-                onClick={async () => {
-                  try {
-                    await navigator.clipboard.writeText(resetLink.url);
-                    setCopied(true);
-                  } catch {
-                    // Clipboard access can be refused; the field is selectable as a fallback.
-                    toast.error('Could not copy. Select the link and copy it manually.');
-                  }
-                }}
-                className="px-3 py-2 text-xs font-medium bg-azure-500 text-white rounded-lg hover:bg-azure-600 whitespace-nowrap"
-              >
-                {copied ? 'Copied' : 'Copy'}
-              </button>
-            </div>
-            <div className="flex justify-end">
-              <button
-                onClick={() => setResetLink(null)}
-                className="px-4 py-2 text-sm font-medium text-white bg-muted hover:bg-muted/80 rounded-lg"
-              >
-                Done
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {resetLink && <ResetLinkDialog link={resetLink} onClose={() => setResetLink(null)} />}
     </div>
   );
 }
