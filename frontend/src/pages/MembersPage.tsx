@@ -111,8 +111,17 @@ function MemberFormModal({
     }
   };
 
+  // Same race as ProjectsPage: `disabled={isPending}` only applies after React
+  // re-renders, so a fast double-click fired two requests. Here the duplicate was
+  // masked by the backend's unique-email constraint (the second POST 409'd) rather
+  // than prevented. Set synchronously; cleared when the request settles.
+  const submittingRef = useRef(false);
+  useEffect(() => { if (!isPending) submittingRef.current = false; }, [isPending]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     const fd = new FormData();
     Object.entries(form).forEach(([k, v]) => {
       if (v !== undefined && v !== null) {

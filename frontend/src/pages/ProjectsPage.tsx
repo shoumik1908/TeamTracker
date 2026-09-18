@@ -67,6 +67,13 @@ function ProjectMenu({ onEdit, onDelete }: {
 
 function ProjectModal({ project, onClose, onSave, isPending = false }: { project?: Project; onClose: () => void; onSave: (d: Record<string, unknown>) => void; isPending?: boolean }) {
   const [formError, setFormError] = useState<string | null>(null);
+  // `disabled={isPending}` only takes effect once React re-renders, so two clicks
+  // dispatched in the same frame both reached mutate() and created two projects.
+  // This ref is set synchronously and is what actually stops the second one; the
+  // disabled state remains the visual cue. Cleared when the request settles so a
+  // failed save can be retried.
+  const submittingRef = useRef(false);
+  useEffect(() => { if (!isPending) submittingRef.current = false; }, [isPending]);
   const [form, setForm] = useState<ProjectFormData>(project ? {
     name: project.name, description: project.description || '', client: project.client || '',
     startDate: project.startDate.split('T')[0], endDate: project.endDate?.split('T')[0] || '',
@@ -182,6 +189,8 @@ function ProjectModal({ project, onClose, onSave, isPending = false }: { project
                 setFormError(`Please provide ${missing.join(' and ')}.`);
                 return;
               }
+              if (submittingRef.current) return;
+              submittingRef.current = true;
               setFormError(null);
               onSave({ ...form, progress: parseInt(form.progress), memberIds: selectedMembers, managerId: form.managerId || null });
             }}
