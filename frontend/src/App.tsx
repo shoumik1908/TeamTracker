@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Layout from './components/layout/Layout';
 import LoginPage from './pages/LoginPage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
+import RequirePermission from './components/auth/RequirePermission';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Toaster } from 'sonner';
 
@@ -49,7 +50,12 @@ export default function App() {
           <Route path="/" element={<ProtectedRoute />}>
             <Route element={<Layout />}>
               <Route index element={<DashboardRouter />} />
-              <Route path="admin/credentials" element={<Suspense fallback={<div>Loading...</div>}><AdminCredentialsPage /></Suspense>} />
+              {/* Hiding the sidebar link was never a guard: both URLs loaded for any
+                  authenticated user who typed them. */}
+              <Route element={<RequirePermission permission="manageTeam" />}>
+                <Route path="admin/credentials" element={<Suspense fallback={<div>Loading...</div>}><AdminCredentialsPage /></Suspense>} />
+                <Route path="logs" element={<Suspense fallback={<div>Loading...</div>}><LogsPage /></Suspense>} />
+              </Route>
               <Route path="members" element={<Suspense fallback={<div>Loading...</div>}><MembersPage /></Suspense>} />
               <Route path="members/:id" element={<Suspense fallback={<div>Loading...</div>}><MemberProfilePage /></Suspense>} />
               <Route path="cv-generation" element={<Suspense fallback={<div>Loading...</div>}><CvGenerationPage /></Suspense>} />
@@ -65,7 +71,6 @@ export default function App() {
               <Route path="presales/:id" element={<Suspense fallback={<div>Loading...</div>}><PreSalesDetailPage /></Suspense>} />
               <Route path="gtm" element={<Suspense fallback={<div>Loading...</div>}><GtmTrackerPage /></Suspense>} />
               <Route path="files" element={<Suspense fallback={<div>Loading...</div>}><FilesPage /></Suspense>} />
-              <Route path="logs" element={<Suspense fallback={<div>Loading...</div>}><LogsPage /></Suspense>} />
               <Route path="tasks" element={<Suspense fallback={<div>Loading...</div>}><TasksPage /></Suspense>} />
               <Route path="tasks/:id" element={<Suspense fallback={<div>Loading...</div>}><TaskDetailPage /></Suspense>} />
               <Route path="coe" element={<Suspense fallback={<div>Loading...</div>}><CoePage /></Suspense>} />

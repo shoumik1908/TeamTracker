@@ -7,6 +7,8 @@ import { cn, formatDate, formatStatus, getStatusColor, getPriorityColor, getProg
 import type { Project, PaginatedResponse, TeamMember, TeamsMeeting } from '@/types';
 import { toast } from 'sonner';
 import { notifyError } from '../lib/errors';
+import api from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
 
 const STATUSES = ['PLANNING', 'IN_PROGRESS', 'ON_HOLD', 'COMPLETED'];
 const PRIORITIES = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
@@ -205,6 +207,8 @@ function ProjectModal({ project, onClose, onSave, isPending = false }: { project
 }
 
 export default function ProjectsPage() {
+  const { hasPermission } = useAuth();
+  const isAdmin = hasPermission('manageTeam');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [, setPage] = useState(1);
@@ -256,10 +260,12 @@ export default function ProjectsPage() {
           <h2 className="page-title">Projects</h2>
           <p className="page-subtitle">{data?.pagination.total || 0} total projects</p>
         </div>
-        <button onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 px-4 py-2.5 bg-azure-500 text-white text-sm font-medium rounded-xl hover:bg-azure-600 transition-colors shadow-lg shadow-azure-500/25">
-          <Plus className="w-4 h-4" /> New Project
-        </button>
+        {isAdmin && (
+          <button onClick={() => setShowForm(true)}
+            className="flex items-center gap-2 px-4 py-2.5 bg-azure-500 text-white text-sm font-medium rounded-xl hover:bg-azure-600 transition-colors shadow-lg shadow-azure-500/25">
+            <Plus className="w-4 h-4" /> New Project
+          </button>
+        )}
       </div>
 
       <div className="bg-[#1c1926]/80 backdrop-blur-md rounded-xl border border-white/5 p-4 flex gap-3">
@@ -409,10 +415,12 @@ export default function ProjectsPage() {
                   <Video className="w-3 h-3" /> Meetings
                 </button>
               </div>
-              <ProjectMenu
-                onEdit={() => setEditProject(project)}
-                onDelete={() => setDeleteId(project.id)}
-              />
+              {isAdmin && (
+                <ProjectMenu
+                  onEdit={() => setEditProject(project)}
+                  onDelete={() => setDeleteId(project.id)}
+                />
+              )}
             </div>
           </div>
         ))}
@@ -678,18 +686,19 @@ function ProjectMeetingsModal({ project, onClose }: { project: Project; onClose:
   const qc = useQueryClient();
   const [selectedMeeting, setSelectedMeeting] = useState<TeamsMeeting | null>(null);
 
-  const { data: meetings, isLoading } = useQuery<TeamsMeeting[]>({
+  const { data: meetings, isLoading, isError } = useQuery<TeamsMeeting[]>({
     queryKey: ['project-meetings', project.id],
-    queryFn: () => fetch(`/api/projects/${project.id}/meetings`).then(r => r.json()),
+    queryFn: () => api.get(`/projects/${project.id}/meetings`).then(r => r.data),
   });
 
   const syncMeetings = useMutation({
-    mutationFn: () => fetch(`/api/projects/${project.id}/sync-meetings`, { method: 'POST' }).then(r => r.json()),
+    mutationFn: () => api.post(`/projects/${project.id}/sync-meetings`).then(r => r.data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['project-meetings', project.id] }),
+    onError: (err) => notifyError(err, 'Could not sync meetings.'),
   });
 
   const generateSummary = useMutation({
-    mutationFn: (meetingId: string) => fetch(`/api/meetings/${meetingId}/summary`, { method: 'POST' }).then(r => r.json()),
+    mutationFn: (meetingId: string) => api.post(`/meetings/${meetingId}/summary`).then(r => r.data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['project-meetings', project.id] }),
   });
 
@@ -727,7 +736,8 @@ function ProjectMeetingsModal({ project, onClose }: { project: Project; onClose:
           {/* List */}
           <div className="w-1/3 border-r border-white/5 overflow-y-auto bg-muted/5 p-4 space-y-3">
             {isLoading && <div className="text-sm text-white/50 text-center py-8">Loading meetings...</div>}
-            {!isLoading && meetings?.length === 0 && <div className="text-sm text-white/50 text-center py-8">No meetings found. Click Sync to pull from Teams.</div>}
+            {isError && <div className="text-sm text-rose-400 text-center py-8">Couldn't load meetings. Try again.</div>}
+            {!isLoading && !isError && meetings?.length === 0 && <div className="text-sm text-white/50 text-center py-8">No meetings found. Click Sync to pull from Teams.</div>}
             
             {meetings?.map(m => (
               <div 
