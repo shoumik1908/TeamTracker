@@ -1,4 +1,5 @@
 import multer from 'multer';
+import { AppError } from './errorHandler';
 
 // Use memory storage so we can upload directly to Azure Blob
 export const upload = multer({
@@ -62,7 +63,9 @@ export const uploadAny = multer({
     if (ALLOWED_UPLOAD_EXTENSIONS.includes(ext)) {
       cb(null, true);
     } else {
-      cb(new Error(`Unsupported file type ".${ext || 'unknown'}". Allowed: ${ALLOWED_UPLOAD_EXTENSIONS.join(', ')}`));
+      // AppError, not Error: a plain Error is indistinguishable from a genuine
+      // fault and became a 500 with its message stripped in production.
+      cb(new AppError(`Unsupported file type ".${ext || 'unknown'}". Allowed: ${ALLOWED_UPLOAD_EXTENSIONS.join(', ')}`, 400));
     }
   },
 });

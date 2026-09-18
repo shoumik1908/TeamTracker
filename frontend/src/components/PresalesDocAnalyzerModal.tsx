@@ -310,6 +310,17 @@ export default function PresalesDocAnalyzerModal({ grouped, onClose, onToast }: 
                 )}
               </div>
 
+              {/* handleFileSelect rejects a file by setting errorMsg, but errorMsg was
+                  only rendered in the 'error' phase — which a client-side rejection
+                  never enters. The file was silently dropped and the user was left
+                  with a reset drop zone and a disabled button, with no reason given. */}
+              {errorMsg && (
+                <div role="alert" className="flex items-start gap-2.5 p-3 rounded-xl bg-red-950/20 border border-red-900/30">
+                  <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+                  <p className="text-xs text-red-300">{errorMsg}</p>
+                </div>
+              )}
+
               <button
                 onClick={handleAnalyze}
                 disabled={!selectedFile}
