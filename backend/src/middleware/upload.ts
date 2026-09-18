@@ -27,7 +27,42 @@ export const uploadImage = multer({
   },
 });
 
+// TT-100: uploadAny accepted any file type at all, up to 50MB, with no filter. It
+// backs CoE resources, learning-project assets, session transcripts, meeting notes
+// and task feedback.
+//
+// Filtering on extension rather than file.mimetype, deliberately: the CoE resources
+// picker offers .ipynb and .zip, and browsers commonly send those as
+// application/octet-stream or application/json, so a MIME allow-list would reject
+// files the product explicitly invites. Neither signal is trustworthy — both come
+// from the client — so extension is chosen for predictability, not security.
+//
+// What actually contains the risk: the size cap below, that uploads are never
+// executed or extracted server-side, and that blobs are served with their stored
+// content type. Verifying magic bytes would be the next step up.
+const ALLOWED_UPLOAD_EXTENSIONS = [
+  // documents — matches the CoE picker: .pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.ipynb,.zip
+  'pdf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx', 'txt', 'csv', 'md', 'ipynb', 'zip',
+  // images, for task feedback attachments
+  'png', 'jpg', 'jpeg', 'gif', 'webp',
+];
+
+function extensionOf(filename: string): string {
+  const dot = filename.lastIndexOf('.');
+  return dot === -1 ? '' : filename.slice(dot + 1).toLowerCase();
+}
+
 export const uploadAny = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB
+  // Lowered from 50MB. These are documents and images, and memoryStorage holds every
+  // concurrent upload in the process, so this is a memory guard as much as a policy.
+  limits: { fileSize: 25 * 1024 * 1024, files: 10 },
+  fileFilter: (_req, file, cb) => {
+    const ext = extensionOf(file.originalname);
+    if (ALLOWED_UPLOAD_EXTENSIONS.includes(ext)) {
+      cb(null, true);
+    } else {
+      cb(new Error(`Unsupported file type ".${ext || 'unknown'}". Allowed: ${ALLOWED_UPLOAD_EXTENSIONS.join(', ')}`));
+    }
+  },
 });

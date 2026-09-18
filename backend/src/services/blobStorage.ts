@@ -70,6 +70,23 @@ export const CONTAINERS = {
   LEARNING_PROJECTS: process.env.AZURE_CONTAINER_LEARNING_PROJECTS || 'learning-projects',
 };
 
+/**
+ * The stored key for a blob.
+ *
+ * Every upload gets a uuid segment, so two people uploading the same filename can
+ * never land on the same key. Exported so the guarantee can be tested without Azure
+ * credentials — see src/tests/blobNaming.test.ts.
+ */
+export function buildBlobName(originalName: string, customBlobPrefix?: string): string {
+  const targetName = sanitizeBlobFileName(originalName);
+  const unique = crypto.randomUUID();
+  return customBlobPrefix ? `${customBlobPrefix}/${unique}-${targetName}` : `${unique}-${targetName}`;
+}
+
+export function sanitizeBlobFileName(originalName: string): string {
+  return originalName.replace(/[^a-zA-Z0-9.\-_ \(\)]/g, '_');
+}
+
 export async function uploadFile(
   containerName: string,
   fileBuffer: Buffer,
@@ -80,7 +97,7 @@ export async function uploadFile(
   customBlobPrefix?: string
 ): Promise<{ url: string; blobName: string }> {
   // Sanitize original name to prevent path issues but keep it otherwise unchanged
-  const targetName = originalName.replace(/[^a-zA-Z0-9.\-_ \(\)]/g, '_');
+  const targetName = sanitizeBlobFileName(originalName);
 
   if (containerName === CONTAINERS.CERTIFICATES || containerName === CONTAINERS.PROJECT_RECORDINGS) {
     console.log(`[ADLS Gen2] Directing upload to Data Lake for container: ${containerName}`);
@@ -117,7 +134,15 @@ export async function uploadFile(
     // Normal blob client
     const containerClient = await getContainerClient(containerName);
     await containerClient.createIfNotExists();
-    const finalBlobName = customBlobPrefix ? `${customBlobPrefix}/${targetName}` : targetName;
+    // TT-063: the blob key used to be the sanitized original filename whenever a
+    // caller did not pass a prefix — and most of the sixteen call sites do not. Two
+    // people uploading "resume.pdf" landed on the same key and the second silently
+    // overwrote the first, across members. Namespacing here rather than asking every
+    // caller to remember means the guarantee cannot be lost by adding a new one.
+    //
+    // This is also the root cause behind TT-048 (CV and profile-picture keys), so
+    // those uploads are covered without touching routes/members.ts.
+    const finalBlobName = buildBlobName(originalName, customBlobPrefix);
     const blockBlobClient = containerClient.getBlockBlobClient(finalBlobName);
 
     await blockBlobClient.uploadData(fileBuffer, {
