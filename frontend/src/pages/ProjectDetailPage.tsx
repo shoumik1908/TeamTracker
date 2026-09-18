@@ -16,6 +16,7 @@ import {
 import { cn } from '@/lib/utils';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { errorMessage, notifyError } from '../lib/errors';
+import api from '@/lib/api';
 
 // Helper to format byte sizes
 function formatBytes(bytes: number, decimals = 2) {
@@ -164,7 +165,7 @@ export default function ProjectDetailPage() {
   // Fetch pulse data
   const { data: pulseData, isLoading: isLoadingPulse } = useQuery({
     queryKey: ['project-pulse', projectId],
-    queryFn: () => axios.get(`/api/projects/${projectId}/pulse`).then(r => r.data),
+    queryFn: () => api.get(`/projects/${projectId}/pulse`).then(r => r.data),
     enabled: !!projectId,
   });
 
@@ -289,11 +290,12 @@ export default function ProjectDetailPage() {
 
   const resolveBlockerMutation = useMutation({
     mutationFn: async (id: string) => {
-      return axios.patch(`/api/projects/${projectId}/blockers/${id}/status`, { status: 'resolved' });
+      return api.patch(`/projects/${projectId}/blockers/${id}/status`, { status: 'resolved' });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project-pulse', projectId] });
-    }
+    },
+    onError: (err) => notifyError(err, 'Could not resolve the blocker.'),
   });
 
   // Link Form operations
