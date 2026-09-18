@@ -19,6 +19,10 @@ export interface ChatOptions {
 export interface AIResponse {
   provider: 'groq' | 'azure';
   content: string;
+  // TT-061: surfaced so callers can tell a complete answer from one the provider cut off
+  // at the token limit. Without it, a truncated response that happens to parse is
+  // indistinguishable from a short meeting.
+  finishReason?: string;
   usage?: {
     prompt_tokens?: number;
     completion_tokens?: number;
@@ -49,6 +53,12 @@ export function validateAiConfig() {
   }
 }
 
+// TT-058: nothing bounded how long an LLM call could take. A hung request pinned the
+// caller forever — an HTTP handler, or a cron tick that then overlapped the next one.
+// Two minutes is generous for the longest legitimate call here (full-transcript minutes)
+// and still finite.
+const AI_REQUEST_TIMEOUT_MS = Number(process.env.AI_REQUEST_TIMEOUT_MS) || 120_000;
+
 // Extensible factory design for provider retrieval
 class AIProviderFactory {
   private static azureClient: AzureOpenAI | null = null;
@@ -66,7 +76,11 @@ class AIProviderFactory {
       this.azureClient = new AzureOpenAI({
         apiKey,
         endpoint,
-        apiVersion
+        apiVersion,
+        // Also TT-058: the SDK defaults to no deadline. maxRetries covers the transient
+        // Azure rate limits that previously failed a user-visible extraction outright.
+        timeout: AI_REQUEST_TIMEOUT_MS,
+        maxRetries: 2,
       });
     }
     return this.azureClient;
@@ -112,7 +126,8 @@ class AIProviderFactory {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${apiKey}`
       },
-      body: JSON.stringify(body)
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(AI_REQUEST_TIMEOUT_MS),
     });
 
     const duration = Date.now() - startTime;
@@ -133,6 +148,7 @@ class AIProviderFactory {
     return {
       provider: 'groq',
       content,
+      finishReason: responseData.choices?.[0]?.finish_reason,
       usage: responseData.usage ? {
         prompt_tokens: responseData.usage.prompt_tokens,
         completion_tokens: responseData.usage.completion_tokens,
@@ -172,6 +188,7 @@ class AIProviderFactory {
     return {
       provider: 'azure',
       content,
+      finishReason: res.choices?.[0]?.finish_reason,
       usage: res.usage ? {
         prompt_tokens: res.usage.prompt_tokens,
         completion_tokens: res.usage.completion_tokens,
@@ -189,22 +206,40 @@ export const aiProvider = {
   chat: async (messages: ChatMessage[], options: ChatOptions = {}): Promise<AIResponse> => {
     let lastError: any = null;
 
-    if (options.forceProvider === 'azure') {
-      try {
-        return await AIProviderFactory.callAzure(messages, options);
-      } catch (err: any) {
-        console.error(`[AI Logs] Azure OpenAI exclusive execution error: ${err.message}`);
-        throw err;
+    // TT-058: the forced-provider paths had no retry at all, so a single transient rate
+    // limit failed a user-visible extraction that one retry would have satisfied. The
+    // fallback path below already retried; these now do too. Errors that retrying cannot
+    // help — a malformed request, bad credentials, a bug — still fail immediately.
+    const retryable = (err: any) =>
+      !(err?.status === 400 || err?.status === 401 || err?.status === 403
+        || err instanceof TypeError || err instanceof ReferenceError);
+
+    const withRetry = async (label: string, run: () => Promise<AIResponse>): Promise<AIResponse> => {
+      const attempts = 2;
+      let err: any;
+      for (let attempt = 0; attempt < attempts; attempt++) {
+        if (attempt > 0) {
+          const delay = 500 + Math.random() * 500;
+          console.warn(`[AI Logs] Retrying ${label} request after ${Math.round(delay)}ms...`);
+          await new Promise(r => setTimeout(r, delay));
+        }
+        try {
+          return await run();
+        } catch (e: any) {
+          err = e;
+          console.error(`[AI Logs] ${label} exclusive execution error: ${e.message}`);
+          if (!retryable(e)) throw e;
+        }
       }
+      throw err;
+    };
+
+    if (options.forceProvider === 'azure') {
+      return withRetry('Azure OpenAI', () => AIProviderFactory.callAzure(messages, options));
     }
 
     if (options.forceProvider === 'groq') {
-      try {
-        return await AIProviderFactory.callGroq(messages, options);
-      } catch (err: any) {
-        console.error(`[AI Logs] Groq exclusive execution error: ${err.message}`);
-        throw err;
-      }
+      return withRetry('Groq', () => AIProviderFactory.callGroq(messages, options));
     }
 
 

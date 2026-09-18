@@ -7,6 +7,11 @@ Format your response exactly as follows:
 
 Keep it professional, brief, and highly readable. Do not include any filler text.`;
 
+  // TT-119: every failure here used to be swallowed and the *error message* returned as
+  // the summary — which the caller then cached in the database. A transient API error
+  // became the meeting's permanent summary, the user read "Failed to generate AI summary"
+  // as content, no retry ever happened and monitoring saw nothing wrong. Failures now
+  // throw, so the caller can decline to cache and report honestly.
   try {
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
@@ -22,7 +27,9 @@ Keep it professional, brief, and highly readable. Do not include any filler text
         ],
         temperature: 0.2,
         max_tokens: 500
-      })
+      }),
+      // Also TT-119: an unbounded fetch pinned the request handler indefinitely.
+      signal: AbortSignal.timeout(Number(process.env.AI_REQUEST_TIMEOUT_MS) || 120_000),
     });
 
     if (!response.ok) {
@@ -30,9 +37,13 @@ Keep it professional, brief, and highly readable. Do not include any filler text
     }
 
     const data: any = await response.json();
-    return data.choices?.[0]?.message?.content || 'No summary could be generated.';
-  } catch (error) {
+    const content = data.choices?.[0]?.message?.content;
+    if (!content || !content.trim()) {
+      throw new Error('The model returned an empty summary.');
+    }
+    return content;
+  } catch (error: any) {
     console.error('Failed to generate AI summary:', error);
-    return 'Failed to generate AI summary due to an API error.';
+    throw new Error(`Could not generate a summary: ${error?.message || error}`);
   }
 }

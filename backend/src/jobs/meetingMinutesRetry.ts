@@ -2,16 +2,45 @@ import prisma from '../lib/prisma';
 import { PrismaClient } from '@prisma/client';
 import { generateMeetingMinutes  } from '../services/azureOpenAIService';
 import { matchTeamMember, correctNamesInTranscript } from '../utils/fuzzyMatch';
+import { onlyIdsOfferedToTheModel, completedActionItemIds } from '../lib/meetingContinuity';
 import cron from 'node-cron';
 
+// TT-026: the cron fires every two minutes while each run makes minutes-long LLM calls,
+// so runs overlapped routinely. Two runs processing the same record interleaved the
+// delete-and-recreate block below, producing duplicated or half-deleted attendees and
+// action items. A single flag is enough here: this job runs in-process on one instance.
+let isRunning = false;
+
+// TT-025: a record that fails is picked up again on the very next tick, forever. Nothing
+// counted attempts, so one permanently unprocessable record burned three full-transcript
+// LLM calls every two minutes indefinitely. The count lives in the aiMinutes JSON rather
+// than a new column, so this needs no migration; once it is spent the record's status
+// moves off TOKENS_EXCEEDED and it stops being selected.
+const MAX_RETRY_ATTEMPTS = 5;
+
+// TT-023: bounds how much work one tick can take on, so a backlog cannot turn into a
+// single enormous run.
+const MAX_RECORDS_PER_RUN = 10;
 
 export const retryMeetingMinutesAnalysis = async () => {
+  if (isRunning) {
+    console.log('[Minutes Retry Job] Previous run still in progress — skipping this tick.');
+    return;
+  }
+  isRunning = true;
   try {
-    // Database-agnostic JSON check: fetch all records and filter in JS
-    const allRecords = await prisma.meetingRecord.findMany();
-    const records = allRecords.filter(r => {
-      const minutes = r.aiMinutes as any;
-      return minutes && minutes.status === 'TOKENS_EXCEEDED';
+    // TT-023: this used to be findMany() with no filter and no select — every meeting
+    // record, including every full transcript, pulled into memory every two minutes, then
+    // filtered in JS. Postgres can filter on the JSON column directly, and the loop only
+    // needs these fields.
+    const records = await prisma.meetingRecord.findMany({
+      where: { aiMinutes: { path: ['status'], equals: 'TOKENS_EXCEEDED' } },
+      select: {
+        id: true, meetingTitle: true, projectId: true, opportunityId: true,
+        transcriptText: true, meetingDate: true, createdAt: true, aiMinutes: true,
+      },
+      orderBy: { createdAt: 'asc' },
+      take: MAX_RECORDS_PER_RUN,
     });
 
     if (records.length === 0) return;
@@ -73,27 +102,38 @@ export const retryMeetingMinutesAnalysis = async () => {
         }));
       }
 
+      const attemptsSoFar = Number((record.aiMinutes as any)?.retry_attempts) || 0;
+
       try {
         let baseText = record.transcriptText || '';
         if (!record.meetingDate) {
           baseText = `[SYSTEM CONTEXT: The transcript file was created on ${record.createdAt.toISOString()}. If the transcript text DOES NOT mention an explicit meeting date/time, default to this creation date for the meeting_date. ALWAYS output the final meeting_date in IST (Indian Standard Time), appending " IST" to the string.]\n\n` + baseText;
         }
+        // TT-064: the corrected text used to be written back over transcriptText, so the
+        // only stored copy of what was actually said was replaced by a fuzzy-matched
+        // rewrite — destroying the evidence trail the minutes' evidence_quote fields are
+        // meant to be checkable against. The correction is still applied to what the model
+        // sees; it is just no longer mistaken for the source. What changed is recorded in
+        // aiMinutes.name_corrections.
         const { correctedText, corrections } = correctNamesInTranscript(baseText, contextMembers);
-        if (corrections.length > 0) {
-          await prisma.meetingRecord.update({
-            where: { id: record.id },
-            data: { transcriptText: correctedText }
-          });
-        }
 
         const finalAiMinutes = await generateMeetingMinutes(correctedText, priorActionItems, priorBlockers, 1, contextMembers);
         if (finalAiMinutes && (finalAiMinutes as any).status !== 'TOKENS_EXCEEDED') {
           (finalAiMinutes as any).name_corrections = corrections;
+          // Carry the attempt count forward so a record that keeps succeeding at the LLM
+          // step but failing later is still bounded.
+          (finalAiMinutes as any).retry_attempts = attemptsSoFar;
+
+          // Same reasoning as TT-043 in the HTTP paths: the deletes and the recreates are
+          // one unit of work. A failure part-way used to leave the record stripped of its
+          // attendees, decisions and action items, and — because the record stayed on
+          // TOKENS_EXCEEDED — the next tick would do it again.
+          await prisma.$transaction(async (tx) => {
           // Delete old relational items
-          await prisma.meetingAttendee.deleteMany({ where: { meetingRecordId: record.id } });
-          await prisma.meetingActionItem.deleteMany({ where: { meetingRecordId: record.id } });
-          await prisma.keyDecision.deleteMany({ where: { meetingRecordId: record.id } });
-          await prisma.blockerRisk.deleteMany({ where: { firstRaisedMeetingId: record.id } });
+          await tx.meetingAttendee.deleteMany({ where: { meetingRecordId: record.id } });
+          await tx.meetingActionItem.deleteMany({ where: { meetingRecordId: record.id } });
+          await tx.keyDecision.deleteMany({ where: { meetingRecordId: record.id } });
+          await tx.blockerRisk.deleteMany({ where: { firstRaisedMeetingId: record.id } });
 
           // Re-create relational items
           // 1. Attendees
@@ -111,7 +151,7 @@ export const retryMeetingMinutesAnalysis = async () => {
                 memberId
               };
             });
-            await prisma.meetingAttendee.createMany({ data: attendeesToCreate });
+            await tx.meetingAttendee.createMany({ data: attendeesToCreate });
           }
 
           // 2. Action Items
@@ -141,7 +181,7 @@ export const retryMeetingMinutesAnalysis = async () => {
                 completed
               };
             });
-            await prisma.meetingActionItem.createMany({ data: itemsToCreate });
+            await tx.meetingActionItem.createMany({ data: itemsToCreate });
           }
 
           // 3. Key Decisions
@@ -161,7 +201,7 @@ export const retryMeetingMinutesAnalysis = async () => {
                 decidedById
               };
             });
-            await prisma.keyDecision.createMany({ data: decisionsToCreate });
+            await tx.keyDecision.createMany({ data: decisionsToCreate });
           }
 
           // 4. Blockers
@@ -178,14 +218,20 @@ export const retryMeetingMinutesAnalysis = async () => {
                 status
               };
             });
-            await prisma.blockerRisk.createMany({ data: blockersToCreate });
+            await tx.blockerRisk.createMany({ data: blockersToCreate });
           }
 
           // 5. Cross-Meeting Continuity: Resolve prior blockers
-          if (finalAiMinutes.resolved_previous_blocker_ids && finalAiMinutes.resolved_previous_blocker_ids.length > 0) {
-            await prisma.blockerRisk.updateMany({
+          // TT-024: these ids came from the model and went straight into the where clause
+          // with no scoping. The transcript is concatenated into the prompt, so a crafted
+          // one could name another project's blocker and silently close it. Restricted to
+          // the ids this record's context actually offered the model.
+          const resolvableBlockerIds = onlyIdsOfferedToTheModel(
+            finalAiMinutes.resolved_previous_blocker_ids, priorBlockers);
+          if (resolvableBlockerIds.length > 0) {
+            await tx.blockerRisk.updateMany({
               where: {
-                id: { in: finalAiMinutes.resolved_previous_blocker_ids },
+                id: { in: resolvableBlockerIds },
                 status: 'open'
               },
               data: {
@@ -196,15 +242,18 @@ export const retryMeetingMinutesAnalysis = async () => {
           }
 
           // 6. Cross-Meeting Continuity: Complete prior action items
-          if (finalAiMinutes.updated_previous_action_items && finalAiMinutes.updated_previous_action_items.length > 0) {
-            for (const update of finalAiMinutes.updated_previous_action_items) {
-              if (update.new_status === 'completed') {
-                await prisma.meetingActionItem.update({
-                  where: { id: update.id },
-                  data: { status: 'completed', completed: true }
-                });
-              }
-            }
+          // TT-025: this was a loop of update(), which throws on an id that no longer
+          // exists. That threw away the minutes that had just been generated and left the
+          // record on TOKENS_EXCEEDED, so it was retried — with three more full-transcript
+          // LLM calls — every two minutes, forever. updateMany no-ops on missing ids.
+          const completableItemIds = onlyIdsOfferedToTheModel(
+            completedActionItemIds(finalAiMinutes.updated_previous_action_items),
+            priorActionItems);
+          if (completableItemIds.length > 0) {
+            await tx.meetingActionItem.updateMany({
+              where: { id: { in: completableItemIds } },
+              data: { status: 'completed', completed: true }
+            });
           }
 
           // Update meetingRecord with the minutes
@@ -218,19 +267,45 @@ export const retryMeetingMinutesAnalysis = async () => {
             }
           }
 
-          await prisma.meetingRecord.update({
+          await tx.meetingRecord.update({
             where: { id: record.id },
             data: updateData
+          });
           });
 
           console.log(`[Minutes Retry Job] Successfully generated and stored AI minutes for record: ${record.id}`);
         }
       } catch (err: any) {
         console.warn(`[Minutes Retry Job] Failed to retry for record ${record.id}: ${err.message}`);
+        // TT-025: without this the record stayed on TOKENS_EXCEEDED and was retried on
+        // every tick forever — three full-transcript LLM calls every two minutes against a
+        // record that was never going to succeed. After MAX_RETRY_ATTEMPTS it is marked
+        // failed, which takes it out of the query above and leaves a record of why.
+        const attempts = attemptsSoFar + 1;
+        const existing = (record.aiMinutes as any) || {};
+        await prisma.meetingRecord.update({
+          where: { id: record.id },
+          data: {
+            aiMinutes: {
+              ...existing,
+              status: attempts >= MAX_RETRY_ATTEMPTS ? 'ANALYSIS_FAILED' : 'TOKENS_EXCEEDED',
+              retry_attempts: attempts,
+              last_retry_error: String(err?.message || err).slice(0, 500),
+              last_retry_at: new Date().toISOString(),
+            } as any,
+          },
+        }).catch(updateErr =>
+          console.error(`[Minutes Retry Job] Could not record the failed attempt for ${record.id}:`, updateErr));
+
+        if (attempts >= MAX_RETRY_ATTEMPTS) {
+          console.error(`[Minutes Retry Job] Giving up on record ${record.id} after ${attempts} attempts.`);
+        }
       }
     }
   } catch (e) {
     console.error('[Minutes Retry Job] Error:', e);
+  } finally {
+    isRunning = false;
   }
 };
 

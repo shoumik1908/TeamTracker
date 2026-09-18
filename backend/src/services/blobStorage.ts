@@ -168,10 +168,38 @@ export async function deleteFile(containerName: string, blobName: string): Promi
   }
 }
 
+/**
+ * TT-062: this signed whatever it was handed. The account key can mint a readable URL
+ * for any blob in the storage account, so a caller-supplied container and path meant
+ * every application-level authorization check could be walked around — other members'
+ * CVs, certificates and meeting recordings included.
+ *
+ * Signing is the last line: it refuses containers this application does not own, and
+ * paths that try to climb out of one. Callers are still expected to establish that the
+ * requester may see the blob; this only makes sure a mistake there cannot become a key
+ * to the whole account.
+ */
+export function assertSignableBlob(containerName: string, blobName: string): void {
+  if (!Object.values(CONTAINERS).includes(containerName)) {
+    throw new Error(`Refusing to sign a URL for unknown container "${containerName}".`);
+  }
+  if (!blobName || typeof blobName !== 'string') {
+    throw new Error('Refusing to sign a URL without a blob name.');
+  }
+  // A leading slash makes the path absolute; ".." climbs; a backslash is a separator on
+  // some clients and would slip past a naive check for "../".
+  const normalized = blobName.replace(/\\/g, '/');
+  if (normalized.startsWith('/') || normalized.split('/').includes('..')) {
+    throw new Error('Refusing to sign a URL for a blob path that escapes its container.');
+  }
+}
+
 export function generateSasUrl({ containerName, blobName, permissions, expiryMinutes = 15 }: { containerName: string; blobName: string; permissions: string; expiryMinutes?: number }): string {
   if (!sharedKeyCredential) {
     throw new Error('StorageSharedKeyCredential is not configured properly. Ensure AccountKey is provided in the connection string.');
   }
+
+  assertSignableBlob(containerName, blobName);
 
   const sasOptions = {
     containerName,

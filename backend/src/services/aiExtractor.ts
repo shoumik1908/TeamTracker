@@ -1,4 +1,5 @@
 import { aiProvider } from './aiProvider';
+import { AppError } from '../middleware/errorHandler';
 
 export interface AiCvExtraction {
   skills: string[];
@@ -95,12 +96,7 @@ CV Text:
 ${cvText.substring(0, 12000)}`;
 
   const res = await aiProvider.askAI(prompt, { jsonMode: true, forceProvider: 'azure' });
-  try {
-    return JSON.parse(res.content) as AiCvExtraction;
-  } catch (e) {
-    const repaired = res.content.replace(/```json/g, '').replace(/```/g, '').trim();
-    return JSON.parse(repaired) as AiCvExtraction;
-  }
+  return coerceCvExtraction(parseModelJson<any>(res.content, 'reading the CV'));
 }
 
 export interface AiPresalesAnalysis {
@@ -140,12 +136,7 @@ Document Text:
 ${docText.substring(0, 12000)}`;
 
   const res = await aiProvider.askAI(prompt, { jsonMode: true, forceProvider: 'azure' });
-  try {
-    return JSON.parse(res.content) as AiPresalesAnalysis;
-  } catch (e) {
-    const repaired = res.content.replace(/```json/g, '').replace(/```/g, '').trim();
-    return JSON.parse(repaired) as AiPresalesAnalysis;
-  }
+  return parseModelJson<AiPresalesAnalysis>(res.content, 'analysing the document');
 }
 
 export interface TailoredResumeData {
@@ -218,10 +209,59 @@ Return STRICT JSON matching this schema:
 `;
 
   const res = await aiProvider.askAI(prompt, { jsonMode: true, forceProvider: 'azure' });
-  try {
-    return JSON.parse(res.content) as TailoredResumeData;
-  } catch (e) {
-    const repaired = res.content.replace(/```json/g, '').replace(/```/g, '').trim();
-    return JSON.parse(repaired) as TailoredResumeData;
-  }
+  return parseModelJson<TailoredResumeData>(res.content, 'generating the resume');
+}
+
+/**
+ * TT-118: every one of these call sites did `JSON.parse(content) as SomeInterface`. The
+ * cast is a compile-time fiction — the CV and JD text is user-supplied and concatenated
+ * into the prompt, so the model's answer is attacker-influenced. Malformed output became
+ * an unhandled 500 during CV parsing and resume generation (the repair path's own
+ * JSON.parse was outside any try/catch), and out-of-range ats_score values flowed
+ * straight through to the UI.
+ */
+function parseModelJson<T>(content: string, what: string): T {
+  const attempt = (text: string): T | null => {
+    try {
+      return JSON.parse(text) as T;
+    } catch {
+      return null;
+    }
+  };
+  const direct = attempt(content);
+  if (direct !== null) return direct;
+
+  const repaired = content.replace(/```json/g, '').replace(/```/g, '').trim();
+  const fixed = attempt(repaired);
+  if (fixed !== null) return fixed;
+
+  throw new AppError(
+    `The AI returned a response that could not be read while ${what}. Please try again.`,
+    502,
+  );
+}
+
+/** Scores are a percentage. Anything else is the model being creative. */
+function clampScore(value: unknown): number {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return 0;
+  return Math.max(0, Math.min(100, Math.round(n)));
+}
+
+function coerceCvExtraction(raw: any): AiCvExtraction {
+  const breakdown = raw?.ats_score?.breakdown ?? {};
+  return {
+    ...raw,
+    skills: Array.isArray(raw?.skills) ? raw.skills.filter((x: unknown) => typeof x === 'string') : [],
+    primary_role: typeof raw?.primary_role === 'string' ? raw.primary_role : '',
+    years_of_experience: Number.isFinite(Number(raw?.years_of_experience))
+      ? Math.max(0, Math.min(70, Math.round(Number(raw.years_of_experience))))
+      : 0,
+    ats_score: {
+      total: clampScore(raw?.ats_score?.total),
+      breakdown: Object.fromEntries(
+        Object.entries(breakdown).map(([k, v]) => [k, clampScore(v)]),
+      ) as AiCvExtraction['ats_score']['breakdown'],
+    },
+  };
 }
