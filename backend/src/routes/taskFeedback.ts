@@ -63,53 +63,59 @@ router.post('/', uploadAny.array('files', 10), async (req: AuthRequest, res: Res
   const existingAttachments = Array.isArray(existingFeedback?.attachments) ? existingFeedback.attachments : [];
   const finalAttachments = [...existingAttachments, ...uploadedAttachments];
 
-  const feedback = await prisma.taskFeedback.upsert({
-    where: { taskId_assigneeId: { taskId, assigneeId: memberId } },
-    create: { 
-      taskId, 
-      assigneeId: memberId, 
-      feedbackText: parsed.data.feedbackText, 
-      rating: parsed.data.rating ?? null,
-      attachments: finalAttachments
-    },
-    update: { 
-      feedbackText: parsed.data.feedbackText, 
-      rating: parsed.data.rating ?? null, 
-      submittedAt: new Date(),
-      attachments: finalAttachments
-    },
-    include: { assignee: { select: { id: true, name: true } } },
-  });
-
-  // Update this member's assignment status to DONE
-  await prisma.taskAssignment.update({
-    where: { taskId_memberId: { taskId, memberId } },
-    data: { status: 'DONE' }
-  });
-
-  // Check if ALL assignees have now submitted feedback → auto-move to DONE
-  const totalAssignees = task.assignments.length;
-  // Count feedbacks after this upsert (existing + this one)
-  const existingFeedbackIds = new Set(task.feedbacks.map((f) => f.assigneeId));
-  existingFeedbackIds.add(memberId);
-  const feedbackCount = existingFeedbackIds.size;
-
-  // Re-evaluate aggregate Task status
-  const allAssignments = await prisma.taskAssignment.findMany({ where: { taskId } });
-  const allDone = allAssignments.every(a => a.status === 'DONE');
-  const allStarted = allAssignments.every(a => a.status === 'IN_PROGRESS' || a.status === 'DONE');
-
-  if (allDone) {
-    await prisma.task.update({
-      where: { id: taskId },
-      data: { status: 'DONE', completedAt: new Date() },
+  // TT-116: the upsert, the assignment update and the aggregate recomputation below used
+  // to be four independent statements. A failure between them left Task.status disagreeing
+  // with its TaskAssignment rows — every assignee DONE but the task stuck IN_PROGRESS —
+  // and two assignees submitting at once both read the pre-update assignments, so the last
+  // writer decided the aggregate from stale data. One transaction makes the derived status
+  // a function of the rows as they actually are.
+  const { feedback, feedbackCount, totalAssignees } = await prisma.$transaction(async (tx) => {
+    const feedback = await tx.taskFeedback.upsert({
+      where: { taskId_assigneeId: { taskId, assigneeId: memberId } },
+      create: { 
+        taskId, 
+        assigneeId: memberId, 
+        feedbackText: parsed.data.feedbackText, 
+        rating: parsed.data.rating ?? null,
+        attachments: finalAttachments
+      },
+      update: { 
+        feedbackText: parsed.data.feedbackText, 
+        rating: parsed.data.rating ?? null, 
+        submittedAt: new Date(),
+        attachments: finalAttachments
+      },
+      include: { assignee: { select: { id: true, name: true } } },
     });
-  } else if (allStarted) {
-    await prisma.task.update({
-      where: { id: taskId },
-      data: { status: 'IN_PROGRESS', completedAt: null },
+
+    // Update this member's assignment status to DONE
+    await tx.taskAssignment.update({
+      where: { taskId_memberId: { taskId, memberId } },
+      data: { status: 'DONE' }
     });
-  }
+
+    // Re-evaluate aggregate Task status — read back inside the transaction, so a
+    // concurrent submission cannot be missed.
+    const allAssignments = await tx.taskAssignment.findMany({ where: { taskId } });
+    const allDone = allAssignments.every(a => a.status === 'DONE');
+    const allStarted = allAssignments.every(a => a.status === 'IN_PROGRESS' || a.status === 'DONE');
+
+    if (allDone) {
+      await tx.task.update({
+        where: { id: taskId },
+        data: { status: 'DONE', completedAt: new Date() },
+      });
+    } else if (allStarted) {
+      await tx.task.update({
+        where: { id: taskId },
+        data: { status: 'IN_PROGRESS', completedAt: null },
+      });
+    }
+
+    // Counted from the same snapshot rather than from the pre-transaction read.
+    const submitted = await tx.taskFeedback.count({ where: { taskId } });
+    return { feedback, feedbackCount: submitted, totalAssignees: allAssignments.length };
+  });
 
   return res.status(201).json({ data: feedback, allSubmitted: feedbackCount >= totalAssignees });
 });

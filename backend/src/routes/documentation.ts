@@ -2,7 +2,7 @@ import prisma from '../lib/prisma';
 import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import crypto from 'crypto';
-import { deleteFile, generateSasUrl, extractBlobName, CONTAINERS, accountName } from '../services/blobStorage';
+import { deleteFile, generateSasUrl, extractBlobName, getContainerNameFromUrl, CONTAINERS, accountName } from '../services/blobStorage';
 import { AppError } from '../middleware/errorHandler';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
 import { verifyContextMember } from '../lib/contextAccess';
@@ -131,8 +131,12 @@ router.delete('/files/:fileId', async (req: Request, res: Response) => {
   }
 
   // Delete file from Azure storage
+  // TT-036: this hardcoded the project container, but the upload path picks it
+  // conditionally (project-documents vs presales-documents). For a pre-sales document the
+  // delete therefore missed, the database row vanished and the blob stayed behind
+  // forever. Reading the container back off the stored URL cannot drift from the upload.
   const blobName = extractBlobName(dbFile.url);
-  await deleteFile(CONTAINERS.PROJECT_DOCS, blobName);
+  await deleteFile(getContainerNameFromUrl(dbFile.url), blobName);
 
   // Delete database record
   await prisma.projectFile.delete({
@@ -167,9 +171,11 @@ router.get('/files/:fileId/download-url', async (req: Request, res: Response) =>
     throw new AppError('File not found in database.', 404);
   }
 
+  // Same as the delete above (TT-036): a SAS signed for the project container pointed at
+  // a blob that is not in it, so every pre-sales download failed with an Azure 404.
   const blobName = extractBlobName(dbFile.url);
   const downloadUrl = generateSasUrl({
-    containerName: CONTAINERS.PROJECT_DOCS,
+    containerName: getContainerNameFromUrl(dbFile.url),
     blobName,
     permissions: "r",
     expiryMinutes: 5,
