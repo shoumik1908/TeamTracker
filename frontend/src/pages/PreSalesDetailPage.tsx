@@ -1745,11 +1745,11 @@ export default function PreSalesDetailPage() {
                                     Retry Generation
                                   </button>
                                 </div>
-                                <div className="flex items-start gap-3 p-3.5 bg-rose-500/5 border border-rose-500/15 rounded-lg text-rose-200">
+                                <div className="flex items-start gap-3 p-3.5 bg-rose-500/5 border border-rose-500/15 rounded-lg">
                                   <AlertTriangle className="w-4 h-4 text-rose-500 mt-0.5 flex-shrink-0" />
                                   <div className="space-y-1">
-                                    <p className="text-xs font-semibold">AI analysis could not be completed</p>
-                                    <p className="text-[10px] text-rose-400/85">
+                                    <p className="text-xs font-semibold text-rose-700">AI analysis could not be completed</p>
+                                    <p className="text-[10px] text-rose-700">
                                       Automatic retries have stopped{(r.aiMinutes as any).retry_attempts ? ` after ${(r.aiMinutes as any).retry_attempts} attempts` : ''}. Your transcript is saved and unchanged — use "Retry Generation" above once the underlying issue is resolved.
                                     </p>
                                   </div>
