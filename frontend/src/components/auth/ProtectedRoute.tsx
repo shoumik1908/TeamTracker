@@ -1,11 +1,9 @@
-import { useState } from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import ChangePasswordModal from './ChangePasswordModal';
 
 export default function ProtectedRoute() {
   const { user, isLoading } = useAuth();
-  const [skipped, setSkipped] = useState(false);
+  const location = useLocation();
 
   if (isLoading) {
     return (
@@ -19,13 +17,13 @@ export default function ProtectedRoute() {
     return <Navigate to="/login" replace />;
   }
 
-  // If user must change password and hasn't skipped, show the modal blocking the rest of the app
-  return (
-    <>
-      <Outlet />
-      {user.mustChangePassword && !skipped && (
-        <ChangePasswordModal forced onSkip={() => setSkipped(true)} />
-      )}
-    </>
-  );
+  // TT-130: this used to render the app with a modal over it and a "skip" button,
+  // so a forced password change could be dismissed — or simply scrolled past, since
+  // the routes underneath were live either way. Now it is a redirect, and the only
+  // page reachable until the password changes is the one that changes it.
+  if (user.mustChangePassword && location.pathname !== '/change-password') {
+    return <Navigate to="/change-password" replace />;
+  }
+
+  return <Outlet />;
 }

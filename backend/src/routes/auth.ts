@@ -9,6 +9,21 @@ import { JWT_SECRET } from '../lib/jwtSecret';
 
 const router = Router();
 
+// TT-102: neither register nor change-password checked password strength at all.
+const MIN_PASSWORD_LENGTH = 10;
+function assertPasswordAcceptable(password: string) {
+  if (typeof password !== 'string' || password.length < MIN_PASSWORD_LENGTH) {
+    throw new AppError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`, 400);
+  }
+  if (!/[a-zA-Z]/.test(password) || !/[0-9]/.test(password)) {
+    throw new AppError('Password must contain at least one letter and one number.', 400);
+  }
+}
+
+// TT-103: emails were stored and compared as typed, so Alice@x and alice@x could
+// both register and then fail to log in depending on capitalisation.
+const normalizeEmail = (email: string) => email.trim().toLowerCase();
+
 // Helper to generate token
 const generateToken = (user: any, role: any) => {
   return jwt.sign(
@@ -29,10 +44,12 @@ const generateToken = (user: any, role: any) => {
 // POST /api/auth/register
 router.post('/register', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, password } = req.body;
+    const email = typeof req.body.email === 'string' ? normalizeEmail(req.body.email) : '';
     if (!name || !email || !password) {
       throw new AppError('Name, email, and password are required', 400);
     }
+    assertPasswordAcceptable(password);
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({ where: { email } });
@@ -52,8 +69,24 @@ router.post('/register', async (req: Request, res: Response, next: NextFunction)
       throw new AppError('Name not found in team roster — contact your admin.', 403);
     }
 
-    // Map to the first matched team member
-    const teamMember = teamMembers[0];
+    // TT-029: matching on name alone let anyone register as a colleague simply by
+    // typing their name. Where the roster row carries an email, it must be the one
+    // being registered. Rows without an email fall back to the previous behaviour
+    // rather than locking those people out — TeamMember.email is nullable and many
+    // rows have none.
+    const withEmail = teamMembers.filter(m => m.email);
+    if (withEmail.length > 0) {
+      const matched = withEmail.find(m => normalizeEmail(m.email as string) === email);
+      if (!matched) {
+        throw new AppError(
+          'That name is on the roster but the email does not match the one on file — contact your admin.',
+          403,
+        );
+      }
+    }
+
+    // Map to the matched roster row, preferring the email match when there was one
+    const teamMember = teamMembers.find(m => m.email && normalizeEmail(m.email) === email) ?? teamMembers[0];
 
     // Check if this team member already has a mapped user
     const existingMapping = await prisma.user.findUnique({ where: { teamMemberId: teamMember.id } });
@@ -72,7 +105,7 @@ router.post('/register', async (req: Request, res: Response, next: NextFunction)
     const user = await prisma.user.create({
       data: {
         name: name.trim(),
-        email: email.trim(),
+        email,
         passwordHash,
         roleId: memberRole.id,
         teamMemberId: teamMember.id,
@@ -113,13 +146,17 @@ router.post('/register', async (req: Request, res: Response, next: NextFunction)
 // POST /api/auth/login
 router.post('/login', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { email, password } = req.body;
+    const { password } = req.body;
+    const email = typeof req.body.email === 'string' ? normalizeEmail(req.body.email) : '';
     if (!email || !password) {
       throw new AppError('Email and password are required', 400);
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email: email.trim() },
+    // Case-insensitive rather than a normalized exact match: accounts created before
+    // normalization may hold a mixed-case address, and an exact lookup would lock
+    // those people out of their own accounts.
+    const user = await prisma.user.findFirst({
+      where: { email: { equals: email, mode: 'insensitive' } },
       include: { role: true }
     });
 
@@ -163,6 +200,7 @@ router.post('/change-password', authenticateToken, async (req: AuthRequest, res:
     if (!currentPassword || !newPassword) {
       throw new AppError('Current and new passwords are required', 400);
     }
+    assertPasswordAcceptable(newPassword);
 
     const user = await prisma.user.findUnique({ where: { id: userId }, include: { role: true } });
     if (!user) throw new AppError('User not found', 404);
