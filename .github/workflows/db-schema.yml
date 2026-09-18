@@ -72,8 +72,12 @@ jobs:
 
       # The suites exist but nothing enforced them: this workflow previously stopped at
       # prisma generate, so a change breaking every test still went green.
+      # The backend refuses to start without JWT_SECRET (TT-003), and the test suite
+      # imports that module, so CI has to supply one just as production does.
+      # Generated per run rather than written here: a literal would be a committed
+      # secret for scanners to find, exactly like the Postgres password in #37.
       - name: backend tests
-        run: npm test
+        run: JWT_SECRET="$(openssl rand -base64 32)" npm test
 
       - name: frontend install
         working-directory: frontend
