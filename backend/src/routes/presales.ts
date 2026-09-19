@@ -30,7 +30,7 @@ const docUpload = multer({
     if (allowed.includes(file.mimetype) || ['pdf','docx','txt','eml'].includes(ext || '')) {
       cb(null, true);
     } else {
-      cb(new Error('Only PDF, DOCX, TXT, and EML files are accepted'));
+      cb(new AppError('Only PDF, DOCX, TXT, and EML files are accepted', 400));
     }
   },
 });
@@ -49,7 +49,7 @@ const proposalUpload = multer({
     if (allowed.includes(file.mimetype) || ['pdf','docx','txt'].includes(ext || '')) {
       cb(null, true);
     } else {
-      cb(new Error('Only PDF, DOCX, and TXT files are accepted for proposal generation'));
+      cb(new AppError('Only PDF, DOCX, and TXT files are accepted for proposal generation', 400));
     }
   },
 });

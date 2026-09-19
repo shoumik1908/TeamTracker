@@ -1,6 +1,12 @@
 import multer from 'multer';
 import { AppError } from './errorHandler';
 
+// A rejected file is the caller's mistake. These filters used to call cb(new Error(...)),
+// a plain Error that is neither an AppError nor a MulterError, so it slipped past the
+// mapping added in #45 and surfaced as a 500 carrying a perfectly good 400 message —
+// "Only JPEG and PNG images are allowed", with HTTP 500. Found while verifying the
+// multer 2.x upgrade (TT-017).
+
 // Use memory storage so we can upload directly to Azure Blob
 export const upload = multer({
   storage: multer.memoryStorage(),
@@ -10,7 +16,7 @@ export const upload = multer({
     if (allowed.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error('Only JPEG, PNG, and PDF files are allowed'));
+      cb(new AppError('Only JPEG, PNG, and PDF files are allowed', 400));
     }
   },
 });
@@ -23,7 +29,7 @@ export const uploadImage = multer({
     if (allowed.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error('Only JPEG and PNG images are allowed'));
+      cb(new AppError('Only JPEG and PNG images are allowed', 400));
     }
   },
 });

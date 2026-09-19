@@ -48,6 +48,9 @@ Run each case against an isolated PostgreSQL database with Azure/AI clients stub
 | Member self-service | A member may edit their own contact details but not `allocationPercentage`, `status`, `designation` or `joiningDate`; an admin may change all of them. |
 | Member accounts | Creating a member with an email returns a single-use reset link rather than a generated password; the old `firstname+xebia` form no longer authenticates; the link works once and is refused on replay; a member without an email gets no account. |
 | Environment-gated endpoints | The mock Teams sync refuses to write demonstration rows when `NODE_ENV=production`. |
+| Seed and first-run setup | `npm run seed` creates a bootstrap admin who can sign in and is forced to change the password; running it twice leaves one admin and does not duplicate notifications. |
+| Schema constraints | A member cannot be assigned to the same opportunity twice; deleting a user who created a learning project, CoE ticket or session is refused rather than cascading; a stage-change log cannot reference an opportunity that does not exist. |
+| Upload rejections | A file rejected by a type filter returns 400 with the reason, not 500. |
 | Error responses | A failed lookup in a production process returns a generic message rather than Prisma internals; CORS does not trust a localhost origin in production. |
 
 ## Frontend workflow cases

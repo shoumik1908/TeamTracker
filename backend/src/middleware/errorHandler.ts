@@ -55,7 +55,12 @@ export const errorHandler = (
   const isDevelopmentLike = ['development', 'test', 'local'].includes(
     (process.env.NODE_ENV || '').toLowerCase(),
   );
+  // Not every error carries a message. Azure's RestError arrives with an empty one, so
+  // a failed certificate upload answered `{"error":""}` — a 500 that told the caller
+  // nothing at all and gave the UI nothing to show. Fall back whenever there is no
+  // usable text, rather than forwarding the blank.
+  const detail = (err.message || '').trim();
   return res.status(500).json({
-    error: isDevelopmentLike ? err.message : 'Internal server error',
+    error: isDevelopmentLike && detail ? detail : 'Internal server error',
   });
 };

@@ -1,6 +1,7 @@
 import { BlobServiceClient, ContainerClient, StorageSharedKeyCredential, generateBlobSASQueryParameters, BlobSASPermissions } from '@azure/storage-blob';
 import { DataLakeServiceClient } from '@azure/storage-file-datalake';
 import crypto from 'crypto';
+import { AppError } from '../middleware/errorHandler';
 
 const connectionString = (process.env.AZURE_STORAGE_CONNECTION_STRING || '').trim();
 
@@ -101,6 +102,7 @@ export async function uploadFile(
 
   if (containerName === CONTAINERS.CERTIFICATES || containerName === CONTAINERS.PROJECT_RECORDINGS) {
     console.log(`[ADLS Gen2] Directing upload to Data Lake for container: ${containerName}`);
+    try {
     const serviceClient = getDataLakeServiceClient();
     const fileSystemClient = serviceClient.getFileSystemClient(containerName);
     await fileSystemClient.createIfNotExists();
@@ -130,6 +132,17 @@ export async function uploadFile(
     const url = `https://${accountName}.blob.core.windows.net/${containerName}/${folderName}/${targetName}`;
     const blobName = `${folderName}/${targetName}`;
     return { url, blobName };
+  } catch (err: any) {
+    // The Azure SDK's RestError often arrives with an empty message, which used to
+    // travel all the way out as `{"error":""}` — a 500 that told the caller nothing and
+    // gave the UI nothing to show. Say which step failed and keep the real cause in the
+    // log, where an operator can use it.
+    console.error('[ADLS Gen2] upload failed:', err?.code || err?.name || err, err?.statusCode ?? '', err?.message ?? '');
+    throw new AppError(
+      `Could not store the file. The ${containerName} storage backend rejected the upload.`,
+      502,
+    );
+  }
   } else {
     // Normal blob client
     const containerClient = await getContainerClient(containerName);

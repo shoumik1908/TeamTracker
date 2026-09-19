@@ -1081,10 +1081,15 @@ export default function MemberProfilePage() {
               </button>
             )}
           </div>
-          {member.projectMembers.length === 0
+          {/* A projectMembers row is polymorphic: it points at a Project or at a PreSales
+              opportunity, and an opportunity row carries project: null. Rendering it here
+              read pm.project.name and took the whole page down with it, so anyone ever
+              added to an opportunity had a blank profile. The sibling list above already
+              filters this way; a "Projects" list should not show opportunities regardless. */}
+          {member.projectMembers.filter(pm => pm.project).length === 0
             ? <p className="text-sm text-white/50">Not assigned to any projects — click <strong className="text-foreground">Add to Project</strong> to assign one.</p>
             : <div className="space-y-3">
-                {member.projectMembers.map(pm => (
+                {member.projectMembers.filter(pm => pm.project).map(pm => (
                   <div key={pm.id} className="p-3 rounded-lg bg-muted/30 border border-white/5/50">
                     <div className="flex items-start justify-between gap-2">
                       <div>

@@ -1304,7 +1304,11 @@ function MissingFieldsModal({
   onCancel: () => void;
 }) {
   return (
-    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-fade-in">
+    // z-[60], not z-50: this interrupts the upload dialog, which is still mounted behind
+    // it. At equal z-index the upload dialog wins on DOM order and covers this one
+    // completely — the buttons here were unreachable, and with certificate OCR
+    // unconfigured this dialog is the normal path, not an edge case.
+    <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4 animate-fade-in">
       <div className="bg-[#1c1926]/80 backdrop-blur-md rounded-2xl shadow-2xl w-full max-w-sm border border-white/5 overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/5">
           <div className="flex items-center gap-2.5">
