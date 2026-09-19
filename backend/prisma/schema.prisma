@@ -124,6 +124,8 @@ model TeamMember {
   coeSessionAttendance CoeSessionAttendance[]
   learningProjectMemberships LearningProjectMember[]
   @@index([managerId])
+  uploadedProjectFiles ProjectFile[] @relation("ProjectFileUploader")
+  addedProjectLinks    ProjectLink[] @relation("ProjectLinkAuthor")
 
   @@map("team_members")
 }
@@ -139,6 +141,13 @@ model Certification {
   updatedAt    DateTime @updatedAt
 
   assignedCertifications AssignedCertification[]
+  // TT-093: the code treats a certification's name as identifying it — the seed looks it
+  // up by name, and the GTM partner audit counts holders by matching
+  // `certification.name`. Nothing stopped two rows with the same name and provider, and
+  // production had eight rows where there should have been two: five people were counted
+  // against five *different* catalog entries for the same certification, so the audit
+  // undercounted and any name lookup bound to an arbitrary one.
+  @@unique([name, provider])
 
   @@map("certifications")
 }
@@ -736,13 +745,20 @@ model ProjectFile {
   url           String
   type          String
   size          Int
-  uploadedBy    String
+  // TT-092: this held a team-member id as a bare string with no foreign key, so deleting
+  // a member left a dangling reference the UI silently rendered as nobody. It is a real
+  // relation now, and nullable: SetNull keeps the record when the member goes rather than
+  // blocking the deletion or taking the file with it. Null also carries meaning — see the
+  // system-generated case in routes/presales.ts.
+  uploadedBy    String?
   uploadedAt    DateTime @default(now())
 
   project     Project?             @relation(fields: [projectId], references: [id], onDelete: Cascade)
   opportunity PreSalesOpportunity? @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  uploader    TeamMember?          @relation("ProjectFileUploader", fields: [uploadedBy], references: [id], onDelete: SetNull)
   @@index([opportunityId])
   @@index([projectId])
+  @@index([uploadedBy])
 
   @@map("project_files")
 }
@@ -754,13 +770,16 @@ model ProjectLink {
   title         String
   url           String
   description   String?
-  addedBy       String
+  // Same as ProjectFile.uploadedBy above (TT-092).
+  addedBy       String?
   addedAt       DateTime @default(now())
 
   project     Project?             @relation(fields: [projectId], references: [id], onDelete: Cascade)
   opportunity PreSalesOpportunity? @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  author      TeamMember?          @relation("ProjectLinkAuthor", fields: [addedBy], references: [id], onDelete: SetNull)
   @@index([opportunityId])
   @@index([projectId])
+  @@index([addedBy])
 
   @@map("project_links")
 }
@@ -771,13 +790,16 @@ model ProjectNote {
   opportunityId String?
   title         String
   content       String   @db.Text
-  updatedBy     String
+  // Same as ProjectFile.uploadedBy above (TT-092). Note that an admin without a team
+  // member record writes their user id here, so this does not always resolve.
+  updatedBy     String?
   updatedAt     DateTime @updatedAt
 
   project     Project?             @relation(fields: [projectId], references: [id], onDelete: Cascade)
   opportunity PreSalesOpportunity? @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
   @@index([opportunityId])
   @@index([projectId])
+  @@index([updatedBy])
 
   @@map("project_notes")
 }
