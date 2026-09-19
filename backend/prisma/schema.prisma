@@ -61,6 +61,7 @@ model TeamMember {
   coeTickets       CoeTicket[]
   coeSessionAttendance CoeSessionAttendance[]
   learningProjectMemberships LearningProjectMember[]
+  @@index([managerId])
 
   @@map("team_members")
 }
@@ -80,6 +81,10 @@ model Certification {
   @@map("certifications")
 }
 
+// TT-019: foreign-key columns across most models had no index. Postgres does not create
+// one for a foreign key, so every project and opportunity detail page, every
+// meeting-minutes fetch and every task board was doing sequential scans that get slower
+// in step with the table, and a cascading delete had to scan the children to find them.
 model AssignedCertification {
   id               String              @id @default(cuid())
   memberId         String
@@ -106,6 +111,7 @@ model AssignedCertification {
   @@unique([memberId, certificationId])
   @@index([memberId, status])
   @@index([deadline])
+  @@index([certificationId])
   @@map("assigned_certifications")
 }
 
@@ -137,6 +143,7 @@ model Project {
   tasks          Task[]
 
   @@index([status, endDate])
+  @@index([managerId])
   @@map("projects")
 }
 
@@ -154,6 +161,14 @@ model ProjectMember {
   member      TeamMember           @relation(fields: [memberId], references: [id], onDelete: Cascade)
 
   @@unique([projectId, memberId])
+  // TT-018: only the project half was constrained. This row is polymorphic, so the
+  // opportunity half was unconstrained and the same member could be assigned to one
+  // opportunity any number of times — inflating headcount, and making the
+  // unassign-by-findFirst path remove an arbitrary one of the duplicates. Postgres
+  // treats NULLs as distinct, so this constrains opportunity rows only, which is what is
+  // wanted. Checked against production first: no existing duplicates to clean up.
+  @@unique([opportunityId, memberId])
+  @@index([memberId])
   @@map("project_members")
 }
 
@@ -170,6 +185,9 @@ model ProjectUpdate {
   project     Project?             @relation(fields: [projectId], references: [id], onDelete: Cascade)
   opportunity PreSalesOpportunity? @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
   member      TeamMember           @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  @@index([memberId])
+  @@index([opportunityId])
+  @@index([projectId])
 
   @@map("project_updates")
 }
@@ -216,6 +234,9 @@ model Task {
 
   @@index([status])
   @@index([dueDate])
+  @@index([assignedById])
+  @@index([onBehalfOfId])
+  @@index([projectId])
   @@map("tasks")
 }
 
@@ -226,8 +247,15 @@ model TaskAssignment {
   memberId String
   member   TeamMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
   status   TaskStatus @default(TODO)
+  // TT-089: status is mutable and nothing recorded when it moved, so there was no way to
+  // answer when an assignee finished a task — no throughput reporting, no stale-assignment
+  // query, no audit of progress. Both default to now() so existing rows get a value;
+  // createdAt is approximate for those and exact from here on.
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 
   @@unique([taskId, memberId])
+  @@index([memberId])
   @@map("task_assignments")
 }
 
@@ -245,6 +273,7 @@ model TaskFeedback {
   assignee   TeamMember @relation("TaskFeedbackAssignee", fields: [assigneeId], references: [id], onDelete: Cascade)
 
   @@unique([taskId, assigneeId])
+  @@index([assigneeId])
   @@map("task_feedbacks")
 }
 
@@ -264,6 +293,7 @@ model TeamsMeeting {
   createdAt      DateTime @default(now())
 
   project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  @@index([projectId])
 
   @@map("teams_meetings")
 }
@@ -312,6 +342,8 @@ model MeetingActionItem {
 
   meetingRecord MeetingRecord @relation(fields: [meetingRecordId], references: [id], onDelete: Cascade)
   assignedTo    TeamMember?   @relation(fields: [assignedToId], references: [id], onDelete: SetNull)
+  @@index([assignedToId])
+  @@index([meetingRecordId])
 
   @@map("meeting_action_items")
 }
@@ -329,6 +361,8 @@ model KeyDecision {
 
   meetingRecord MeetingRecord @relation(fields: [meetingRecordId], references: [id], onDelete: Cascade)
   decidedBy     TeamMember?   @relation(fields: [decidedById], references: [id], onDelete: SetNull)
+  @@index([decidedById])
+  @@index([meetingRecordId])
 
   @@map("key_decisions")
 }
@@ -348,6 +382,9 @@ model BlockerRisk {
   project            Project?       @relation(fields: [projectId], references: [id], onDelete: Cascade)
   firstRaisedMeeting MeetingRecord  @relation("MeetingBlockers", fields: [firstRaisedMeetingId], references: [id], onDelete: Cascade)
   resolvedInMeeting  MeetingRecord? @relation("ResolvedInMeeting", fields: [resolvedInMeetingId], references: [id], onDelete: SetNull)
+  @@index([firstRaisedMeetingId])
+  @@index([projectId])
+  @@index([resolvedInMeetingId])
 
   @@map("blockers_risks")
 }
@@ -362,6 +399,8 @@ model MeetingAttendee {
 
   meetingRecord MeetingRecord @relation(fields: [meetingRecordId], references: [id], onDelete: Cascade)
   member        TeamMember?   @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  @@index([meetingRecordId])
+  @@index([memberId])
 
   @@map("meeting_attendees")
 }
@@ -483,6 +522,7 @@ model PreSalesOpportunity {
 
   updates        ProjectUpdate[]
   assignments    ProjectMember[]
+  stageChangeLogs StageChangeLog[]
   files          ProjectFile[]
   links          ProjectLink[]
   notes          ProjectNote[]
@@ -531,6 +571,7 @@ model GtmPartnerRequirement {
   updatedAt         DateTime @updatedAt @map("updated_at")
 
   partner GtmPartner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  @@index([partnerId])
 
   @@map("gtm_partner_requirements")
 }
@@ -549,6 +590,8 @@ model GtmCampaign {
 
   launch  GtmPlan?    @relation(fields: [launchId], references: [id], onDelete: SetNull)
   partner GtmPartner? @relation(fields: [partnerId], references: [id], onDelete: SetNull)
+  @@index([launchId])
+  @@index([partnerId])
 
   @@map("gtm_campaigns")
 }
@@ -566,6 +609,8 @@ model GtmCollateral {
 
   launch  GtmPlan?    @relation(fields: [launchId], references: [id], onDelete: SetNull)
   partner GtmPartner? @relation(fields: [partnerId], references: [id], onDelete: SetNull)
+  @@index([launchId])
+  @@index([partnerId])
 
   @@map("gtm_collaterals")
 }
@@ -582,6 +627,13 @@ model StageChangeLog {
   originalFilename String? // The actual original file name of the document
   createdAt        DateTime @default(now())
 
+  // TT-091: opportunityId was an unconstrained string. Nothing stopped a log row pointing
+  // at an opportunity that never existed, deleting an opportunity left its audit rows
+  // orphaned for good, and reading one opportunity's history scanned the whole table.
+  // Checked against production first: no orphaned rows to clean up.
+  opportunity PreSalesOpportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+
+  @@index([opportunityId, createdAt])
   @@map("stage_change_logs")
 }
 
@@ -598,6 +650,8 @@ model ProjectFile {
 
   project     Project?             @relation(fields: [projectId], references: [id], onDelete: Cascade)
   opportunity PreSalesOpportunity? @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  @@index([opportunityId])
+  @@index([projectId])
 
   @@map("project_files")
 }
@@ -614,6 +668,8 @@ model ProjectLink {
 
   project     Project?             @relation(fields: [projectId], references: [id], onDelete: Cascade)
   opportunity PreSalesOpportunity? @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  @@index([opportunityId])
+  @@index([projectId])
 
   @@map("project_links")
 }
@@ -629,6 +685,8 @@ model ProjectNote {
 
   project     Project?             @relation(fields: [projectId], references: [id], onDelete: Cascade)
   opportunity PreSalesOpportunity? @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  @@index([opportunityId])
+  @@index([projectId])
 
   @@map("project_notes")
 }
@@ -645,6 +703,7 @@ model CertificateEditRequest {
   reviewedAt      DateTime?
 
   assignment AssignedCertification @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  @@index([assignmentId])
 
   @@map("certificate_edit_requests")
 }
@@ -694,6 +753,7 @@ model User {
   learningProjects LearningProject[] @relation("LearningProjectCreator")
   learningProjectUpdates LearningProjectMilestoneUpdate[] @relation("LearningProjectUpdateCreator")
   learningProjectAssets LearningProjectAsset[] @relation("LearningProjectAssetUploader")
+  @@index([roleId])
 
   @@map("users")
 }
@@ -706,7 +766,13 @@ model LearningProject {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  createdBy  User                       @relation("LearningProjectCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  // TT-020: this and six sibling relations were onDelete: Cascade, so deleting one User
+  // row silently destroyed the shared content they happened to have created — entire
+  // learning projects with their members, milestones and assets, the CoE knowledge base,
+  // every ticket they filed and every session they scheduled. Offboarding one person
+  // could take a chunk of the organisation's record with it. Restrict makes such a delete
+  // fail loudly; deactivation already has a proper route through User.isActive.
+  createdBy  User                       @relation("LearningProjectCreator", fields: [createdById], references: [id], onDelete: Restrict)
   members    LearningProjectMember[]
   milestones LearningProjectMilestone[]
   assets     LearningProjectAsset[]
@@ -754,9 +820,10 @@ model LearningProjectMilestoneUpdate {
   createdAt   DateTime @default(now())
 
   milestone LearningProjectMilestone @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
-  createdBy User                     @relation("LearningProjectUpdateCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  createdBy User                     @relation("LearningProjectUpdateCreator", fields: [createdById], references: [id], onDelete: Restrict)
 
   @@index([milestoneId, createdAt])
+  @@index([createdById])
   @@map("learning_project_milestone_updates")
 }
 
@@ -773,9 +840,10 @@ model LearningProjectAsset {
   createdAt    DateTime @default(now())
 
   project    LearningProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  uploadedBy User            @relation("LearningProjectAssetUploader", fields: [uploadedById], references: [id], onDelete: Cascade)
+  uploadedBy User            @relation("LearningProjectAssetUploader", fields: [uploadedById], references: [id], onDelete: Restrict)
 
   @@index([projectId, createdAt])
+  @@index([uploadedById])
   @@map("learning_project_assets")
 }
 
@@ -791,9 +859,10 @@ model CoeLearningResource {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  uploadedBy User @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
+  uploadedBy User @relation(fields: [uploadedById], references: [id], onDelete: Restrict)
 
   @@index([track, createdAt])
+  @@index([uploadedById])
   @@map("coe_learning_resources")
 }
 
@@ -810,11 +879,12 @@ model CoeTicket {
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
 
-  createdBy User        @relation("CoeTicketCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  createdBy User        @relation("CoeTicketCreator", fields: [createdById], references: [id], onDelete: Restrict)
   member    TeamMember? @relation(fields: [memberId], references: [id], onDelete: SetNull)
 
   @@index([track, status])
   @@index([memberId])
+  @@index([createdById])
   @@map("coe_tickets")
 }
 
@@ -841,11 +911,12 @@ model CoeKnowledgeSession {
   createdAt             DateTime         @default(now())
   updatedAt             DateTime         @updatedAt
 
-  organizer   User                   @relation("CoeSessionOrganizer", fields: [organizerId], references: [id], onDelete: Cascade)
+  organizer   User                   @relation("CoeSessionOrganizer", fields: [organizerId], references: [id], onDelete: Restrict)
   attendance  CoeSessionAttendance[]
   meetingNotes CoeSessionMeetingNote[]
 
   @@index([status, scheduledAt])
+  @@index([organizerId])
   @@map("coe_knowledge_sessions")
 }
 
@@ -859,9 +930,10 @@ model CoeSessionMeetingNote {
   createdAt   DateTime @default(now())
 
   session    CoeKnowledgeSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  uploadedBy User                @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
+  uploadedBy User                @relation(fields: [uploadedById], references: [id], onDelete: Restrict)
 
   @@index([sessionId, createdAt])
+  @@index([uploadedById])
   @@map("coe_session_meeting_notes")
 }
 

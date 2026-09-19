@@ -20,7 +20,7 @@ const dualUpload = multer({
     if (allowed.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error('Only PDF and DOCX files are accepted'));
+      cb(new AppError('Only PDF and DOCX files are accepted', 400));
     }
   },
 });

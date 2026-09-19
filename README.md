@@ -34,10 +34,14 @@ FRONTEND_URL="http://localhost:5173"
 
 ### Frontend (`frontend/.env`)
 
-Create `frontend/.env`:
+Create `frontend/.env.local` (optional):
 
 ```env
-VITE_API_URL=http://localhost:3001
+# Only needed if the backend is not on the default port. The client appends paths like
+# /members to this value, so it must include the /api prefix — without it every request
+# 404s against a backend that is plainly reachable, which is a confusing way to start.
+# Leave this unset to use the Vite dev proxy, which already works for local development.
+VITE_API_URL=http://localhost:3001/api
 ```
 
 ## 📦 Installation & Running

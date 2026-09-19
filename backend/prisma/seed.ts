@@ -1,4 +1,5 @@
 import { PrismaClient, Priority, CertificationStatus, ProjectStatus, NotificationType } from '@prisma/client';
+import bcrypt from 'bcryptjs';
 
 const taskPermission = { read: true, write: true, delete: true, manageTeam: true, 'tasks:manage': true };
 const memberPermission = { read: true, write: true, delete: false, manageTeam: false, 'tasks:manage': false };
@@ -25,6 +26,34 @@ async function main() {
     update: { permissions: memberPermission },
     create: { name: 'Team Member', permissions: memberPermission },
   });
+
+  // TT-021: the seed created roles and team members but never a User row, so after the
+  // README's `npm run seed` the users table was empty and POST /api/auth/login could not
+  // succeed for anybody — a first-time setup with no way in. Upserted, so re-running the
+  // seed does not fail or reset an existing password.
+  const adminRole = await prisma.role.findUniqueOrThrow({ where: { name: 'Admin' } });
+  const bootstrapEmail = (process.env.SEED_ADMIN_EMAIL || 'admin@example.com').toLowerCase();
+  const bootstrapPassword = process.env.SEED_ADMIN_PASSWORD || 'ChangeMe123!';
+
+  const existingAdmin = await prisma.user.findUnique({ where: { email: bootstrapEmail } });
+  if (!existingAdmin) {
+    await prisma.user.create({
+      data: {
+        email: bootstrapEmail,
+        name: 'Seed Administrator',
+        passwordHash: await bcrypt.hash(bootstrapPassword, 10),
+        roleId: adminRole.id,
+        // Forced on first sign-in, so the default above cannot survive into real use.
+        mustChangePassword: true,
+      },
+    });
+    console.log(`✅ Bootstrap admin created: ${bootstrapEmail} (password must be changed on first sign-in)`);
+    if (!process.env.SEED_ADMIN_PASSWORD) {
+      console.log('   Set SEED_ADMIN_PASSWORD to choose the initial password instead of the default.');
+    }
+  } else {
+    console.log(`ℹ️  Bootstrap admin already exists: ${bootstrapEmail} — left untouched`);
+  }
 
   const findOrCreateTeamMember = async (data: { name: string; phone?: string; designation?: string; joiningDate: Date; skills: string[] }) => {
     const existing = await prisma.teamMember.findFirst({ where: { name: data.name } });
@@ -316,6 +345,15 @@ async function main() {
   console.log('✅ Projects created and members assigned');
 
   // Create Notifications
+  // TT-094: this block added six more rows on every run, so a dev database that had been
+  // seeded a few times carried duplicate alerts and a drifting unread count. The rest of
+  // the seed is upsert- or find-or-create-based; this was the one part that was not.
+  const seededNotifications = await prisma.notification.count({
+    where: { memberId: { in: [carol.id, alice.id] } },
+  });
+  if (seededNotifications > 0) {
+    console.log('✅ Notifications already present — skipped');
+  } else {
   await prisma.notification.createMany({
     data: [
       {
@@ -357,6 +395,8 @@ async function main() {
   });
 
   console.log('✅ Notifications created');
+  }
+
   console.log('🎉 Database seeded successfully!');
 }
 
