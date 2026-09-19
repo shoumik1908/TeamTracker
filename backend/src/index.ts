@@ -70,6 +70,12 @@ app.use(cors({
   origin: allowedOrigins,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],
+  // Content-Disposition is not a CORS-safelisted response header, so without this the
+  // browser hides it from JavaScript on a cross-origin call — which is every call in the
+  // deployed setup, with the frontend on Vercel and the API on Render. The download
+  // handlers read it to name the saved file; unexposed, headers.get() returns null and
+  // every download falls back to its hardcoded default name. The header is already sent.
+  exposedHeaders: ['Content-Disposition'],
 }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
