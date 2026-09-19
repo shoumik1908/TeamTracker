@@ -35,7 +35,7 @@ Run each case against an isolated PostgreSQL database with Azure/AI clients stub
 | Projects | CRUD; manager/member assignment; role update/removal; enrolment; pulse/blocker status; invalid project/member IDs; a blocker status outside open/resolved is a 400 and a blocker cannot be updated through another project's URL. |
 | Project updates | Create/list/update/delete; authorization; project/member validation. |
 | Documentation and files | List/upload/delete project or pre-sales files; links and notes CRUD; SAS/download URL; file ownership and storage failures. |
-| Notifications | Member/admin targeting; unread filtering/count; mark one/all read; deletion authorization; certificate edit-request actions appear only while pending. |
+| Notifications | Member/admin targeting; unread filtering/count; mark one/all read; deletion authorization; certificate edit-request actions appear only while pending; one admin marking a role-targeted notification read leaves it unread for every other admin, and notifications already marked read before the per-recipient change stay read. |
 | Dashboard, search, reports | KPI calculations; status/progress datasets; deadline categories; global search escaping; report JSON/CSV/Excel/PDF headers and content. |
 | Tasks and feedback | CRUD; assignee access; status/priority transitions; feedback with attachments; invalid/unauthorized task IDs. |
 | Pre-sales | Opportunity CRUD; stage/progress transitions; member management; reset/convert; document analysis; proposal/section generation; document cleanup; a non-assigned member gets 403 rather than 500; converting twice is a 409 and creates exactly one project, with migrated rows detached from the opportunity. |
@@ -67,7 +67,7 @@ Run these in a browser test runner against mocked API responses, then once again
 | Certification tracker | Filter/search/expand rows; upload with OCR credential; manual credential fallback; verified/unverified tag; duplicate guard; delete file; edit-request submission; a certification with no expiry date can still be uploaded; typing in search issues one query, not one per keystroke. |
 | Notifications | Unread/read state, delete action, admin View edit request, Accept applies changes, Reject discards changes, buttons disappear after review. |
 | Projects, updates, files | CRUD dialogs, validation, upload/download links, optimistic/query refresh behaviour; files, links and notes are attributed to the signed-in user, and their author can delete their own note. |
-| Tasks | Create/edit/delete, assignment, feedback attachment, status and permission state. |
+| Tasks | Create/edit/delete, assignment, feedback attachment, status and permission state; the task pages read the signed-in user from the auth context rather than fetching a second copy. |
 | Pre-sales and GTM | Stage timeline, progress updates, collaborators, generated docs, partner/campaign/collateral workflows; a proposal section that already has AI-generated text can be edited in place; a progress update only reports success once the write lands. |
 | Reports, logs, deadlines | Filters, exports, empty/error states, date-boundary display; the log feed recovers after a transient failure, search is debounced, and infinite scroll does not duplicate a page; meeting report windows use local calendar dates, not UTC. |
 | CV generation and meetings | Upload, AI loading/failure states, generated document download, transcript/action-item edits. |

@@ -1,19 +1,20 @@
+import { useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   createTask,
   deleteTask,
   fetchAssignableMembers,
-  fetchCurrentUser,
   fetchTask,
   fetchTasks,
   updateTask,
 } from "./tasksApi";
 import { CreateTaskInput, SubmitFeedbackInput, TaskRow, UpdateTaskInput } from "../types/tasks";
 import api from "../lib/api";
+import { useAuth } from "../context/AuthContext";
+import type { CurrentUser } from "./tasksApi";
 
 const TASKS_KEY = ["tasks"];
 const MEMBERS_KEY = ["assignable-members"];
-const CURRENT_USER_KEY = ["current-user"];
 
 // Poll + refetch on focus so an admin assigning a task and a team member
 // changing its status stay in sync across separate browser sessions
@@ -41,11 +42,32 @@ export function useAssignableMembers() {
   return useQuery({ queryKey: MEMBERS_KEY, queryFn: fetchAssignableMembers });
 }
 
-// If you already have an auth/user context elsewhere in the app, prefer
-// that over this hook - this is a minimal standalone version so the page
-// works even if that doesn't exist yet.
-export function useCurrentUser() {
-  return useQuery({ queryKey: CURRENT_USER_KEY, queryFn: fetchCurrentUser });
+/**
+ * TT-122: the comment below used to say "if you already have an auth/user context
+ * elsewhere in the app, prefer that" — and the app does. This hook kept a second copy of
+ * the signed-in user in its own ['current-user'] cache, fetched from /auth/me and
+ * expiring independently of AuthContext, with its own permissions map that the task
+ * pages used for authorization decisions. The two could disagree: a role change refreshed
+ * one and not the other, and before #49 neither was cleared on sign-out.
+ *
+ * AuthContext already holds everything the three consumers read — id, teamMemberId and
+ * the permissions map — so this now reads from it. The return shape is unchanged, so
+ * TasksPage, TaskDetailPage and TaskDetailModal did not need touching.
+ */
+export function useCurrentUser(): { data: CurrentUser | undefined; isLoading: boolean } {
+  const { user, isLoading } = useAuth();
+  const data = useMemo<CurrentUser | undefined>(() => (
+    user
+      ? {
+          id: user.id,
+          email: user.email,
+          role: user.role?.name || '',
+          permissions: (user.role?.permissions || {}) as CurrentUser['permissions'],
+          teamMemberId: user.teamMemberId ?? undefined,
+        }
+      : undefined
+  ), [user]);
+  return { data, isLoading };
 }
 
 export function useCreateTask() {
