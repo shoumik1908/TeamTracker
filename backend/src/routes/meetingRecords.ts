@@ -196,6 +196,19 @@ router.post('/', upload.fields([{ name: 'recordingFile', maxCount: 1 }, { name: 
     }
 
     let finalRecordingUrl = null;
+    // TT-090: recordingType and transcriptSource are enums now, so a value outside the
+    // set is rejected by the database — an unhandled 500 for what is a caller mistake.
+    // The checks below already only act on the known values; this makes an unknown one a
+    // 400 rather than storing it or blowing up.
+    const RECORDING_TYPES = ['file', 'link', 'none'];
+    const TRANSCRIPT_SOURCES = ['pasted', 'uploaded_file', 'none'];
+    if (recordingType !== undefined && recordingType !== null && recordingType !== '' && !RECORDING_TYPES.includes(recordingType)) {
+      throw new AppError(`recordingType must be one of: ${RECORDING_TYPES.join(', ')}.`, 400);
+    }
+    if (transcriptSource !== undefined && transcriptSource !== null && transcriptSource !== '' && !TRANSCRIPT_SOURCES.includes(transcriptSource)) {
+      throw new AppError(`transcriptSource must be one of: ${TRANSCRIPT_SOURCES.join(', ')}.`, 400);
+    }
+
     let finalRecordingType = recordingType === 'none' ? null : recordingType;
 
     // Handle Recording

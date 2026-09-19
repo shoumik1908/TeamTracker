@@ -55,6 +55,24 @@ enum StageChangeSource {
   ai_suggested
 }
 
+// The stored values are hyphenated, so the enum members are mapped rather than renaming
+// data that other tooling may already read.
+enum EnrollmentType {
+  assigned
+  self_enrolled  @map("self-enrolled")
+  auto_assigned  @map("auto-assigned")
+}
+
+enum RecordingType {
+  file
+  link
+}
+
+enum TranscriptSource {
+  pasted
+  uploaded_file
+}
+
 model TeamMember {
   id                   String   @id @default(cuid())
   name                 String
@@ -197,7 +215,7 @@ model ProjectMember {
   opportunityId String?
   memberId      String
   role          String?
-  enrollmentType String?  @default("assigned") // 'assigned', 'self-enrolled', 'auto-assigned'
+  enrollmentType EnrollmentType? @default(assigned)
   joinedAt      DateTime @default(now())
 
   project     Project?             @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -377,11 +395,11 @@ model MeetingRecord {
   opportunityId    String?
   meetingTitle     String
   meetingDate      DateTime?
-  recordingType    String? // 'file' | 'link'
+  recordingType    RecordingType?
   recordingUrl     String?
   transcriptUrl    String?
   transcriptText   String?   @db.Text
-  transcriptSource String? // 'pasted' | 'uploaded_file'
+  transcriptSource TranscriptSource?
   aiMinutes        Json?
   createdBy        String?
   createdAt        DateTime  @default(now())
@@ -786,8 +804,19 @@ model ActivityLog {
   category    String // e.g., 'Certificate', 'CV', 'GTM', 'Project'
   action      String // e.g., 'UPLOAD', 'DELETE', 'UPDATE', 'CREATE'
   details     String   @db.Text
-  performedBy String   @default("System")
+  // TT-092: performedBy holds the actor's display *name*, so renaming someone leaves
+  // stale names scattered through the audit trail and "everything X did" cannot be
+  // answered reliably — two people sharing a name are indistinguishable.
+  //
+  // The name stays: an audit entry should record what was true at the time, and it must
+  // survive the actor's account being deleted. What is added is a reference alongside it,
+  // nullable because system-performed actions have no user and because SetNull keeps the
+  // log intact when an account goes.
+  performedBy   String  @default("System")
+  performedById String?
+  performedByUser User? @relation(fields: [performedById], references: [id], onDelete: SetNull)
   createdAt   DateTime @default(now())
+  @@index([performedById])
 
   @@map("activity_logs")
 }
@@ -824,6 +853,7 @@ model User {
   coeKnowledgeSessions CoeKnowledgeSession[] @relation("CoeSessionOrganizer")
   coeSessionMeetingNotes CoeSessionMeetingNote[]
   notificationReads      NotificationRead[]
+  activityLogs           ActivityLog[]
   learningProjects LearningProject[] @relation("LearningProjectCreator")
   learningProjectUpdates LearningProjectMilestoneUpdate[] @relation("LearningProjectUpdateCreator")
   learningProjectAssets LearningProjectAsset[] @relation("LearningProjectAssetUploader")
