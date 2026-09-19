@@ -32,14 +32,14 @@ Run each case against an isolated PostgreSQL database with Azure/AI clients stub
 | Certifications | Catalog CRUD; assignment create/update/delete; duplicate assignment; member-only ownership enforcement; completion/expiry status derivation; filters and pagination. |
 | Certificate upload | Analyze supported/unsupported documents; OCR data extraction; universal upload creates/updates assignment; duplicate file guard; replacement deletes old blob; delete clears file and credential; storage failure rollback/error response. |
 | Certificate edit requests | Create request; admin notification is visible only to admins; list pending/all; approve applies dates and credential ID; reject leaves assignment unchanged; repeat decision returns 400; non-admin review returns 403. |
-| Projects | CRUD; manager/member assignment; role update/removal; enrolment; pulse/blocker status; invalid project/member IDs. |
+| Projects | CRUD; manager/member assignment; role update/removal; enrolment; pulse/blocker status; invalid project/member IDs; a blocker status outside open/resolved is a 400 and a blocker cannot be updated through another project's URL. |
 | Project updates | Create/list/update/delete; authorization; project/member validation. |
 | Documentation and files | List/upload/delete project or pre-sales files; links and notes CRUD; SAS/download URL; file ownership and storage failures. |
 | Notifications | Member/admin targeting; unread filtering/count; mark one/all read; deletion authorization; certificate edit-request actions appear only while pending. |
 | Dashboard, search, reports | KPI calculations; status/progress datasets; deadline categories; global search escaping; report JSON/CSV/Excel/PDF headers and content. |
 | Tasks and feedback | CRUD; assignee access; status/priority transitions; feedback with attachments; invalid/unauthorized task IDs. |
-| Pre-sales | Opportunity CRUD; stage/progress transitions; member management; reset/convert; document analysis; proposal/section generation; document cleanup. |
-| GTM | Plan CRUD; stage changes/audit log; partners, requirements, campaigns and collateral CRUD; upload/download URL validation. |
+| Pre-sales | Opportunity CRUD; stage/progress transitions; member management; reset/convert; document analysis; proposal/section generation; document cleanup; a non-assigned member gets 403 rather than 500; converting twice is a 409 and creates exactly one project, with migrated rows detached from the opportunity. |
+| GTM | Plan CRUD; stage changes/audit log; partners, requirements, campaigns and collateral CRUD; upload/download URL validation; a partner update with an unparseable renewalDate or an unknown id is rejected before any requirement is deleted; the partner audit counts distinct members, not certification rows. |
 | Meetings and Teams | Sync/list meetings; summary; meeting-record upload, transcript edit/reanalysis, action-item status and deletion; retry job idempotence. |
 | Resume and chat | Generate standard/tailored resumes; invalid job-description uploads; provider fallback/error behaviour; chat auth and malformed prompt handling. |
 | Logs | Pagination, filters, masking of sensitive fields, admin-only access; a negative page is a 400 and the limit is capped. |

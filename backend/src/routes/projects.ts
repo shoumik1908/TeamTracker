@@ -119,14 +119,31 @@ router.patch('/:id/blockers/:blockerId/status', async (req: Request, res: Respon
   // a 403 as a server error.
   await verifyBlockerAccess(req.params.blockerId, (req as AuthRequest).user);
   try {
-    const { blockerId } = req.params;
+    const { id: projectId, blockerId } = req.params;
+
+    // TT-054: status came straight from the body into the column, so any string could be
+    // stored — and the pulse endpoint filters on status: 'open', which silently stops
+    // matching a row written with anything else.
     const { status } = req.body;
-    await prisma.blockerRisk.update({
-      where: { id: blockerId },
+    if (status !== 'open' && status !== 'resolved') {
+      throw new AppError("status must be 'open' or 'resolved'.", 400);
+    }
+
+    // Also TT-054: the :id project param was accepted and never used, so the route would
+    // happily update a blocker belonging to a different project than the URL claimed.
+    // verifyBlockerAccess above already establishes the caller may touch this blocker;
+    // this makes the URL mean what it says.
+    const updated = await prisma.blockerRisk.updateMany({
+      where: { id: blockerId, projectId },
       data: { status }
     });
+    if (updated.count === 0) {
+      throw new AppError('Blocker not found on this project', 404);
+    }
+
     res.json({ success: true });
   } catch (error: any) {
+    if (error instanceof AppError) throw error;
     res.status(500).json({ error: error.message });
   }
 });

@@ -66,7 +66,8 @@ import {
 , Download } from 'lucide-react';
 import { cn, extractMeetingDate } from '@/lib/utils';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { errorMessage } from '@/lib/errors';
+import { errorMessage, notifyError } from '@/lib/errors';
+import { ApiError } from '@/lib/api';
 
 // Helper to format byte sizes
 function formatBytes(bytes: number, decimals = 2) {
@@ -183,7 +184,7 @@ export default function PreSalesDetailPage() {
   const [noteError, setNoteError] = useState<string | null>(null);
 
   // Fetch opportunity details
-  const { data: oppData, isLoading, isError } = useQuery({
+  const { data: oppData, isLoading, isError, error: oppError } = useQuery({
     queryKey: ['presales-opportunity', opportunityId],
     queryFn: () => presalesApi.get(opportunityId || '').then(r => r.data),
     enabled: !!opportunityId,
@@ -404,9 +405,11 @@ export default function PreSalesDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       navigate(`/projects/${newProject.id}`);
     },
-    onError: (error: any) => {
-      console.error(error);
-      alert('Failed to convert opportunity to project.');
+    onError: (error) => {
+      // Was alert('Failed to convert opportunity to project.'), which replaced the
+      // server's reason with a generic one. The 409 says the opportunity has already
+      // been converted, which is the one thing the user needs to know here.
+      notifyError(error, 'Could not convert this opportunity to a project.');
     }
   });
 
@@ -578,8 +581,16 @@ export default function PreSalesDetailPage() {
     return (
       <div className="p-8 text-center bg-[#1c1926]/80 backdrop-blur-md rounded-2xl border border-white/5">
         <AlertCircle className="w-12 h-12 mx-auto text-red-400 mb-3" />
-        <h2 className="text-lg font-bold text-foreground">Failed to load Opportunity Details</h2>
-        <p className="text-xs text-white/50 mt-1">Make sure the opportunity exists or try reloading.</p>
+        <h2 className="text-lg font-bold text-foreground">
+          {oppError instanceof ApiError && oppError.status === 403
+            ? 'You do not have access to this opportunity'
+            : 'Failed to load Opportunity Details'}
+        </h2>
+        <p className="text-xs text-white/50 mt-1">
+          {oppError instanceof ApiError && oppError.status === 403
+            ? 'Only the team members assigned to it can view it. Ask an administrator if you need access.'
+            : 'Make sure the opportunity exists or try reloading.'}
+        </p>
         <Link to="/projects" className="mt-4 inline-block text-xs font-semibold bg-violet-500 text-white px-4 py-2 rounded-xl">
           Back to Projects
         </Link>
@@ -648,7 +659,18 @@ export default function PreSalesDetailPage() {
           </div>
 
           <div className="flex items-center gap-3 ml-auto">
-            {isAdmin && (
+            {/* Once converted the endpoint answers 409 for good, so offering the action
+                again can only fail. Link to what it produced instead. */}
+            {opportunity?.convertedProjectId && (
+              <Link
+                to={`/projects/${opportunity.convertedProjectId}`}
+                className="px-3 py-1.5 text-xs font-semibold bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20 rounded-lg transition-colors flex items-center gap-1.5"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                View converted project
+              </Link>
+            )}
+            {isAdmin && !opportunity?.convertedProjectId && (
               <button 
                 onClick={() => convertMutation.mutate()}
                 disabled={convertMutation.isPending}

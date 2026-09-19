@@ -171,9 +171,15 @@ router.delete('/:id', async (req: Request, res: Response) => {
       if (opp) contextName = opp.name;
     }
 
+    // TT-114: this filtered on memberId, but the notification is created with
+    // targetRole: 'Admin' and no memberId at all (see the POST above), so the filter
+    // matched nothing and the deletion silently did nothing — leaving an Admin
+    // notification in the feed pointing at an update that no longer exists, which is
+    // exactly what this block was written to prevent. The PUT sync a few lines up
+    // already matches on targetRole, which is what gave it away.
     await prisma.notification.deleteMany({
       where: {
-        memberId: existing.memberId,
+        targetRole: 'Admin',
         type: 'PROJECT_UPDATED',
         title: `${existing.updateType} Update: ${contextName}`,
         message: existing.updateText.trim().slice(0, 120),

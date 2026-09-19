@@ -22,6 +22,23 @@ function isSessionExpired(status: number, error?: unknown) {
 }
 
 /**
+ * A failed API call, carrying the status so callers can tell the kinds apart.
+ *
+ * The client used to throw a bare Error, so a page could not distinguish "you may not
+ * see this" (403) from "this does not exist" (404) or "the server broke" — every one
+ * rendered the same generic failure. `message` is unchanged, so existing handlers that
+ * only read err.message keep working.
+ */
+export class ApiError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+  }
+}
+
+/**
  * A failed blob request. The response body is a download, not JSON, so there is
  * no server message to show the user — only a status code. Typed so callers can
  * fall back to their own copy instead of surfacing "HTTP error! status: 500".
@@ -128,7 +145,7 @@ async function fetchApi(method: string, url: string, data?: any, config?: any) {
     // truthful about the status instead of leaking a parse error.
     const message = resData.error || resData.message
       || (bodyWasJson ? 'Something went wrong' : httpStatusMessage(res.status));
-    throw new Error(message);
+    throw new ApiError(message, res.status);
   }
 
   if (!bodyWasJson && text) {
