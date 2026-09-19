@@ -308,31 +308,50 @@ router.put('/:id', uploadImage.single('profilePicture'), async (req: Request, re
 
   const { name, email, phone, designation, joiningDate, skills, allocationPercentage, status, yearsOfExperience, linkedinUrl } = req.body;
 
-  // TT-111: this endpoint is reachable by a member editing their own profile, and every
-  // field in the body was applied. allocationPercentage and status are staffing
-  // decisions — a member could mark themselves benched, or set their allocation to
-  // whatever they liked — and designation and joiningDate are records, not preferences.
-  // Admins keep the full set; everyone else is limited to their own contact details.
-  const isAdmin = user?.permissions?.manageTeam === true;
-  const adminOnlyFields = { allocationPercentage, status, designation, joiningDate };
-  if (!isAdmin) {
-    const attempted = Object.entries(adminOnlyFields)
-      .filter(([, v]) => v !== undefined)
-      .map(([k]) => k);
-    if (attempted.length > 0) {
-      throw new AppError(
-        `Only an administrator can change: ${attempted.join(', ')}.`,
-        403,
-      );
-    }
-  }
-
   // undefined means "not supplied", which leaves the column alone; the spread below
   // relies on that distinction, so it has to survive normalisation.
   const normalizedLinkedinUrl = normalizeLinkedinUrl(linkedinUrl);
 
   const existing = await prisma.teamMember.findUnique({ where: { id } });
   if (!existing) throw new AppError('Member not found', 404);
+
+  // TT-111: this endpoint is reachable by a member editing their own profile, and every
+  // field in the body was applied. allocationPercentage and status are staffing
+  // decisions — a member could mark themselves benched, or set their allocation to
+  // whatever they liked — and designation and joiningDate are records, not preferences.
+  // Admins keep the full set; everyone else is limited to their own contact details.
+  //
+  // The check is on what would CHANGE, not on what is present. The Edit Member form
+  // posts its whole state, so these fields ride along at their current values on every
+  // save; rejecting on presence alone meant a member updating only their phone number
+  // was told an administrator had to do it, and nothing saved at all.
+  const isAdmin = user?.permissions?.manageTeam === true;
+  if (!isAdmin) {
+    // multipart sends every field as a string, so 100 and "100" have to compare equal;
+    // null, undefined and "" all mean "no value".
+    const sameAsStored = (key: string, submitted: unknown): boolean => {
+      const current = (existing as Record<string, any>)[key];
+      if (key === 'joiningDate') {
+        const a = new Date(submitted as string).getTime();
+        const b = current ? new Date(current).getTime() : NaN;
+        return Number.isFinite(a) && Number.isFinite(b) && a === b;
+      }
+      const norm = (v: unknown) =>
+        v === null || v === undefined || v === '' ? '' : String(v).trim();
+      return norm(submitted) === norm(current);
+    };
+
+    const changed = Object.entries({ allocationPercentage, status, designation, joiningDate })
+      .filter(([k, v]) => v !== undefined && !sameAsStored(k, v))
+      .map(([k]) => k);
+
+    if (changed.length > 0) {
+      throw new AppError(
+        `Only an administrator can change: ${changed.join(', ')}.`,
+        403,
+      );
+    }
+  }
 
   let profilePictureUrl = existing.profilePictureUrl;
 
