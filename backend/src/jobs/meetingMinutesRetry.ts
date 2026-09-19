@@ -2,7 +2,7 @@ import prisma from '../lib/prisma';
 import { PrismaClient } from '@prisma/client';
 import { generateMeetingMinutes  } from '../services/azureOpenAIService';
 import { matchTeamMember, correctNamesInTranscript } from '../utils/fuzzyMatch';
-import { onlyIdsOfferedToTheModel, completedActionItemIds } from '../lib/meetingContinuity';
+import { onlyIdsOfferedToTheModel, completedActionItemIds, normalizeActionItemStatus, normalizeActionItemPriority, normalizeBlockerStatus } from '../lib/meetingContinuity';
 import cron from 'node-cron';
 
 // TT-026: the cron fires every two minutes while each run makes minutes-long LLM calls,
@@ -167,7 +167,7 @@ export const retryMeetingMinutesAnalysis = async () => {
               if (ai.due_date && typeof ai.due_date === 'string' && ai.due_date.match(/^\d{4}-\d{2}-\d{2}$/)) {
                 parsedDueDate = new Date(ai.due_date);
               }
-              const status = ai.status ? ai.status.toLowerCase() : 'open';
+              const status = normalizeActionItemStatus(ai.status);
               const completed = status === 'completed';
 
               return {
@@ -176,7 +176,7 @@ export const retryMeetingMinutesAnalysis = async () => {
                 originalOwnerText: ai.owner || 'Unassigned',
                 assignedToId,
                 dueDate: parsedDueDate,
-                priority: ai.priority || null,
+                priority: normalizeActionItemPriority(ai.priority),
                 status,
                 completed
               };
@@ -209,7 +209,7 @@ export const retryMeetingMinutesAnalysis = async () => {
           if (blockersList.length > 0) {
             const blockersToCreate = blockersList.map((b: any) => {
               const description = typeof b === 'string' ? b : b.description;
-              const status = typeof b === 'string' ? 'open' : (b.status || 'open');
+              const status = normalizeBlockerStatus(typeof b === 'string' ? 'open' : b.status);
               return {
                 projectId,
                 opportunityId,

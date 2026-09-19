@@ -11,6 +11,50 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+
+// TT-090: these columns held their allowed values only in a trailing comment, so Postgres
+// accepted anything. A casing mismatch or a value invented by the AI pipeline created a
+// row that every `status: 'open'` filter — the prior-context prompts, the project pulse,
+// the allocation views — silently skipped, with no way to find it afterwards. As real
+// enums the database refuses the bad value instead.
+//
+// Checked against production before writing these: every existing value is already one of
+// the members below, so the cast applies cleanly. The AI-fed write paths normalise to
+// these sets first (see lib/meetingContinuity.ts), so an unrecognised model answer becomes
+// the sensible default rather than a runtime error.
+enum MemberStatus {
+  Active
+  Benched
+}
+
+enum ActionItemStatus {
+  open
+  completed
+  in_progress
+  blocked
+}
+
+enum ActionItemPriority {
+  high
+  medium
+  low
+}
+
+enum BlockerStatus {
+  open
+  resolved
+}
+
+enum PresalesTrack {
+  PNB
+  TNM
+}
+
+enum StageChangeSource {
+  manual
+  ai_suggested
+}
+
 model TeamMember {
   id                   String   @id @default(cuid())
   name                 String
@@ -22,7 +66,7 @@ model TeamMember {
   skills               String[]
   profilePictureUrl    String?
   allocationPercentage Int      @default(100)
-  status               String   @default("Active") // 'Active' or 'Benched'
+  status               MemberStatus @default(Active)
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 
@@ -363,8 +407,8 @@ model MeetingActionItem {
   assignedToId      String?
   dueDate           DateTime?
   completed         Boolean   @default(false)
-  status            String    @default("open") // 'open' | 'completed'
-  priority          String? // 'high' | 'medium' | 'low'
+  status            ActionItemStatus @default(open)
+  priority          ActionItemPriority?
   confidence        String? // 'High' | 'Medium' | 'Low'
   sourceExcerpt     String?   @db.Text
   createdAt         DateTime  @default(now())
@@ -401,7 +445,7 @@ model BlockerRisk {
   projectId            String?
   opportunityId        String?
   description          String  @db.Text
-  status               String  @default("open") // 'open' | 'resolved'
+  status               BlockerStatus @default(open)
   firstRaisedMeetingId String
   resolvedInMeetingId  String?
 
@@ -518,7 +562,7 @@ model PreSalesOpportunity {
   name              String
   clientName        String
   description       String?  @db.Text
-  account           String // 'PNB' or 'TNM'
+  account           PresalesTrack
   stages            String[]
   currentStageIndex Int      @default(0)
   progressPercent   Int      @default(0) // 0-100, continuous progress (AI-driven or stage-boundary on manual click)
@@ -647,10 +691,10 @@ model GtmCollateral {
 model StageChangeLog {
   id               String   @id @default(cuid())
   opportunityId    String // The specific PreSalesOpportunity row ID
-  track            String // 'PNB' | 'TNM'
+  track            PresalesTrack
   previousStage    String
   newStage         String
-  source           String // 'manual' | 'ai_suggested'
+  source           StageChangeSource
   reasoning        String? // Groq's reasoning field (only for ai_suggested)
   blobUrl          String? // URL of the uploaded document (only for ai_suggested)
   originalFilename String? // The actual original file name of the document

@@ -326,6 +326,14 @@ router.put('/:id', uploadImage.single('profilePicture'), async (req: Request, re
   // save; rejecting on presence alone meant a member updating only their phone number
   // was told an administrator had to do it, and nothing saved at all.
   const isAdmin = user?.permissions?.manageTeam === true;
+
+  // TT-090: status is a real enum now, so a value outside the set is rejected by the
+  // database — which would surface as an unhandled 500 for what is a caller mistake.
+  // Validated here so it is a 400 with a readable message, as the backend rules require.
+  const MEMBER_STATUSES = ['Active', 'Benched'] as const;
+  if (status !== undefined && !MEMBER_STATUSES.includes(status)) {
+    throw new AppError(`status must be one of: ${MEMBER_STATUSES.join(', ')}.`, 400);
+  }
   if (!isAdmin) {
     // multipart sends every field as a string, so 100 and "100" have to compare equal;
     // null, undefined and "" all mean "no value".

@@ -44,12 +44,13 @@ Run each case against an isolated PostgreSQL database with Azure/AI clients stub
 | Resume and chat | Generate standard/tailored resumes; invalid job-description uploads; provider fallback/error behaviour; chat auth and malformed prompt handling. |
 | Logs | Pagination, filters, masking of sensitive fields, admin-only access; a negative page is a 400 and the limit is capped. |
 | Meeting reports | `/meeting-report` rejects an anonymous caller and a signed-in non-member of the project; a project member and an admin succeed; an unparseable date, an inverted range and missing params are each a 400. |
+| AI-written status values | A model answering "Critical", "In Review" or "Mitigated" is normalised to the allowed value before it is stored, so it cannot create a row the status filters silently skip, and cannot fail the enum constraint. |
 | Meeting records | Re-analysis that fails part-way leaves the existing attendees, decisions and action items intact; a create that cannot be persisted leaves no partial record; `createdBy` records the uploader so the uploader can delete their own record; a non-member's delete is refused and the record survives. |
 | Member self-service | A member may edit their own contact details but not `allocationPercentage`, `status`, `designation` or `joiningDate`; an admin may change all of them. |
 | Member accounts | Creating a member with an email returns a single-use reset link rather than a generated password; the old `firstname+xebia` form no longer authenticates; the link works once and is refused on replay; a member without an email gets no account. |
 | Environment-gated endpoints | The mock Teams sync refuses to write demonstration rows when `NODE_ENV=production`. |
 | Seed and first-run setup | `npm run seed` creates a bootstrap admin who can sign in and is forced to change the password; running it twice leaves one admin and does not duplicate notifications. |
-| Schema constraints | A member cannot be assigned to the same opportunity twice; deleting a user who created a learning project, CoE ticket or session is refused rather than cascading; a stage-change log cannot reference an opportunity that does not exist. |
+| Schema constraints | A member cannot be assigned to the same opportunity twice; deleting a user who created a learning project, CoE ticket or session is refused rather than cascading; a stage-change log cannot reference an opportunity that does not exist; member status, action-item status and priority, blocker status, pre-sales track and stage-change source are database enums that reject any other value, and the enum migration preserves every existing value rather than dropping the columns. |
 | Upload rejections | A file rejected by a type filter returns 400 with the reason, not 500. |
 | Error responses | A failed lookup in a production process returns a generic message rather than Prisma internals; CORS does not trust a localhost origin in production. |
 

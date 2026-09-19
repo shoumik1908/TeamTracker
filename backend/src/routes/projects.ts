@@ -189,9 +189,12 @@ router.post('/', requirePermission('manageTeam'), async (req: Request, res: Resp
   const visibleUntilDate = new Date();
   visibleUntilDate.setDate(visibleUntilDate.getDate() + 7);
 
-  // Find all benched members to auto-assign
+  // Find all benched members to auto-assign.
+  // TT-090: this matched case-insensitively because the column was free text and could
+  // hold 'benched' or 'BENCHED' as easily as 'Benched'. It is an enum now, so there is
+  // exactly one spelling and the insensitive match is neither needed nor valid.
   const benchedMembers = await prisma.teamMember.findMany({
-    where: { status: { equals: 'Benched', mode: 'insensitive' } },
+    where: { status: 'Benched' },
     select: { id: true }
   });
   
