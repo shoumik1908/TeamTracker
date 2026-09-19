@@ -63,13 +63,13 @@ Run these in a browser test runner against mocked API responses, then once again
 | Sign-out and handover | Signing out discards the cached admin user list, current user and notifications, so the next person to sign in on the same machine sees none of the previous user's data; a corrupted stored session recovers to the login page instead of hanging on the loading spinner. |
 | API error surfaces | A gateway HTML error page is reported as a server-unavailable message rather than a JSON parse error; a JSON error body still shows the server's own message. |
 | Dashboard | Admin and member dashboards, loading/error/empty states, KPI and chart navigation. |
-| Members/profile | Create/edit/delete member, image/CV upload errors, certification/project accordions, responsive layout. |
-| Certification tracker | Filter/search/expand rows; upload with OCR credential; manual credential fallback; verified/unverified tag; duplicate guard; delete file; edit-request submission. |
+| Members/profile | Create/edit/delete member, image/CV upload errors, certification/project accordions, responsive layout; saved skills replace the CV-extracted list immediately; cancelling the CV file picker leaves no stuck spinner. |
+| Certification tracker | Filter/search/expand rows; upload with OCR credential; manual credential fallback; verified/unverified tag; duplicate guard; delete file; edit-request submission; a certification with no expiry date can still be uploaded. |
 | Notifications | Unread/read state, delete action, admin View edit request, Accept applies changes, Reject discards changes, buttons disappear after review. |
-| Projects, updates, files | CRUD dialogs, validation, upload/download links, optimistic/query refresh behaviour. |
+| Projects, updates, files | CRUD dialogs, validation, upload/download links, optimistic/query refresh behaviour; files, links and notes are attributed to the signed-in user, and their author can delete their own note. |
 | Tasks | Create/edit/delete, assignment, feedback attachment, status and permission state. |
 | Pre-sales and GTM | Stage timeline, progress updates, collaborators, generated docs, partner/campaign/collateral workflows. |
-| Reports, logs, deadlines | Filters, exports, empty/error states, date-boundary display. |
+| Reports, logs, deadlines | Filters, exports, empty/error states, date-boundary display; the log feed recovers after a transient failure, search is debounced, and infinite scroll does not duplicate a page; meeting report windows use local calendar dates, not UTC. |
 | CV generation and meetings | Upload, AI loading/failure states, generated document download, transcript/action-item edits. |
 
 ## Cross-cutting and release cases

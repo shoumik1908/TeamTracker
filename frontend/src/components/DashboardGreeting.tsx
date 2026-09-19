@@ -19,16 +19,26 @@ export function DashboardGreeting({ name, className }: DashboardGreetingProps) {
       (60 - new Date().getMinutes()) * 60 * 1000 -
       new Date().getSeconds() * 1000;
 
+    // TT-124: the `return () => clearInterval(interval)` used to sit inside the setTimeout
+    // callback, where React never sees it — setTimeout discards whatever its callback
+    // returns. The effect's own cleanup only cleared the timeout, so once the first hour
+    // boundary passed the interval leaked for the life of the tab and kept calling
+    // setGreeting on an unmounted component. The handle is now held where the cleanup can
+    // reach it.
+    let interval: ReturnType<typeof setInterval> | undefined;
+
     const timeout = setTimeout(() => {
       setGreeting(getTimeBasedGreeting(name));
-      const interval = setInterval(
+      interval = setInterval(
         () => setGreeting(getTimeBasedGreeting(name)),
         60 * 60 * 1000
       );
-      return () => clearInterval(interval);
     }, msUntilNextHour);
 
-    return () => clearTimeout(timeout);
+    return () => {
+      clearTimeout(timeout);
+      if (interval) clearInterval(interval);
+    };
   }, [name]);
 
   const { text, Icon } = greeting;

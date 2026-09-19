@@ -331,6 +331,11 @@ export default function MembersPage() {
   });
 
   const [cvUploadingId, setCvUploadingId] = useState<string | null>(null);
+  // TT-148: cvUploadingId used to mean both "which row the file picker is for" and "which
+  // row is currently uploading". Cancelling the picker fires no change event in most
+  // browsers, so the reset never ran and the row kept a spinner and a disabled button
+  // until a full reload. Two separate things, two pieces of state.
+  const [cvTargetId, setCvTargetId] = useState<string | null>(null);
   const cvFileRef = useRef<HTMLInputElement>(null);
 
   const uploadCvMutation = useMutation({
@@ -623,7 +628,7 @@ export default function MembersPage() {
                     ) : (
                       (isAdmin || currentUser?.teamMemberId === member.id) ? (
                         <button
-                          onClick={() => { setCvUploadingId(member.id); cvFileRef.current?.click(); }}
+                          onClick={() => { setCvTargetId(member.id); cvFileRef.current?.click(); }}
                           disabled={cvUploadingId === member.id}
                           className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-muted hover:bg-muted-foreground/10 text-white/50 transition-colors border border-white/5"
                         >
@@ -645,7 +650,7 @@ export default function MembersPage() {
                       <MemberMenu
                         onEdit={() => setEditMember(member)}
                         onDelete={() => setDeleteId(member.id)}
-                        onUploadCv={() => { setCvUploadingId(member.id); cvFileRef.current?.click(); }}
+                        onUploadCv={() => { setCvTargetId(member.id); cvFileRef.current?.click(); }}
                       />
                     )}
                   </div>
@@ -668,11 +673,11 @@ export default function MembersPage() {
         className="hidden"
         onChange={e => {
           const file = e.target.files?.[0];
-          if (file && cvUploadingId) {
-            uploadCvMutation.mutate({ id: cvUploadingId, file });
-          } else {
-            setCvUploadingId(null);
+          if (file && cvTargetId) {
+            setCvUploadingId(cvTargetId);
+            uploadCvMutation.mutate({ id: cvTargetId, file });
           }
+          setCvTargetId(null);
           e.target.value = '';
         }}
       />
