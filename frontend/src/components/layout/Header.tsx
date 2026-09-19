@@ -26,10 +26,21 @@ export default function Header({
   const qc = useQueryClient();
   const { user, logout } = useAuth();
 
+  // TT-132: the query key was the raw input state, so typing "certification" fired
+  // roughly eleven backend searches — each one hitting members, certifications and
+  // projects — and left eleven cache entries behind, with no ordering guarantee between
+  // them. Debouncing the value the key is built from collapses that to one.
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedSearch(searchQuery), 300);
+    return () => clearTimeout(id);
+  }, [searchQuery]);
+
   const { data: searchData, isFetching: isSearching } = useQuery<SearchResults>({
-    queryKey: ['search', searchQuery],
-    queryFn: () => searchApi.global(searchQuery).then(r => r.data),
-    enabled: searchQuery.length >= 2,
+    queryKey: ['search', debouncedSearch],
+    queryFn: () => searchApi.global(debouncedSearch).then(r => r.data),
+    enabled: debouncedSearch.length >= 2,
+    gcTime: 60 * 1000,
   });
 
   const { data: notifData } = useQuery({
@@ -41,7 +52,16 @@ export default function Header({
 
   const markRead = useMutation({
     mutationFn: (id: string) => notificationsApi.markRead(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
+    // TT-133: this invalidated ['notifications'], which nothing reads. The dropdown uses
+    // ['notifications-panel'] and the sidebar badge uses ['notifications-count'], so a
+    // notification stayed highlighted and the badge kept its count until the 60s
+    // staleTime expired — and people clicked again, thinking it had not registered.
+    // markAllRead below already invalidated all three, which is what gave it away.
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['notifications'] });
+      qc.invalidateQueries({ queryKey: ['notifications-count'] });
+      qc.invalidateQueries({ queryKey: ['notifications-panel'] });
+    },
   });
 
   const markAllRead = useMutation({

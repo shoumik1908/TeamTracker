@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
+import { queryClient } from '../lib/queryClient';
 import { SESSION_EXPIRED_EVENT, type SessionExpiredDetail } from '../lib/api';
 
 const INACTIVITY_TIMEOUT_MS = 12 * 60 * 1000;
@@ -32,6 +33,7 @@ interface AuthContextType {
   login: (token: string, user: User) => void;
   logout: () => void;
   updateUser: (user: User) => void;
+  replaceSession: (token: string, user: User) => void;
   isLoading: boolean;
   hasPermission: (action: keyof Role['permissions'] | string) => boolean;
 }
@@ -49,11 +51,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const storedToken = localStorage.getItem('token');
     const storedUser = localStorage.getItem('user');
 
+    // TT-135: this was a bare JSON.parse. A truncated or tampered 'user' entry threw
+    // before setIsLoading(false) ever ran, so the app sat on the ProtectedRoute spinner
+    // forever with no in-app way out — the user had to clear site data by hand. A
+    // corrupt entry is now treated as no session at all, which lands them on /login.
     if (storedToken && storedUser) {
-      setToken(storedToken);
-      setUser(JSON.parse(storedUser));
-      if (!localStorage.getItem(LAST_ACTIVITY_KEY)) {
-        localStorage.setItem(LAST_ACTIVITY_KEY, String(Date.now()));
+      try {
+        setUser(JSON.parse(storedUser));
+        setToken(storedToken);
+        if (!localStorage.getItem(LAST_ACTIVITY_KEY)) {
+          localStorage.setItem(LAST_ACTIVITY_KEY, String(Date.now()));
+        }
+      } catch {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        localStorage.removeItem(LAST_ACTIVITY_KEY);
       }
     }
     setIsLoading(false);
@@ -73,11 +85,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     localStorage.removeItem(LAST_ACTIVITY_KEY);
+    // TT-068: the QueryClient outlives the session, so signing out left every cached
+    // response in place — ['admin-users'], ['tasks'], ['current-user'], notifications.
+    // On a shared machine the next person to sign in rendered the previous user's data
+    // until each query refetched. Clearing is the only safe default: the cache has no
+    // notion of who it belongs to.
+    queryClient.clear();
   };
 
   const updateUser = (updatedUser: User) => {
     setUser(updatedUser);
     localStorage.setItem('user', JSON.stringify(updatedUser));
+  };
+
+  /**
+   * TT-129: ChangePasswordModal wrote the replacement token straight to localStorage,
+   * so the context's `token` state kept the old value and the inactivity effect — which
+   * is keyed on [token] — was never restarted. Replacing a credential is the context's
+   * job, and it is the same work as login().
+   */
+  const replaceSession = (newToken: string, updatedUser: User) => {
+    login(newToken, updatedUser);
   };
 
   const hasPermission = (action: keyof Role['permissions'] | string) => {
@@ -117,8 +145,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       inactivityTimer.current = setTimeout(logout, remaining);
     };
 
+    // TT-134: this ran on every scroll event — a synchronous localStorage write plus a
+    // timer reschedule, many times per second during a single flick, each one also
+    // broadcasting a storage event that made every other tab reschedule too. The
+    // timeout is twelve minutes, so recording activity at most once every few seconds
+    // loses nothing.
+    let lastRecorded = 0;
+    const ACTIVITY_THROTTLE_MS = 5000;
+
     const recordActivity = () => {
       const now = Date.now();
+      if (now - lastRecorded < ACTIVITY_THROTTLE_MS) return;
+      lastRecorded = now;
       localStorage.setItem(LAST_ACTIVITY_KEY, String(now));
       scheduleSignOut(now);
     };
@@ -143,7 +181,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [token]);
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, updateUser, isLoading, hasPermission }}>
+    <AuthContext.Provider value={{ user, token, login, logout, updateUser, replaceSession, isLoading, hasPermission }}>
       {children}
     </AuthContext.Provider>
   );

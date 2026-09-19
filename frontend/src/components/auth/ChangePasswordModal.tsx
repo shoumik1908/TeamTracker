@@ -10,7 +10,7 @@ interface Props {
 }
 
 export default function ChangePasswordModal({ forced = false, onClose, onSkip }: Props) {
-  const { updateUser } = useAuth();
+  const { replaceSession } = useAuth();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -28,15 +28,19 @@ export default function ChangePasswordModal({ forced = false, onClose, onSkip }:
     if (newPassword !== confirmPassword) {
       return setError('New passwords do not match');
     }
-    if (newPassword.length < 6) {
-      return setError('Password must be at least 6 characters');
+    // The server requires 10 characters with a letter and a digit. Advertising 6 here
+    // meant the modal accepted a password the API then rejected.
+    if (newPassword.length < 10 || !/[A-Za-z]/.test(newPassword) || !/[0-9]/.test(newPassword)) {
+      return setError('Password must be at least 10 characters and include a letter and a number');
     }
 
     setLoading(true);
     try {
       const res = await authApi.changePassword({ currentPassword, newPassword });
-      localStorage.setItem('token', res.data.token);
-      updateUser(res.data.user);
+      // TT-129: this wrote the new token straight to localStorage, leaving the context's
+      // token state on the old value and the inactivity timer — keyed on [token] — never
+      // restarted. Replacing a credential goes through the context.
+      replaceSession(res.data.token, res.data.user);
       setSuccess(true);
       if (!forced && onClose) {
         setTimeout(onClose, 1500);

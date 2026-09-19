@@ -5,7 +5,14 @@ export async function generateMeetingDocx(record: any, aiMinutes: any, actionIte
   if (!aiMinutes) return;
 
   const meetingTitle = aiMinutes.meeting_title || record.meetingTitle || 'Meeting Summary';
-  const meetingDate = aiMinutes.meeting_date || (record.meetingDate ? extractMeetingDate(record.meetingDate) : 'Unknown Date');
+  // TT-136: extractMeetingDate returns null for anything its patterns do not match, and
+  // `null || fallback` does not help when the null comes from the inner call. The export
+  // then threw on meetingDate.replace() at the very end — after the whole document had
+  // been built — so the user got no file and no explanation.
+  const meetingDate =
+    aiMinutes.meeting_date
+    || (record.meetingDate ? extractMeetingDate(record.meetingDate) : null)
+    || 'Unknown Date';
   const duration = aiMinutes.duration_estimate || 'N/A';
   const ledBy = aiMinutes.led_by || 'N/A';
   const facilitator = aiMinutes.facilitated_by;
@@ -188,7 +195,7 @@ export async function generateMeetingDocx(record: any, aiMinutes: any, actionIte
 
   const blob = await Packer.toBlob(doc);
   const safeTitle = encodeURIComponent(meetingTitle.replace(/[^a-zA-Z0-9 ]/g, '').replace(/\s+/g, '-').substring(0, 50));
-  const safeDate = meetingDate.replace(/[^0-9-]/g, '');
+  const safeDate = String(meetingDate).replace(/[^0-9-]/g, '') || 'undated';
   const shortHash = record.id ? record.id.slice(-6) : 'record';
   const filename = safeTitle + '_' + safeDate + '_' + shortHash + '.docx';
 

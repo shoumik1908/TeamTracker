@@ -52,7 +52,12 @@ export default function App() {
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/" element={<ProtectedRoute />}>
             <Route element={<Layout />}>
-              <Route index element={<DashboardRouter />} />
+              {/* TT-066: every other route below wraps its lazy component in Suspense;
+                  this one did not. DashboardRouter renders DashboardPage or
+                  TeamMemberDashboard, both React.lazy, so the very first render of "/"
+                  suspended with no boundary — which React 18 turns into a thrown error
+                  and a blank landing page. */}
+              <Route index element={<Suspense fallback={<div>Loading...</div>}><DashboardRouter /></Suspense>} />
               {/* Hiding the sidebar link was never a guard: both URLs loaded for any
                   authenticated user who typed them. */}
               <Route element={<RequirePermission permission="manageTeam" />}>
