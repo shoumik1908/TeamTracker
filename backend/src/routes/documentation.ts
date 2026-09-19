@@ -295,7 +295,20 @@ router.post('/notes', async (req: Request, res: Response) => {
   if (!user?.permissions?.manageTeam) throw new AppError('Forbidden: Only Admins can add notes', 403);
 
   const { projectId, opportunityId } = req.params;
-  const { title, content, updatedBy } = req.body;
+  const { title, content } = req.body;
+
+  // TT-077: updatedBy came from the request body. The files and links handlers above
+  // already derive it from the token, precisely because it drives the ownership check on
+  // delete — a caller-supplied value there means a caller can attribute a note to anyone.
+  // ProjectDetailPage was in fact sending an arbitrary project member's id.
+  // Fall back to the user id: an administrator provisioned outside the roster flow has
+  // no teamMemberId, and requiring one took a feature they already had. Either way the
+  // value comes from the token and never from the caller, which is the point of TT-077.
+  // An id that matches no assigned member simply renders without a name, which the note
+  // list already handles for members who have left the project.
+  const actor = (req as AuthRequest).user;
+  const updatedBy = actor?.teamMemberId || actor?.id;
+  if (!updatedBy) throw new AppError('Could not identify the signed-in user.', 403);
 
   if (!title || content === undefined) {
     throw new AppError('title, content are required.', 400);
@@ -320,7 +333,17 @@ router.put('/notes/:noteId', async (req: Request, res: Response) => {
   if (!user?.permissions?.manageTeam) throw new AppError('Forbidden: Only Admins can update notes', 403);
 
   const { projectId, opportunityId, noteId } = req.params;
-  const { title, content, updatedBy } = req.body;
+  const { title, content } = req.body;
+
+  // Same as the create above (TT-077): the editor is whoever is signed in.
+  // Fall back to the user id: an administrator provisioned outside the roster flow has
+  // no teamMemberId, and requiring one took a feature they already had. Either way the
+  // value comes from the token and never from the caller, which is the point of TT-077.
+  // An id that matches no assigned member simply renders without a name, which the note
+  // list already handles for members who have left the project.
+  const actor = (req as AuthRequest).user;
+  const updatedBy = actor?.teamMemberId || actor?.id;
+  if (!updatedBy) throw new AppError('Could not identify the signed-in user.', 403);
 
   if (!title || content === undefined) {
     throw new AppError('title, content are required.', 400);

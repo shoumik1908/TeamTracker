@@ -22,53 +22,90 @@ export default function LogsPage() {
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('All');
   
-  const [, setPage] = useState(1);
+  // TT-145: the page value was discarded because the only reader was inside the setPage
+  // updater. Now that the fetch happens outside the updater, the value is needed.
+  const [page, setPage] = useState(1);
   
   const [hasMore, setHasMore] = useState(true);
   
   const observer = useRef<IntersectionObserver | null>(null);
+  // Set synchronously, unlike the `loading` state below, which loadLogs only raises for a
+  // fresh search. Without it the sentinel stays in view while a page is in flight and the
+  // observer fires again and again: one scroll requested pages 2 through 9, six of them
+  // past the end, and their responses came back interleaved. Appends are order-dependent,
+  // so that ordering was luck rather than design.
+  const inFlight = useRef(false);
 
-  const loadLogs = async (pageNum: number, currentLogs: ActivityLog[], isNewSearch = false) => {
+  const loadLogs = async (pageNum: number, isNewSearch = false) => {
+    inFlight.current = true;
     try {
       if (isNewSearch) setLoading(true);
-      const res = await fetchLogs(pageNum, 50, category, search);
-      
+      const res = await fetchLogs(pageNum, 50, category, debouncedSearch);
+
+      // TT-143: error was set on failure and never cleared anywhere, and the render shows
+      // the error panel instead of the feed whenever it is truthy. One timed-out request
+      // — easy to provoke while typing — hid the activity log until the page was
+      // remounted, even though every request after it succeeded.
+      setError('');
+
       if (isNewSearch) {
         setLogs(res.data);
       } else {
-        setLogs([...currentLogs, ...res.data]);
+        // The appended page has to be computed from the list as it is when the update is
+        // applied, not as it was when the observer callback was created. The sentinel can
+        // stay in view long enough to fire twice before React re-renders — which is the
+        // normal case at the end of a short list — and the second call then appended its
+        // page onto the pre-previous array, dropping the page in between. The symptom was
+        // a contiguous block of fifty rows silently missing from the middle of the feed.
+        setLogs(prev => [...prev, ...res.data]);
       }
       
       setHasMore(pageNum < res.pagination.totalPages);
     } catch (err: any) {
       setError(err.message);
     } finally {
+      inFlight.current = false;
       setLoading(false);
     }
   };
 
+  // TT-144: the effect below depended on `search`, which is updated on every keystroke, so
+  // typing a ten-character query fired ten full log queries at a page size of fifty, with
+  // nothing cancelling the earlier ones — the list could settle on results that did not
+  // match what was in the box.
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(id);
+  }, [search]);
+
   useEffect(() => {
     setPage(1);
     setHasMore(true);
-    loadLogs(1, [], true);
-  }, [category, search]);
+    loadLogs(1, true);
+  }, [category, debouncedSearch]);
 
   const lastLogElementRef = useCallback((node: HTMLDivElement | null) => {
     if (loading) return;
     if (observer.current) observer.current.disconnect();
     
     observer.current = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting && hasMore) {
-        setPage(prevPage => {
-          const next = prevPage + 1;
-          loadLogs(next, logs, false);
-          return next;
-        });
+      // inFlight must gate the page advance as well as the fetch: guarding only the fetch
+      // let `page` run ahead of what had actually been loaded, and the pages in between
+      // were never requested at all.
+      if (entries[0].isIntersecting && hasMore && !inFlight.current) {
+        // TT-145: this used to call loadLogs inside the setPage updater. React may invoke
+        // an updater more than once — it does so routinely under StrictMode — so the same
+        // page could be fetched and appended twice, giving duplicated rows and duplicate
+        // React keys. The updater is pure now and the fetch happens beside it.
+        const next = page + 1;
+        setPage(next);
+        loadLogs(next, false);
       }
     });
     
     if (node) observer.current.observe(node);
-  }, [loading, hasMore, logs]);
+  }, [loading, hasMore, page]);
 
   const getIconForAction = (action: string, _cat: string) => {
     if (action === 'DELETE' || action === 'DELETEMANY') return <Trash2 className="w-5 h-5 text-red-500" />;
@@ -103,7 +140,7 @@ export default function LogsPage() {
             />
           </div>
           <button 
-            onClick={() => { setPage(1); setHasMore(true); loadLogs(1, [], true); }}
+            onClick={() => { setPage(1); setHasMore(true); loadLogs(1, true); }}
             className="p-2 bg-black/30 border border-white/10 rounded-lg text-white/50 hover:text-white hover:bg-white/5 transition-colors"
             title="Refresh Logs"
           >

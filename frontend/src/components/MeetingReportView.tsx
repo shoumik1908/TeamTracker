@@ -56,6 +56,11 @@ const ConfBadge = ({ confidence }: { confidence: string }) => {
   return null;
 };
 
+/** The calendar date as the viewer sees it, not as UTC would render it. */
+export function toLocalDateString(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 export default function MeetingReportView({ projectId, projectName }: { projectId: string; projectName: string }) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -119,8 +124,13 @@ export default function MeetingReportView({ projectId, projectName }: { projectI
     setLoading(true);
     setError(null);
     const range = getRange();
-    const start = range.start.toISOString().split('T')[0];
-    const end = range.end.toISOString().split('T')[0];
+    // TT-126: getRange builds these at *local* midnight, and toISOString converts to UTC
+    // first. East of Greenwich — IST, which this component is explicitly built around —
+    // local midnight is the previous day in UTC, so every report silently began a day
+    // early and could miss meetings on its final day. Formatting the local calendar date
+    // is what the server's YYYY-MM-DD parameter actually means.
+    const start = toLocalDateString(range.start);
+    const end = toLocalDateString(range.end);
     try {
       const res = await api.get('/projects/' + projectId + '/meeting-report?start=' + start + '&end=' + end);
       const data = res.data;

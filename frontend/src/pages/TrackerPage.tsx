@@ -279,7 +279,7 @@ export default function TrackerPage() {
     suggestions?: Array<{ id: string; name: string; provider: string }>;
   } | null>(null);
   const [requestEditFor, setRequestEditFor] = useState<AssignedCertification | null>(null);
-  const [missingFields, setMissingFields] = useState<Array<{ field: string; label: string; message: string }>>([]);
+  const [missingFields, setMissingFields] = useState<Array<{ field: string; label: string; message: string; optional?: boolean }>>([]);
   const [showMissingModal, setShowMissingModal] = useState(false);
   const [activeAddForm, setActiveAddForm] = useState<'teamMember' | 'certificateTitle' | null>(null);
   const [duplicateInfo, setDuplicateInfo] = useState<{
@@ -290,6 +290,44 @@ export default function TrackerPage() {
   const [extractedCertTitle, setExtractedCertTitle] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const qc = useQueryClient();
+
+  /**
+   * TT-083: the save path used to live entirely inside the button's onClick, so the only
+   * way to reach it was to pass every check. A missing expiry date counted as a failure,
+   * and the modal that appeared offered only "Go Back & Resolve" and a close button — so a
+   * certification that genuinely never expires could not be uploaded at all, which
+   * contradicts the modal's own wording. Lifting this out lets the modal offer to
+   * continue when the only things missing are optional.
+   */
+  const proceedWithUpload = () => {
+    // ⚡ Client-side duplicate pre-check (fast, uses already-loaded state)
+    const isUniversal = uploadId === '__universal__';
+    const finalMemberId = isAdmin ? selectedMemberId : currentUser?.teamMemberId;
+    if (isUniversal && finalMemberId && selectedCertId) {
+      const existingInState = data?.data?.find(
+        (a: AssignedCertification) =>
+          a.memberId === finalMemberId &&
+          a.certificationId === selectedCertId &&
+          a.certificateUrl
+      );
+      if (existingInState) {
+        setDuplicateInfo({
+          message: `${existingInState.member?.name ?? 'This member'} already has a certificate uploaded for ${existingInState.certification?.name ?? 'this certification'}.`,
+          existingAssignmentId: existingInState.id,
+        });
+        return;
+      }
+    }
+    uploadCert.mutate({
+      id: uploadId!,
+      file: uploadFile || undefined,
+      completionDate: completionDateInput || undefined,
+      expiryDate: expiryDateInput || undefined,
+      credentialId: credentialIdInput,
+      memberId: isAdmin ? selectedMemberId : (currentUser?.teamMemberId || undefined),
+      certificationId: selectedCertId
+    });
+  };
 
   const resetUploadState = () => {
     setUploadId(null);
@@ -797,6 +835,11 @@ export default function TrackerPage() {
           missing={missingFields}
           onAddNew={handleAddNew}
           onCancel={() => setShowMissingModal(false)}
+          onProceedAnyway={
+            missingFields.every(m => m.optional)
+              ? () => { setShowMissingModal(false); proceedWithUpload(); }
+              : undefined
+          }
         />
       )}
 
@@ -1083,6 +1126,7 @@ export default function TrackerPage() {
                     missing.push({
                       field: "completionDate",
                       label: "Completed On",
+                      optional: true,
                       message: "Completion date could not be extracted."
                     });
                   }
@@ -1090,6 +1134,7 @@ export default function TrackerPage() {
                     missing.push({
                       field: "expiryDate",
                       label: "Valid Till",
+                      optional: true,
                       message: "Expiry date could not be extracted (may not apply to all certifications)."
                     });
                   }
@@ -1098,32 +1143,7 @@ export default function TrackerPage() {
                     setMissingFields(missing);
                     setShowMissingModal(true);
                   } else {
-                    // ⚡ Client-side duplicate pre-check (fast, uses already-loaded state)
-                    const finalMemberId = isAdmin ? selectedMemberId : currentUser?.teamMemberId;
-                    if (isUniversal && finalMemberId && selectedCertId) {
-                      const existingInState = data?.data?.find(
-                        (a: AssignedCertification) =>
-                          a.memberId === finalMemberId &&
-                          a.certificationId === selectedCertId &&
-                          a.certificateUrl
-                      );
-                      if (existingInState) {
-                        setDuplicateInfo({
-                          message: `${existingInState.member?.name ?? 'This member'} already has a certificate uploaded for ${existingInState.certification?.name ?? 'this certification'}.`,
-                          existingAssignmentId: existingInState.id,
-                        });
-                        return;
-                      }
-                    }
-                    uploadCert.mutate({
-                      id: uploadId!,
-                      file: uploadFile || undefined,
-                      completionDate: completionDateInput || undefined,
-                      expiryDate: expiryDateInput || undefined,
-                      credentialId: credentialIdInput,
-                      memberId: isAdmin ? selectedMemberId : (currentUser?.teamMemberId || undefined),
-                      certificationId: selectedCertId
-                    });
+                    proceedWithUpload();
                   }
                 }}
                 disabled={isAnalyzing || uploadCert.isPending}
@@ -1298,8 +1318,10 @@ function MissingFieldsModal({
   missing,
   onAddNew,
   onCancel,
+  onProceedAnyway,
 }: {
-  missing: Array<{ field: string; label: string; message: string }>;
+  missing: Array<{ field: string; label: string; message: string; optional?: boolean }>;
+  onProceedAnyway?: () => void;
   onAddNew: (field: string) => void;
   onCancel: () => void;
 }) {
@@ -1363,6 +1385,17 @@ function MissingFieldsModal({
           >
             Go Back & Resolve
           </button>
+          {/* TT-083: offered only when everything still missing is optional — a date that
+              may genuinely not apply. A missing team member or certification still has to
+              be resolved, so no escape hatch appears for those. */}
+          {onProceedAnyway && (
+            <button
+              onClick={onProceedAnyway}
+              className="flex-1 px-4 py-2 text-sm font-medium bg-azure-500 text-white rounded-xl hover:bg-azure-600 transition-all duration-150"
+            >
+              Save Without It
+            </button>
+          )}
         </div>
       </div>
     </div>
