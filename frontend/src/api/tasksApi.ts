@@ -45,14 +45,6 @@ export interface CurrentUser {
   teamMemberId?: string;
 }
 
-export async function fetchCurrentUser(): Promise<CurrentUser> {
-  const res = await api.get<any>("/auth/me");
-  const user = res.data.user;
-  return {
-    id: user.id,
-    email: user.email,
-    role: user.role?.name || "",
-    permissions: user.role?.permissions || {},
-    teamMemberId: user.teamMemberId,
-  };
-}
+// TT-122: the /auth/me fetch that backed the duplicate ['current-user'] cache lived
+// here. useCurrentUser reads from AuthContext now, so nothing calls it. The CurrentUser
+// type above is still the shape that hook returns.

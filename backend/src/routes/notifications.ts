@@ -35,7 +35,18 @@ router.get('/', async (req: Request, res: Response) => {
     where.id = 'NO_RESULTS';
   }
 
-  if (unreadOnly === 'true') where.read = false;
+  // TT-088: `read` is a single column shared by every recipient, so an admin marking a
+  // role-targeted notification read cleared it for all the others. Unread now means:
+  // the legacy flag is not set AND this particular person has no read row. Keeping the
+  // flag in the condition is what preserves the state already in the database — nothing
+  // currently marked read comes back as unread on deploy.
+  const unreadForThisUser = user?.id
+    ? [{ read: false }, { reads: { none: { userId: user.id } } }]
+    : [{ read: false }];
+
+  if (unreadOnly === 'true') where.AND = unreadForThisUser;
+
+  const unreadWhere = { ...where, AND: unreadForThisUser };
 
   const [notifications, total, unreadCount] = await Promise.all([
     prisma.notification.findMany({
@@ -43,10 +54,14 @@ router.get('/', async (req: Request, res: Response) => {
       orderBy: { createdAt: 'desc' },
       skip: (pageNum - 1) * limitNum,
       take: limitNum,
-      include: { member: { select: { name: true, profilePictureUrl: true } } },
+      include: {
+        member: { select: { name: true, profilePictureUrl: true } },
+        // Only this caller's row: whether anyone else has read it is not their business.
+        reads: user?.id ? { where: { userId: user.id }, select: { id: true } } : false,
+      },
     }),
     prisma.notification.count({ where }),
-    prisma.notification.count({ where: { ...where, read: false } }),
+    prisma.notification.count({ where: unreadWhere }),
   ]);
 
   const editRequestIds = notifications
@@ -71,8 +86,12 @@ router.get('/', async (req: Request, res: Response) => {
 
   const notificationData = notifications.map(notification => {
     const { message, editRequestId } = parseEditRequestNotificationMessage(notification.message);
+    // TT-088: `read` on the wire is this caller's read state, not the shared column.
+    // `reads` is an implementation detail and does not leave the server.
+    const { reads, ...rest } = notification as typeof notification & { reads?: unknown[] };
     return {
-      ...notification,
+      ...rest,
+      read: notification.read || (Array.isArray(reads) && reads.length > 0),
       message,
       ...(editRequestId && {
         certificateEditRequestId: editRequestId,
@@ -103,11 +122,24 @@ router.put('/:id/read', async (req: Request, res: Response) => {
     throw new AppError('Forbidden', 403);
   }
 
-  const updated = await prisma.notification.update({
-    where: { id: req.params.id },
-    data: { read: true },
+  // TT-088: a role-targeted notification is marked read for this person only. A
+  // member-targeted one has exactly one recipient, so the existing column still says
+  // everything there is to say and is left as it was.
+  if (notif.memberId) {
+    const updated = await prisma.notification.update({
+      where: { id: req.params.id },
+      data: { read: true },
+    });
+    return res.json({ ...updated, read: true });
+  }
+
+  if (!user?.id) throw new AppError('Forbidden', 403);
+  await prisma.notificationRead.upsert({
+    where: { notificationId_userId: { notificationId: notif.id, userId: user.id } },
+    create: { notificationId: notif.id, userId: user.id },
+    update: {},
   });
-  res.json(updated);
+  res.json({ ...notif, read: true });
 });
 
 // PUT /api/notifications/read-all - Mark all as read
@@ -125,7 +157,30 @@ router.put('/read-all/mark', async (req: Request, res: Response) => {
   
   if (orConditions.length > 0) {
     where.OR = orConditions;
-    await prisma.notification.updateMany({ where, data: { read: true } });
+
+    // Member-targeted rows keep using the column; role-targeted ones get a row each, so
+    // clearing your own list does not clear everyone else's.
+    await prisma.notification.updateMany({
+      where: { ...where, memberId: { not: null } },
+      data: { read: true },
+    });
+
+    if (user?.id) {
+      const roleTargeted = await prisma.notification.findMany({
+        where: {
+          ...where,
+          memberId: null,
+          reads: { none: { userId: user.id } },
+        },
+        select: { id: true },
+      });
+      if (roleTargeted.length > 0) {
+        await prisma.notificationRead.createMany({
+          data: roleTargeted.map(n => ({ notificationId: n.id, userId: user.id! })),
+          skipDuplicates: true,
+        });
+      }
+    }
   }
   
   res.json({ message: 'All notifications marked as read' });

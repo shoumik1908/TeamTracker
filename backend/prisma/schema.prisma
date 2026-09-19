@@ -203,9 +203,38 @@ model Notification {
   createdAt  DateTime         @default(now())
 
   member TeamMember? @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  reads  NotificationRead[]
 
   @@index([memberId, createdAt])
+  // TT-088: role-targeted notifications are unindexed free text and were filtered by it
+  // on every request.
+  @@index([targetRole, createdAt])
   @@map("notifications")
+}
+
+/// TT-088: `Notification.read` is one boolean shared by every recipient. A notification
+/// addressed to a role goes to all admins, so the first admin to mark one read cleared it
+/// from everyone else's unread count and panel — they never saw it. Read state is
+/// per-person, so it needs a row per person.
+///
+/// The legacy `read` flag is deliberately kept and still honoured: a notification counts
+/// as read for someone if that flag is set OR they have a row here. That preserves the
+/// state already in the database — anything currently marked read stays read for
+/// everyone, rather than a deploy resurfacing a pile of old notifications as unread.
+/// Nothing sets the flag for role-targeted notifications any more.
+model NotificationRead {
+  id             String   @id @default(cuid())
+  notificationId String
+  userId         String
+  readAt         DateTime @default(now())
+
+  notification Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([notificationId, userId])
+  @@index([userId])
+  @@index([notificationId])
+  @@map("notification_reads")
 }
 
 model Task {
@@ -750,6 +779,7 @@ model User {
   coeTickets   CoeTicket[] @relation("CoeTicketCreator")
   coeKnowledgeSessions CoeKnowledgeSession[] @relation("CoeSessionOrganizer")
   coeSessionMeetingNotes CoeSessionMeetingNote[]
+  notificationReads      NotificationRead[]
   learningProjects LearningProject[] @relation("LearningProjectCreator")
   learningProjectUpdates LearningProjectMilestoneUpdate[] @relation("LearningProjectUpdateCreator")
   learningProjectAssets LearningProjectAsset[] @relation("LearningProjectAssetUploader")
