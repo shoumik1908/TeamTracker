@@ -105,6 +105,28 @@ CREATE INDEX "project_links_projectId_idx" ON "project_links"("projectId");
 CREATE INDEX "project_members_memberId_idx" ON "project_members"("memberId");
 
 -- CreateIndex
+-- Pre-flight for the unique index below. Adding a member to an opportunity called
+-- projectMember.create() with no prior lookup, so a double-click or a retry left two
+-- identical rows. On any database that happened on, CREATE UNIQUE INDEX fails with
+-- "Key (opportunityId, memberId) is duplicated" — and a failed Prisma migration is
+-- recorded as failed and blocks every later migration until it is resolved by hand.
+-- Keep the earliest row of each pair; the duplicates carry no distinct information.
+DELETE FROM "project_members" a
+  USING "project_members" b
+ WHERE a."opportunityId" IS NOT NULL
+   AND a."opportunityId" = b."opportunityId"
+   AND a."memberId"      = b."memberId"
+   AND a."joinedAt"      > b."joinedAt";
+
+-- Same pair, identical timestamps: fall back to the row id so exactly one survives.
+DELETE FROM "project_members" a
+  USING "project_members" b
+ WHERE a."opportunityId" IS NOT NULL
+   AND a."opportunityId" = b."opportunityId"
+   AND a."memberId"      = b."memberId"
+   AND a."joinedAt"      = b."joinedAt"
+   AND a."id"            > b."id";
+
 CREATE UNIQUE INDEX "project_members_opportunityId_memberId_key" ON "project_members"("opportunityId", "memberId");
 
 -- CreateIndex
@@ -153,6 +175,15 @@ CREATE INDEX "teams_meetings_projectId_idx" ON "teams_meetings"("projectId");
 CREATE INDEX "users_roleId_idx" ON "users"("roleId");
 
 -- AddForeignKey
+-- Pre-flight for the foreign key below. opportunityId was an unconstrained string, so
+-- deleting an opportunity left its stage logs behind pointing at nothing. Those orphans
+-- would make ADD CONSTRAINT fail. They reference a row that no longer exists and cannot
+-- be attributed to anything, so they are removed rather than repaired.
+DELETE FROM "stage_change_logs" s
+ WHERE NOT EXISTS (
+   SELECT 1 FROM "presales_opportunities" o WHERE o."id" = s."opportunityId"
+ );
+
 ALTER TABLE "stage_change_logs" ADD CONSTRAINT "stage_change_logs_opportunityId_fkey" FOREIGN KEY ("opportunityId") REFERENCES "presales_opportunities"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
