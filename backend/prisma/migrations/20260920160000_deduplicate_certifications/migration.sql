@@ -12,16 +12,50 @@
 --
 --   * the survivor is the earliest-created row in each (name, provider) group — the
 --     entry the catalog originally had; the rest are accidental re-creations
---   * assignments move to the survivor
---   * an assignment that cannot move because that member already holds the survivor is a
---     literal duplicate of itself and is removed; @@unique([memberId, certificationId])
---     already forbids that state in canonical form. Verified against production: zero
---     such rows today, so this deletes nothing there
+--   * where a member holds more than one copy of the same certification, exactly one of
+--     their assignments survives and is pointed at the surviving catalog row; the others
+--     are duplicates of it and are removed. @@unique([memberId, certificationId]) already
+--     forbids that state in canonical form. Verified against production: no member holds
+--     more than one copy today, so this deletes no assignment there
 --   * only then are the now-unreferenced duplicate rows deleted
+--
+-- Which of a member's copies survives: the one carrying the most evidence, so merging
+-- never discards a completion in favour of an untouched row — an uploaded certificate
+-- first, then COMPLETED, then the furthest progress, then the earliest created. The
+-- earlier version of this migration always kept whichever assignment already pointed at
+-- the surviving catalog row regardless of its state, and crashed outright when a member
+-- held two copies that both had to move (both were redirected in one UPDATE and collided
+-- on the unique index). Deleting before repointing is what makes that case safe.
 --
 -- assigned_certifications.certificationId is the only foreign key into this table.
 
--- 1. Move assignments onto the surviving certification, where that does not collide.
+-- 1. Within each member's copies of the same certification, keep only the best one.
+WITH ranked AS (
+  SELECT id,
+         FIRST_VALUE(id) OVER (
+           PARTITION BY name, COALESCE(provider, '') ORDER BY "createdAt", id
+         ) AS keeper
+  FROM certifications
+),
+grouped AS (
+  SELECT a.id,
+         ROW_NUMBER() OVER (
+           PARTITION BY a."memberId", r.keeper
+           ORDER BY (a."certificateUrl" IS NOT NULL) DESC,
+                    (a.status = 'COMPLETED') DESC,
+                    a.progress DESC,
+                    a."createdAt",
+                    a.id
+         ) AS rn
+  FROM assigned_certifications a
+  JOIN ranked r ON a."certificationId" = r.id
+)
+DELETE FROM assigned_certifications a
+USING grouped g
+WHERE a.id = g.id AND g.rn > 1;
+
+-- 2. Point each surviving assignment at the surviving certification. After step 1 there
+--    is at most one per (member, keeper), so this cannot collide.
 WITH ranked AS (
   SELECT id,
          FIRST_VALUE(id) OVER (
@@ -33,24 +67,7 @@ UPDATE assigned_certifications a
 SET "certificationId" = r.keeper
 FROM ranked r
 WHERE a."certificationId" = r.id
-  AND r.keeper <> r.id
-  AND NOT EXISTS (
-    SELECT 1 FROM assigned_certifications existing
-    WHERE existing."memberId" = a."memberId"
-      AND existing."certificationId" = r.keeper
-  );
-
--- 2. Remove assignments that could not move because the member already holds the keeper.
-WITH ranked AS (
-  SELECT id,
-         FIRST_VALUE(id) OVER (
-           PARTITION BY name, COALESCE(provider, '') ORDER BY "createdAt", id
-         ) AS keeper
-  FROM certifications
-)
-DELETE FROM assigned_certifications a
-USING ranked r
-WHERE a."certificationId" = r.id AND r.keeper <> r.id;
+  AND r.keeper <> r.id;
 
 -- 3. Drop the duplicate catalog rows, now unreferenced.
 WITH ranked AS (
