@@ -1,4 +1,4 @@
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   BookOpen,
@@ -151,16 +151,47 @@ function Modal({
   children: React.ReactNode;
   wide?: boolean;
 }) {
+  // TT-139: this was a plain div — no dialog role, no Escape handling, and focus left
+  // behind it in the page underneath. A screen reader never announced that a dialog had
+  // opened, and a keyboard user could neither reach the contents nor dismiss it. Every
+  // CoE dialog goes through this one component, so all of them were affected.
+  const titleId = useId();
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    // Move focus into the dialog so the next Tab lands inside it, not behind it.
+    panelRef.current?.focus();
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        onClose();
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      // Hand focus back to whatever opened it, rather than dropping it on <body>.
+      previouslyFocused?.focus?.();
+    };
+  }, [onClose]);
+
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/25 p-4 backdrop-blur-sm">
       <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
         className={cn(
-          "w-full overflow-hidden rounded-2xl border border-border bg-card shadow-2xl",
+          "w-full overflow-hidden rounded-2xl border border-border bg-card shadow-2xl focus:outline-none",
           wide ? "max-w-2xl" : "max-w-lg",
         )}
       >
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
-          <h2 className="text-base font-semibold text-foreground">{title}</h2>
+          <h2 id={titleId} className="text-base font-semibold text-foreground">{title}</h2>
           <button
             onClick={onClose}
             className="rounded-lg p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"

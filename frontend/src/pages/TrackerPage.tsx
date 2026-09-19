@@ -249,6 +249,12 @@ export default function TrackerPage() {
   const { user: currentUser } = useAuth();
   const isAdmin = currentUser?.role?.permissions?.manageTeam;
   const [search, setSearch] = useState('');
+  // See TT-160 at the query below: the box stays responsive, the fetch waits.
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(id);
+  }, [search]);
   const [status, setStatus] = useState('');
   const [provider] = useState('');
   const [deadline, setDeadline] = useState('');
@@ -378,8 +384,12 @@ export default function TrackerPage() {
   });
 
   const { data, isLoading } = useQuery<PaginatedResponse<AssignedCertification>>({
-    queryKey: ['tracker', search, status, provider, deadline],
-    queryFn: () => certificationsApi.assignments({ search, status: status || undefined, provider: provider || undefined, deadline: deadline || undefined, limit: 1000 }).then(r => r.data),
+    // TT-160: `search` is the raw input state, so every keystroke changed the key and
+    // issued another 1000-row fetch, each one re-grouped and re-sorted — visible lag in
+    // the box and needless load behind it. The filters below are click-driven and do not
+    // need debouncing; only the typed one does.
+    queryKey: ['tracker', debouncedSearch, status, provider, deadline],
+    queryFn: () => certificationsApi.assignments({ search: debouncedSearch, status: status || undefined, provider: provider || undefined, deadline: deadline || undefined, limit: 1000 }).then(r => r.data),
     staleTime: 60000,
   });
 

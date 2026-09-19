@@ -177,17 +177,29 @@ export default function PresalesDocAnalyzerModal({ grouped, onClose, onToast }: 
   }
 
   function handleConfirm(card: ConfirmationCard) {
-    progressMutation.mutate({
-      oppId: card.oppId,
-      increment: card.incrementPercent,
-      reasoning: card.reasoning,
-      blobUrl: card.blobUrl,
-      originalFilename: card.originalFilename,
-    });
-    setCards(prev => prev.map(c => c.oppId === card.oppId ? { ...c, confirmed: true } : c));
-    onToast(
-      `${card.track} progress updated: +${card.incrementPercent}% → ${card.newTotalPercent}% total.`,
-      'success'
+    // TT-128: the card was marked confirmed and a success toast fired immediately after
+    // calling mutate — before the request had resolved. When the backend rejected the
+    // update the user was told the opportunity had progressed to a new percentage and
+    // saw an Applied badge, while nothing had been persisted; the error toast that
+    // followed contradicted a success they had already been shown. Both now wait for the
+    // write, and the card is only marked applied if it actually was.
+    progressMutation.mutate(
+      {
+        oppId: card.oppId,
+        increment: card.incrementPercent,
+        reasoning: card.reasoning,
+        blobUrl: card.blobUrl,
+        originalFilename: card.originalFilename,
+      },
+      {
+        onSuccess: () => {
+          setCards(prev => prev.map(c => c.oppId === card.oppId ? { ...c, confirmed: true } : c));
+          onToast(
+            `${card.track} progress updated: +${card.incrementPercent}% → ${card.newTotalPercent}% total.`,
+            'success'
+          );
+        },
+      },
     );
   }
 

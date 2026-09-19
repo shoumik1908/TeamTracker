@@ -28,26 +28,44 @@ export default function AddCertificationModal({ memberId, memberName, onClose, o
     queryFn: () => certificationsApi.list({ limit: 200 }).then(r => r.data),
   });
 
+  // TT-123: these four writes are chained with no rollback, and there is no endpoint that
+  // performs them as one unit. What could be fixed here is the part that actually harms
+  // the data: a failure part-way used to leave the created catalog entry and assignment
+  // behind, and pressing Save again created *another* catalog certification and another
+  // assignment. Remembering what has already succeeded makes a retry resume rather than
+  // duplicate. The remaining gap — a genuine rollback — needs a transactional endpoint,
+  // which is noted in the PR rather than faked here.
+  const createdCertIdRef = useRef<string | null>(null);
+  const createdAssignmentIdRef = useRef<string | null>(null);
+
   const save = useMutation({
     mutationFn: async () => {
       let certId = certificationId;
       // If the member is logging a brand-new certification, create the catalog entry first
       if (mode === 'new') {
-        const created = await certificationsApi.create({
-          name: newCert.name.trim(),
-          provider: newCert.provider.trim(),
-          learningLink: newCert.learningLink.trim() || undefined,
-        });
-        certId = created.data.id;
+        if (createdCertIdRef.current) {
+          certId = createdCertIdRef.current;
+        } else {
+          const created = await certificationsApi.create({
+            name: newCert.name.trim(),
+            provider: newCert.provider.trim(),
+            learningLink: newCert.learningLink.trim() || undefined,
+          });
+          certId = created.data.id;
+          createdCertIdRef.current = certId;
+        }
       }
       // Assign, anchoring the required deadline to the completion date, then mark it complete with dates
-      const assigned = await certificationsApi.assign({
+      const assigned = createdAssignmentIdRef.current
+        ? { data: { id: createdAssignmentIdRef.current } }
+        : await certificationsApi.assign({
         memberId,
         certificationId: certId,
         deadline: completionDate,
         credentialId: credentialId.trim() || undefined,
         notes: notes.trim() || undefined,
       });
+      createdAssignmentIdRef.current = assigned.data.id;
       await certificationsApi.updateAssignment(assigned.data.id, {
         status: 'COMPLETED',
         progress: 100,
@@ -65,6 +83,9 @@ export default function AddCertificationModal({ memberId, memberName, onClose, o
       }
     },
     onSuccess: () => {
+      // The saved ids belong to that save only; a reopened modal must start clean.
+      createdCertIdRef.current = null;
+      createdAssignmentIdRef.current = null;
       qc.invalidateQueries({ queryKey: ['member'] });
       qc.invalidateQueries({ queryKey: ['tracker'] });
       qc.invalidateQueries({ queryKey: ['certifications'] });

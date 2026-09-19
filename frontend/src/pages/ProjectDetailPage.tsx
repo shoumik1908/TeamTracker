@@ -493,7 +493,11 @@ export default function ProjectDetailPage() {
       const q = assignSearchQuery.toLowerCase();
       filtered = filtered.filter((m: any) => m.name.toLowerCase().includes(q));
     }
-    return filtered.sort((a: any, b: any) => {
+    // TT-149/TT-153: when the search box is empty, `filtered` IS the array React Query
+    // handed back, and .sort() sorts in place — so this reordered the shared ['members']
+    // cache as a side effect of rendering. Any other consumer of that query silently got
+    // reordered data with no re-render to tell it. Copying first keeps the sort local.
+    return [...filtered].sort((a: any, b: any) => {
       const aAssigned = assignedMembers.some((am: any) => am.member.id === a.id);
       const bAssigned = assignedMembers.some((am: any) => am.member.id === b.id);
       if (aAssigned && !bAssigned) return 1;
