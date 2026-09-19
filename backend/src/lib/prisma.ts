@@ -43,6 +43,10 @@ const prisma = rawPrisma.$extends({
           try {
             const user = requestContext.getStore()?.user;
             const performedBy = user ? user.name : 'System';
+            // TT-092: the name is kept as the historical record of who acted, and the id
+            // is recorded alongside it so "everything this person did" can actually be
+            // answered — and survives them being renamed.
+            const performedById = user?.id ?? null;
 
             const a = args as any;
             const data = a?.data || a?.create || a?.update;
@@ -71,7 +75,8 @@ const prisma = rawPrisma.$extends({
                 category: model || 'System',
                 action: operation.toUpperCase(),
                 details,
-                performedBy
+                performedBy,
+                performedById
               }
             });
           } catch (_) { /* never break the actual operation */ }

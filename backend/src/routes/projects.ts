@@ -206,7 +206,7 @@ router.post('/', requirePermission('manageTeam'), async (req: Request, res: Resp
     ...explicitMemberIds.map((id: string) => ({ memberId: id, enrollmentType: 'assigned' })),
     ...benchedMemberIds
        .filter((id: string) => !explicitMemberIds.includes(id))
-       .map((id: string) => ({ memberId: id, enrollmentType: 'auto-assigned' }))
+       .map((id: string) => ({ memberId: id, enrollmentType: 'auto_assigned' }))
   ];
 
   const project = await prisma.project.create({
@@ -375,7 +375,7 @@ router.post('/:id/enroll', async (req: Request, res: Response) => {
     data: {
       projectId: req.params.id,
       memberId,
-      enrollmentType: 'self-enrolled',
+      enrollmentType: 'self_enrolled',
       role: 'DEVELOPER' // default role
     },
     include: { member: { select: { id: true, name: true, profilePictureUrl: true, designation: true } } },
