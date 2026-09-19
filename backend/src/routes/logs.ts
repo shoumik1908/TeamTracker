@@ -2,6 +2,7 @@ import prisma from '../lib/prisma';
 import { Router } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
+import { parsePagination } from '../lib/pagination';
 import { AppError } from '../middleware/errorHandler';
 
 
@@ -13,10 +14,12 @@ router.get('/', async (req, res) => {
   const user = (req as AuthRequest).user;
   if (!user?.permissions?.manageTeam) throw new AppError('Forbidden: Only Admins can view logs', 403);
 
-  const { search = '', category = 'All', dateRange = 'all', page = '1', limit = '50' } = req.query;
+  const { search = '', category = 'All', dateRange = 'all' } = req.query;
 
-  const pageNum = parseInt(page as string) || 1;
-  const limitNum = parseInt(limit as string) || 50;
+  // TT-109: `|| 1` and `|| 50` caught NaN but not a negative page — which becomes a
+  // negative skip and a Prisma error — and nothing capped the limit, so one request
+  // could ask for the entire activity log.
+  const { page: pageNum, limit: limitNum } = parsePagination(req.query, { limit: 50, maxLimit: 200 });
 
   let whereClause: any = {};
 

@@ -37,6 +37,17 @@ router.post('/projects/:projectId/sync-meetings', authenticateToken, async (req:
     return res.status(404).json({ error: 'Project not found' });
   }
 
+  // TT-117: this endpoint writes fabricated meetings — complete with an invented
+  // transcript that the AI summary feature will happily analyse — straight into
+  // whatever database it is pointed at. On production that is made-up history attached
+  // to a real project, indistinguishable from a genuine sync. It is a demo stand-in
+  // until the Graph integration exists, so it now refuses to run anywhere but locally.
+  if ((process.env.NODE_ENV || '').toLowerCase() === 'production') {
+    return res.status(501).json({
+      error: 'Teams meeting sync is not available yet. This endpoint only inserts demonstration data and is disabled outside development.',
+    });
+  }
+
   // Insert mock data for demonstration
   const mockMeetings = [
     {

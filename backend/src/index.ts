@@ -57,8 +57,17 @@ const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 
 
 // Middleware
+// TT-095: 'http://localhost:5174' was allowed unconditionally, in production too. A
+// permanently trusted localhost origin lets anything running on a viewer's own machine
+// — another dev server, a malicious local app — make credentialed calls to the
+// production API. Local origins are for local runs only.
+const isProduction = (process.env.NODE_ENV || '').toLowerCase() === 'production';
+const allowedOrigins = isProduction
+  ? [FRONTEND_URL]
+  : [FRONTEND_URL, 'http://localhost:5173', 'http://localhost:5174'];
+
 app.use(cors({
-  origin: [FRONTEND_URL, 'http://localhost:5174'],
+  origin: allowedOrigins,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
@@ -123,7 +132,22 @@ app.use((_req, res) => {
 // Error handler
 app.use(errorHandler);
 
-app.listen(PORT, () => {
+// TT-163: an unhandled rejection or an uncaught exception left the process in an
+// unknown state — Node's default is to print and, for rejections, eventually exit — with
+// nothing logged that would explain it afterwards. And a failed listen (EADDRINUSE) was
+// silent: the process stayed alive having bound nothing, which is exactly how a test run
+// earlier in this work ended up talking to a different server than it believed.
+process.on('unhandledRejection', (reason) => {
+  console.error('[FATAL] Unhandled promise rejection:', reason);
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('[FATAL] Uncaught exception:', err);
+  // The process state is no longer trustworthy after this; let the platform restart it.
+  process.exit(1);
+});
+
+const server = app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
   console.log(`📊 Health check: http://localhost:${PORT}/health`);
 
@@ -138,6 +162,15 @@ app.listen(PORT, () => {
         .catch(err => console.error(`[Self-Ping] Error: ${err.message}`));
     }, 10 * 60 * 1000); // 10 minutes
   }
+});
+
+server.on('error', (err: NodeJS.ErrnoException) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`[FATAL] Port ${PORT} is already in use — refusing to start.`);
+  } else {
+    console.error('[FATAL] Server failed to start:', err);
+  }
+  process.exit(1);
 });
 
 export default app;

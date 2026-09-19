@@ -6,6 +6,7 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { uploadImage } from '../middleware/upload';
 import { normalizeLinkedinUrl } from '../lib/linkedinUrl';
+import { parsePagination, parseSort } from '../lib/pagination';
 import { createResetToken, RESET_TOKEN_TTL_MINUTES } from '../services/passwordResetToken';
 import { uploadFile, deleteFile, extractBlobName, CONTAINERS, sanitizeDirectoryName } from '../services/blobStorage';
 import { AppError } from '../middleware/errorHandler';
@@ -89,11 +90,15 @@ router.get('/with-resumes', async (req: Request, res: Response) => {
 });
 
 router.get('/', async (req: Request, res: Response) => {
-  const { search, projectId, page = '1', limit = '10', sortBy = 'name', sortOrder = 'asc' } = req.query;
+  const { search, projectId } = req.query;
 
-  const pageNum = parseInt(page as string);
-  const limitNum = parseInt(limit as string);
-  const skip = (pageNum - 1) * limitNum;
+  // TT-112: page/limit/sortBy went from the query string to Prisma unchecked.
+  const { page: pageNum, limit: limitNum, skip } = parsePagination(req.query, { limit: 10, maxLimit: 200 });
+  const { sortBy, sortOrder } = parseSort(
+    req.query,
+    ['name', 'designation', 'joiningDate', 'yearsOfExperience', 'status', 'createdAt'] as const,
+    'name',
+  );
 
   const where: any = {};
   if (search) {
@@ -114,7 +119,7 @@ router.get('/', async (req: Request, res: Response) => {
       where,
       skip,
       take: limitNum,
-      orderBy: { [sortBy as string]: sortOrder },
+      orderBy: { [sortBy]: sortOrder },
       include: {
         manager: { select: { id: true, name: true, profilePictureUrl: true, designation: true } },
         projectMembers: {
@@ -302,6 +307,25 @@ router.put('/:id', uploadImage.single('profilePicture'), async (req: Request, re
   }
 
   const { name, email, phone, designation, joiningDate, skills, allocationPercentage, status, yearsOfExperience, linkedinUrl } = req.body;
+
+  // TT-111: this endpoint is reachable by a member editing their own profile, and every
+  // field in the body was applied. allocationPercentage and status are staffing
+  // decisions — a member could mark themselves benched, or set their allocation to
+  // whatever they liked — and designation and joiningDate are records, not preferences.
+  // Admins keep the full set; everyone else is limited to their own contact details.
+  const isAdmin = user?.permissions?.manageTeam === true;
+  const adminOnlyFields = { allocationPercentage, status, designation, joiningDate };
+  if (!isAdmin) {
+    const attempted = Object.entries(adminOnlyFields)
+      .filter(([, v]) => v !== undefined)
+      .map(([k]) => k);
+    if (attempted.length > 0) {
+      throw new AppError(
+        `Only an administrator can change: ${attempted.join(', ')}.`,
+        403,
+      );
+    }
+  }
 
   // undefined means "not supplied", which leaves the column alone; the spread below
   // relies on that distinction, so it has to survive normalisation.
