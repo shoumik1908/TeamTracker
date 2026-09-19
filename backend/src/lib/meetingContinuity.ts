@@ -4,12 +4,16 @@ import { AppError } from '../middleware/errorHandler';
 // could be stored, and the `status === 'open'` queries that build the prior-context
 // prompts and the open-items lists silently stopped matching those rows.
 export const ACTION_ITEM_STATUSES = ['open', 'completed', 'in_progress', 'blocked'] as const;
+// Since TT-090 these columns are real enums, so the helpers return the exact union
+// Prisma expects rather than a bare string — the compiler now catches a value that the
+// database would reject at runtime.
+export type ActionItemStatusValue = (typeof ACTION_ITEM_STATUSES)[number];
 
-export function assertActionItemStatus(value: unknown): string {
+export function assertActionItemStatus(value: unknown): ActionItemStatusValue {
   if (typeof value !== 'string' || !ACTION_ITEM_STATUSES.includes(value as any)) {
     throw new AppError(`status must be one of: ${ACTION_ITEM_STATUSES.join(', ')}.`, 400);
   }
-  return value;
+  return value as ActionItemStatusValue;
 }
 
 /**
@@ -35,4 +39,39 @@ export function onlyIdsOfferedToTheModel(returned: unknown, offered: { id: strin
 export function completedActionItemIds(updated: unknown): unknown[] {
   if (!Array.isArray(updated)) return [];
   return updated.filter((u: any) => u?.new_status === 'completed').map((u: any) => u?.id);
+}
+
+/**
+ * TT-090: the AI pipeline wrote these columns straight from model output —
+ * `ai.status.toLowerCase()`, `b.status || 'open'`, `ai.priority || null`. The columns are
+ * free-text, so a model answering "Critical" or "In Review" was stored happily and then
+ * silently excluded from every `status: 'open'` filter that drives the prior-context
+ * prompts and the project pulse. Nobody could tell afterwards.
+ *
+ * These normalise to the documented set before anything is written, which is also what
+ * makes promoting the columns to real enums safe: an unrecognised value becomes the
+ * sensible default here rather than a runtime error at the database.
+ */
+export function normalizeActionItemStatus(value: unknown): ActionItemStatusValue {
+  if (typeof value !== 'string') return 'open';
+  const v = value.trim().toLowerCase().replace(/[\s-]+/g, '_');
+  return (ACTION_ITEM_STATUSES as readonly string[]).includes(v) ? (v as ActionItemStatusValue) : 'open';
+}
+
+export const ACTION_ITEM_PRIORITIES = ['high', 'medium', 'low'] as const;
+export type ActionItemPriorityValue = (typeof ACTION_ITEM_PRIORITIES)[number];
+
+export function normalizeActionItemPriority(value: unknown): ActionItemPriorityValue | null {
+  if (typeof value !== 'string') return null;
+  const v = value.trim().toLowerCase();
+  return (ACTION_ITEM_PRIORITIES as readonly string[]).includes(v) ? (v as ActionItemPriorityValue) : null;
+}
+
+export const BLOCKER_STATUSES = ['open', 'resolved'] as const;
+export type BlockerStatusValue = (typeof BLOCKER_STATUSES)[number];
+
+export function normalizeBlockerStatus(value: unknown): BlockerStatusValue {
+  if (typeof value !== 'string') return 'open';
+  const v = value.trim().toLowerCase();
+  return (BLOCKER_STATUSES as readonly string[]).includes(v) ? (v as BlockerStatusValue) : 'open';
 }

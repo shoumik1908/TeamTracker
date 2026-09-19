@@ -7,7 +7,7 @@ import { generateMeetingMinutes  } from '../services/azureOpenAIService';
 import { matchTeamMember, correctNamesInTranscript } from '../utils/fuzzyMatch';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
 import { verifyContextMember, verifyMeetingRecordAccess, verifyActionItemAccess } from '../lib/contextAccess';
-import { assertActionItemStatus, onlyIdsOfferedToTheModel, completedActionItemIds } from '../lib/meetingContinuity';
+import { assertActionItemStatus, onlyIdsOfferedToTheModel, completedActionItemIds, normalizeActionItemStatus, normalizeActionItemPriority, normalizeBlockerStatus } from '../lib/meetingContinuity';
 import { AppError } from '../middleware/errorHandler';
 
 // TT-044: this multer instance had no limits and no filter whatsoever. Combined with
@@ -420,7 +420,7 @@ router.post('/', upload.fields([{ name: 'recordingFile', maxCount: 1 }, { name: 
             parsedDueDate = new Date(ai.due_date);
           }
 
-          const status = ai.status ? ai.status.toLowerCase() : 'open';
+          const status = normalizeActionItemStatus(ai.status);
           const completed = status === 'completed';
 
           return {
@@ -429,7 +429,7 @@ router.post('/', upload.fields([{ name: 'recordingFile', maxCount: 1 }, { name: 
             originalOwnerText: ai.owner || 'Unassigned',
             assignedToId,
             dueDate: parsedDueDate,
-            priority: ai.priority || null,
+            priority: normalizeActionItemPriority(ai.priority),
             status,
             completed
           };
@@ -462,7 +462,7 @@ router.post('/', upload.fields([{ name: 'recordingFile', maxCount: 1 }, { name: 
       if (blockersList.length > 0) {
         const blockersToCreate = blockersList.map((b: any) => {
           const description = typeof b === 'string' ? b : b.description;
-          const status = typeof b === 'string' ? 'open' : (b.status || 'open');
+          const status = normalizeBlockerStatus(typeof b === 'string' ? 'open' : b.status);
           return {
             projectId: projectId || null,
             opportunityId: opportunityId || null,
@@ -767,7 +767,7 @@ router.post('/:recordId/reanalyze', async (req, res) => {
             parsedDueDate = new Date(ai.due_date);
           }
 
-          const status = ai.status ? ai.status.toLowerCase() : 'open';
+          const status = normalizeActionItemStatus(ai.status);
           const completed = status === 'completed';
 
           return {
@@ -776,7 +776,7 @@ router.post('/:recordId/reanalyze', async (req, res) => {
             originalOwnerText: ai.owner || 'Unassigned',
             assignedToId,
             dueDate: parsedDueDate,
-            priority: ai.priority || null,
+            priority: normalizeActionItemPriority(ai.priority),
             status,
             completed
           };
@@ -809,7 +809,7 @@ router.post('/:recordId/reanalyze', async (req, res) => {
       if (blockersList.length > 0) {
         const blockersToCreate = blockersList.map((b: any) => {
           const description = typeof b === 'string' ? b : b.description;
-          const status = typeof b === 'string' ? 'open' : (b.status || 'open');
+          const status = normalizeBlockerStatus(typeof b === 'string' ? 'open' : b.status);
           return {
             projectId: projectId || null,
             opportunityId: opportunityId || null,
