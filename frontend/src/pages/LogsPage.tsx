@@ -29,8 +29,15 @@ export default function LogsPage() {
   const [hasMore, setHasMore] = useState(true);
   
   const observer = useRef<IntersectionObserver | null>(null);
+  // Set synchronously, unlike the `loading` state below, which loadLogs only raises for a
+  // fresh search. Without it the sentinel stays in view while a page is in flight and the
+  // observer fires again and again: one scroll requested pages 2 through 9, six of them
+  // past the end, and their responses came back interleaved. Appends are order-dependent,
+  // so that ordering was luck rather than design.
+  const inFlight = useRef(false);
 
-  const loadLogs = async (pageNum: number, currentLogs: ActivityLog[], isNewSearch = false) => {
+  const loadLogs = async (pageNum: number, isNewSearch = false) => {
+    inFlight.current = true;
     try {
       if (isNewSearch) setLoading(true);
       const res = await fetchLogs(pageNum, 50, category, debouncedSearch);
@@ -44,13 +51,20 @@ export default function LogsPage() {
       if (isNewSearch) {
         setLogs(res.data);
       } else {
-        setLogs([...currentLogs, ...res.data]);
+        // The appended page has to be computed from the list as it is when the update is
+        // applied, not as it was when the observer callback was created. The sentinel can
+        // stay in view long enough to fire twice before React re-renders — which is the
+        // normal case at the end of a short list — and the second call then appended its
+        // page onto the pre-previous array, dropping the page in between. The symptom was
+        // a contiguous block of fifty rows silently missing from the middle of the feed.
+        setLogs(prev => [...prev, ...res.data]);
       }
       
       setHasMore(pageNum < res.pagination.totalPages);
     } catch (err: any) {
       setError(err.message);
     } finally {
+      inFlight.current = false;
       setLoading(false);
     }
   };
@@ -68,7 +82,7 @@ export default function LogsPage() {
   useEffect(() => {
     setPage(1);
     setHasMore(true);
-    loadLogs(1, [], true);
+    loadLogs(1, true);
   }, [category, debouncedSearch]);
 
   const lastLogElementRef = useCallback((node: HTMLDivElement | null) => {
@@ -76,19 +90,22 @@ export default function LogsPage() {
     if (observer.current) observer.current.disconnect();
     
     observer.current = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting && hasMore) {
+      // inFlight must gate the page advance as well as the fetch: guarding only the fetch
+      // let `page` run ahead of what had actually been loaded, and the pages in between
+      // were never requested at all.
+      if (entries[0].isIntersecting && hasMore && !inFlight.current) {
         // TT-145: this used to call loadLogs inside the setPage updater. React may invoke
         // an updater more than once — it does so routinely under StrictMode — so the same
         // page could be fetched and appended twice, giving duplicated rows and duplicate
         // React keys. The updater is pure now and the fetch happens beside it.
         const next = page + 1;
         setPage(next);
-        loadLogs(next, logs, false);
+        loadLogs(next, false);
       }
     });
     
     if (node) observer.current.observe(node);
-  }, [loading, hasMore, logs, page]);
+  }, [loading, hasMore, page]);
 
   const getIconForAction = (action: string, _cat: string) => {
     if (action === 'DELETE' || action === 'DELETEMANY') return <Trash2 className="w-5 h-5 text-red-500" />;
@@ -123,7 +140,7 @@ export default function LogsPage() {
             />
           </div>
           <button 
-            onClick={() => { setPage(1); setHasMore(true); loadLogs(1, [], true); }}
+            onClick={() => { setPage(1); setHasMore(true); loadLogs(1, true); }}
             className="p-2 bg-black/30 border border-white/10 rounded-lg text-white/50 hover:text-white hover:bg-white/5 transition-colors"
             title="Refresh Logs"
           >
