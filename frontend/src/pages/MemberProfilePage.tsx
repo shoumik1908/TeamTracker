@@ -370,6 +370,10 @@ export default function MemberProfilePage() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['member', id] });
+      // TT-073: only ['member', id] was invalidated, but the chips below render the
+      // resume profile's skills in preference to the member's, so the CV-extracted list
+      // stayed on screen and the save looked as though it had been thrown away.
+      qc.invalidateQueries({ queryKey: ['resume-profile', id] });
       setIsEditingSkills(false);
     },
     onError: (err: Error) => {
@@ -1051,9 +1055,14 @@ export default function MemberProfilePage() {
                     placeholder="React, Node.js, TypeScript, Docker..."
                   />
                 </div>
-              ) : (resumeProfile?.skills || member.skills).length > 0 ? (
+              // TT-073: this preferred resumeProfile.skills, while the edit box beside it
+              // is seeded from member.skills and the save writes member.skills. Editing
+              // and saving therefore changed nothing visible, and the CV-extracted list
+              // won even when a member had curated their own. What is edited is what is
+              // shown; the CV list is the fallback when nothing has been set.
+              ) : (member.skills?.length ? member.skills : (resumeProfile?.skills || [])).length > 0 ? (
                 <div className="flex flex-wrap gap-1.5">
-                  {(resumeProfile?.skills || member.skills).map((skill: string, i: number) => (
+                  {(member.skills?.length ? member.skills : (resumeProfile?.skills || [])).map((skill: string, i: number) => (
                     <span key={i} className="px-2.5 py-0.5 bg-azure-950/40 text-azure-300 border border-azure-800/40 rounded-full text-xs font-medium">
                       {skill}
                     </span>

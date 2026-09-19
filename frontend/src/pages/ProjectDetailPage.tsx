@@ -1,10 +1,11 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { documentationApi, projectsApi, membersApi, projectUpdatesApi, meetingRecordsApi } from '@/lib/api';
 import axios from 'axios';
 import AiGeneratedMinutesBox from '@/components/AiGeneratedMinutesBox';
 import MeetingReportView from '@/components/MeetingReportView';
+import { useAuth } from '@/context/AuthContext';
 import {
   FileText, Link2, Notebook, Plus, Trash2, ExternalLink,
   Pencil, Calendar, TrendingUp, AlertCircle, Loader2,
@@ -73,7 +74,15 @@ export default function ProjectDetailPage() {
   const queryClient = useQueryClient();
 
   const [activeSection, setActiveSection] = useState<SectionType>('records');
-  const [actingMemberId, setActingMemberId] = useState<string>('');
+  const { user } = useAuth();
+
+  // TT-077: this used to be seeded from project.members[0].member.id — an arbitrary
+  // member of the project, never the person actually operating the page — and was sent as
+  // uploadedBy/addedBy/updatedBy and as the acting identity on every delete. Every file,
+  // link and note was attributed to whoever happened to be first in the member list, and
+  // the real author then failed the server's ownership check on their own item.
+  // PreSalesDetailPage already derives this correctly; this now matches it.
+  const actingMemberId = user?.teamMemberId || '';
   
   const [assignSearchQuery, setAssignSearchQuery] = useState('');
   const [selectedMembersToAssign, setSelectedMembersToAssign] = useState<Set<string>>(new Set());
@@ -181,11 +190,6 @@ export default function ProjectDetailPage() {
   const meetingRecords = recordsRes?.data || [];
 
   // Default the acting member to the first assigned member once loaded
-  useEffect(() => {
-    if (project?.members?.length > 0 && !actingMemberId) {
-      setActingMemberId(project.members[0].member.id);
-    }
-  }, [project, actingMemberId]);
 
   // Mutations
   const uploadFileMutation = useMutation({

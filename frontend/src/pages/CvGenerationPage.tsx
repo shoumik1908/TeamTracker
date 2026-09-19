@@ -37,17 +37,24 @@ export default function CvGenerationPage() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      // Get filename from header if possible
+      // TT-140: the api client returns a fetch Headers instance, so indexing it like a
+      // plain object was always undefined and every download was named Tailored_CV.docx
+      // regardless of what the server said. Headers.get is also case-insensitive, which
+      // the bracket lookup was not.
       let filename = 'Tailored_CV.docx';
-      const disposition = (response.headers as any)?.['content-disposition'];
+      const disposition = response.headers?.get?.('content-disposition');
       if (disposition && disposition.includes('filename=')) {
-        filename = disposition.split('filename=')[1].replace(/"/g, '');
+        filename = decodeURIComponent(
+          disposition.split('filename=')[1].split(';')[0].replace(/["']/g, '').trim(),
+        ) || filename;
       }
       a.download = filename;
       document.body.appendChild(a);
       a.click();
-      window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
+      // Also TT-140: revoking immediately could abort the download in some browsers,
+      // because the click only schedules it. Released on the next turn of the loop.
+      setTimeout(() => window.URL.revokeObjectURL(url), 0);
     }
   });
 

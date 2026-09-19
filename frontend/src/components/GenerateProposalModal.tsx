@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { presalesApi } from '@/lib/presalesApi';
 import {
@@ -66,6 +66,18 @@ export default function GenerateProposalModal({
   const [succeeded, setSucceeded] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const stepTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // TT-125: the step interval was started inside mutationFn and only cleared in
+  // onSuccess/onError, and the auto-close timeout was never held at all. Generation takes
+  // fifteen to thirty seconds; if the modal unmounted while one was in flight — the parent
+  // navigating, a route change — the interval kept calling setStepIdx on an unmounted
+  // component indefinitely, and the stray timeout could call onClose on a modal that no
+  // longer existed. Cleared on unmount, whatever state the request is in.
+  useEffect(() => () => {
+    if (stepTimerRef.current) clearInterval(stepTimerRef.current);
+    if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+  }, []);
 
   const STEPS = mode === 'add' ? STEPS_ADD : STEPS_GENERATE;
 
@@ -88,7 +100,7 @@ export default function GenerateProposalModal({
       if (stepTimerRef.current) clearInterval(stepTimerRef.current);
       setSucceeded(true);
       queryClient.invalidateQueries({ queryKey: ['presales-opportunity', opportunityId] });
-      setTimeout(() => onClose(), 1800);
+      closeTimerRef.current = setTimeout(() => onClose(), 1800);
     },
     onError: (err: any) => {
       if (stepTimerRef.current) clearInterval(stepTimerRef.current);

@@ -22,7 +22,9 @@ export default function LogsPage() {
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('All');
   
-  const [, setPage] = useState(1);
+  // TT-145: the page value was discarded because the only reader was inside the setPage
+  // updater. Now that the fetch happens outside the updater, the value is needed.
+  const [page, setPage] = useState(1);
   
   const [hasMore, setHasMore] = useState(true);
   
@@ -31,8 +33,14 @@ export default function LogsPage() {
   const loadLogs = async (pageNum: number, currentLogs: ActivityLog[], isNewSearch = false) => {
     try {
       if (isNewSearch) setLoading(true);
-      const res = await fetchLogs(pageNum, 50, category, search);
-      
+      const res = await fetchLogs(pageNum, 50, category, debouncedSearch);
+
+      // TT-143: error was set on failure and never cleared anywhere, and the render shows
+      // the error panel instead of the feed whenever it is truthy. One timed-out request
+      // — easy to provoke while typing — hid the activity log until the page was
+      // remounted, even though every request after it succeeded.
+      setError('');
+
       if (isNewSearch) {
         setLogs(res.data);
       } else {
@@ -47,11 +55,21 @@ export default function LogsPage() {
     }
   };
 
+  // TT-144: the effect below depended on `search`, which is updated on every keystroke, so
+  // typing a ten-character query fired ten full log queries at a page size of fifty, with
+  // nothing cancelling the earlier ones — the list could settle on results that did not
+  // match what was in the box.
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(id);
+  }, [search]);
+
   useEffect(() => {
     setPage(1);
     setHasMore(true);
     loadLogs(1, [], true);
-  }, [category, search]);
+  }, [category, debouncedSearch]);
 
   const lastLogElementRef = useCallback((node: HTMLDivElement | null) => {
     if (loading) return;
@@ -59,16 +77,18 @@ export default function LogsPage() {
     
     observer.current = new IntersectionObserver(entries => {
       if (entries[0].isIntersecting && hasMore) {
-        setPage(prevPage => {
-          const next = prevPage + 1;
-          loadLogs(next, logs, false);
-          return next;
-        });
+        // TT-145: this used to call loadLogs inside the setPage updater. React may invoke
+        // an updater more than once — it does so routinely under StrictMode — so the same
+        // page could be fetched and appended twice, giving duplicated rows and duplicate
+        // React keys. The updater is pure now and the fetch happens beside it.
+        const next = page + 1;
+        setPage(next);
+        loadLogs(next, logs, false);
       }
     });
     
     if (node) observer.current.observe(node);
-  }, [loading, hasMore, logs]);
+  }, [loading, hasMore, logs, page]);
 
   const getIconForAction = (action: string, _cat: string) => {
     if (action === 'DELETE' || action === 'DELETEMANY') return <Trash2 className="w-5 h-5 text-red-500" />;

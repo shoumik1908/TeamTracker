@@ -1469,7 +1469,11 @@ export default function PreSalesDetailPage() {
                             >
                               <Pencil className="w-3.5 h-3.5" />
                             </button>
-                            {(isAdmin || note.addedBy === actingMemberId) && (
+                            {/* TT-076: this read note.addedBy, which ProjectNote does not have — the column is
+                                updatedBy, and the same object is read as note.updatedBy a few lines above.
+                                undefined === actingMemberId is always false, so an author could never
+                                delete their own note and only admins could. */}
+                            {(isAdmin || note.updatedBy === actingMemberId) && (
                               <button
                                 onClick={() => {
                                   if (confirm('Are you sure you want to delete this note?')) {
