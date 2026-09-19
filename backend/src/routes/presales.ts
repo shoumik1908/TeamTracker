@@ -267,25 +267,44 @@ router.patch('/:id/progress', async (req: Request, res: Response) => {
   const oldStageIndex = opportunity.currentStageIndex;
   const newStageIndex = percentToStageIndex(newPercent, opportunity.stages.length);
 
-  const updated = await prisma.preSalesOpportunity.update({
-    where: { id },
-    data: {
-      progressPercent: newPercent,
-      currentStageIndex: newStageIndex,
-    },
-  });
+  // TT-113: the read above, this write and the stage log were three separate statements.
+  // Two AI-driven increments arriving together both read the same starting percentage
+  // and the second overwrote the first — the increment was simply lost. And a failure
+  // between the update and the log left the progress changed with no record of why.
+  //
+  // The transaction makes those two commit together. The re-read inside it is what makes
+  // the arithmetic safe: `increment` alone cannot be clamped to 0–100, and the stage
+  // index has to be derived from the value that actually landed.
+  const updated = await prisma.$transaction(async (tx) => {
+    const current = await tx.preSalesOpportunity.update({
+      where: { id },
+      data: { progressPercent: { increment: incrementPercent } },
+    });
 
-  await prisma.stageChangeLog.create({
-    data: {
-      opportunityId: id,
-      track: opportunity.account,
-      previousStage: opportunity.stages[oldStageIndex],
-      newStage: opportunity.stages[newStageIndex],
-      source: source || 'ai_suggested',
-      reasoning: reasoning ? `${reasoning} (Progress: ${oldPercent}% -> ${newPercent}%)` : `Progress: ${oldPercent}% -> ${newPercent}%`,
-      blobUrl: blobUrl || null,
-      originalFilename: originalFilename || null,
-    },
+    const clamped = Math.min(100, Math.max(0, current.progressPercent));
+    const landedStageIndex = percentToStageIndex(clamped, current.stages.length);
+
+    const settled = clamped === current.progressPercent && landedStageIndex === current.currentStageIndex
+      ? current
+      : await tx.preSalesOpportunity.update({
+          where: { id },
+          data: { progressPercent: clamped, currentStageIndex: landedStageIndex },
+        });
+
+    await tx.stageChangeLog.create({
+      data: {
+        opportunityId: id,
+        track: opportunity.account,
+        previousStage: opportunity.stages[oldStageIndex],
+        newStage: settled.stages[landedStageIndex],
+        source: source || 'ai_suggested',
+        reasoning: reasoning ? `${reasoning} (Progress: ${oldPercent}% -> ${clamped}%)` : `Progress: ${oldPercent}% -> ${clamped}%`,
+        blobUrl: blobUrl || null,
+        originalFilename: originalFilename || null,
+      },
+    });
+
+    return settled;
   });
 
   res.json({ data: updated });
@@ -617,6 +636,13 @@ router.get('/:id', async (req: Request, res: Response) => {
 
     res.json({ data: opp });
   } catch (err: any) {
+    // TT-050: this caught everything, the AppError thrown just above included, and
+    // re-emitted it as a 500 — so an authorization denial reached the client as a
+    // server error and the frontend could not tell "you may not see this" from "we
+    // are broken". express-async-errors is loaded (index.ts), so rethrowing reaches
+    // the central handler with the status intact. The same fix is applied to the two
+    // handlers below.
+    if (err instanceof AppError) throw err;
     console.error('[GET Opp]', err);
     res.status(500).json({ error: 'Failed to fetch opportunity' });
   }
@@ -670,6 +696,7 @@ router.patch('/:id', async (req: Request, res: Response) => {
     });
     res.json({ data: updated });
   } catch (err: any) {
+    if (err instanceof AppError) throw err;
     console.error('[PATCH Opp]', err);
     res.status(500).json({ error: 'Failed to update opportunity' });
   }
@@ -687,59 +714,63 @@ router.post('/:id/convert', async (req: Request, res: Response) => {
     const user = (req as AuthRequest).user;
     if (!user?.permissions?.manageTeam) throw new AppError('Forbidden: Only Admins can convert opportunities to projects', 403);
 
-    // Create the Project
-    const project = await prisma.project.create({
-      data: {
-        name: opp.name,
-        client: opp.clientName,
-        description: opp.description || `Converted from PreSales Opportunity (Account: ${opp.account})`,
-        startDate: new Date(),
-        status: 'PLANNING'
-      }
-    });
+    // TT-051: nothing recorded that a conversion had happened, so a second call — a
+    // double-click, a retry after a timeout — created another Project and re-pointed the
+    // same members, updates, files, links, notes and meeting records at it, silently
+    // detaching them from the first.
+    if (opp.convertedProjectId) {
+      throw new AppError(
+        'This opportunity has already been converted to a project.',
+        409,
+      );
+    }
 
-    // Migrate relationships to point to the new Project AND keep them on the opportunity (or just update them)
-    // We update them to belong to the new project.
-    await prisma.projectMember.updateMany({
-      where: { opportunityId: id },
-      data: { projectId: project.id }
-    });
-    
-    await prisma.projectUpdate.updateMany({
-      where: { opportunityId: id },
-      data: { projectId: project.id }
-    });
+    // TT-051: the create and the six updateMany calls ran as independent statements, so
+    // a failure part-way left an orphan Project holding a partially migrated graph, with
+    // the rest still attached to the opportunity and no way to tell from either side.
+    const project = await prisma.$transaction(async (tx) => {
+      // Create the Project
+      const created = await tx.project.create({
+        data: {
+          name: opp.name,
+          client: opp.clientName,
+          description: opp.description || `Converted from PreSales Opportunity (Account: ${opp.account})`,
+          startDate: new Date(),
+          status: 'PLANNING'
+        }
+      });
 
-    await prisma.projectFile.updateMany({
-      where: { opportunityId: id },
-      data: { projectId: project.id }
-    });
+      // Migrate relationships to point to the new Project. opportunityId is cleared as
+      // each row moves: a row belongs to one or the other, and leaving both set is what
+      // made a repeat conversion able to pick them up again.
+      const migrate = { projectId: created.id, opportunityId: null };
 
-    await prisma.projectLink.updateMany({
-      where: { opportunityId: id },
-      data: { projectId: project.id }
-    });
+      await tx.projectMember.updateMany({ where: { opportunityId: id }, data: migrate });
+      await tx.projectUpdate.updateMany({ where: { opportunityId: id }, data: migrate });
+      await tx.projectFile.updateMany({ where: { opportunityId: id }, data: migrate });
+      await tx.projectLink.updateMany({ where: { opportunityId: id }, data: migrate });
+      await tx.projectNote.updateMany({ where: { opportunityId: id }, data: migrate });
+      await tx.meetingRecord.updateMany({ where: { opportunityId: id }, data: migrate });
 
-    await prisma.projectNote.updateMany({
-      where: { opportunityId: id },
-      data: { projectId: project.id }
-    });
+      await tx.preSalesOpportunity.update({
+        where: { id },
+        data: { convertedProjectId: created.id },
+      });
 
-    await prisma.meetingRecord.updateMany({
-      where: { opportunityId: id },
-      data: { projectId: project.id }
-    });
+      await tx.activityLog.create({
+        data: {
+          category: 'Project',
+          action: 'CREATE',
+          details: `Converted PreSales Opportunity "${opp.name}" to Project.`,
+        }
+      });
 
-    await prisma.activityLog.create({
-      data: {
-        category: 'Project',
-        action: 'CREATE',
-        details: `Converted PreSales Opportunity "${opp.name}" to Project.`,
-      }
+      return created;
     });
 
     res.json({ data: project });
   } catch (err: any) {
+    if (err instanceof AppError) throw err;
     console.error('[POST Convert Opp]', err);
     res.status(500).json({ error: 'Failed to convert opportunity' });
   }

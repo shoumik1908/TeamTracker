@@ -345,7 +345,23 @@ function extractTranscriptText(buffer: Buffer, originalName: string, mimeType: s
   if (mimeType === 'text/plain' || originalName.toLowerCase().endsWith('.txt')) return Promise.resolve(buffer.toString('utf8'));
   if (mimeType === 'application/pdf' || originalName.toLowerCase().endsWith('.pdf')) {
     return (async () => {
-      try { const { PDFParse } = require('pdf-parse'); const result = await PDFParse(buffer); return result.text || ''; } catch { return ''; }
+      // TT-104: this called PDFParse(buffer). In pdf-parse v2 PDFParse is a class, so
+      // invoking it without `new` threw a TypeError that the bare catch turned into ''.
+      // Every PDF transcript was stored as empty, and summarising one then failed with
+      // the misleading 422 "This transcript format cannot be summarised". Same defect
+      // and same fix as TT-039 in meetingRecords.ts; the error is logged now rather
+      // than swallowed silently.
+      const { PDFParse } = require('pdf-parse');
+      const parser = new PDFParse({ data: buffer });
+      try {
+        const result = await parser.getText();
+        return result.text || '';
+      } catch (e) {
+        console.error('[CoE pdf-parse error]:', e);
+        return '';
+      } finally {
+        if (typeof parser.destroy === 'function') await parser.destroy();
+      }
     })();
   }
   if (mimeType.includes('wordprocessingml') || /\.docx?$/i.test(originalName)) {

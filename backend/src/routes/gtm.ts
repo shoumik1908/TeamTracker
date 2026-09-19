@@ -204,23 +204,48 @@ router.put('/partners/:id', requirePermission('manageTeam'), async (req: Request
     return res.status(400).json({ error: 'name, tier, and renewalDate are required.' });
   }
 
-  // Delete old requirements and create new ones
-  await prisma.gtmPartnerRequirement.deleteMany({ where: { partnerId: id } });
+  // TT-038: the deleteMany below used to run first and alone. If the update then failed
+  // — an id that no longer exists, an unparseable renewalDate becoming Invalid Date, a
+  // malformed requirements entry — the requirements were already gone, permanently, and
+  // the caller got a 500. Those requirements drive the /audit compliance report, so the
+  // partner silently became compliant with nothing.
+  //
+  // Validate what we can before touching anything, then make the swap atomic.
+  const parsedRenewalDate = new Date(renewalDate);
+  if (isNaN(parsedRenewalDate.getTime())) {
+    return res.status(400).json({ error: 'renewalDate must be a valid date.' });
+  }
+  if (requirements !== undefined && !Array.isArray(requirements)) {
+    return res.status(400).json({ error: 'requirements must be an array.' });
+  }
+  for (const r of requirements || []) {
+    if (!r?.certificationName || typeof r.certificationName !== 'string') {
+      return res.status(400).json({ error: 'Every requirement needs a certificationName.' });
+    }
+  }
 
-  const partner = await prisma.gtmPartner.update({
-    where: { id },
-    data: {
-      name: name.trim(),
-      tier: tier.trim(),
-      renewalDate: new Date(renewalDate),
-      requirements: {
-        create: (requirements || []).map((r: any) => ({
-          certificationName: r.certificationName,
-          minimumCount: parseInt(r.minimumCount) || 1
-        }))
-      }
-    },
-    include: { requirements: true }
+  const existingPartner = await prisma.gtmPartner.findUnique({ where: { id } });
+  if (!existingPartner) return res.status(404).json({ error: 'Partner not found.' });
+
+  const partner = await prisma.$transaction(async (tx) => {
+    // Delete old requirements and create new ones
+    await tx.gtmPartnerRequirement.deleteMany({ where: { partnerId: id } });
+
+    return tx.gtmPartner.update({
+      where: { id },
+      data: {
+        name: name.trim(),
+        tier: tier.trim(),
+        renewalDate: parsedRenewalDate,
+        requirements: {
+          create: (requirements || []).map((r: any) => ({
+            certificationName: r.certificationName,
+            minimumCount: parseInt(r.minimumCount) || 1
+          }))
+        }
+      },
+      include: { requirements: true }
+    });
   });
 
   res.json({ data: partner });
@@ -249,8 +274,15 @@ router.get('/audit', async (_req: Request, res: Response) => {
   });
 
   const auditResults = requirements.map(req => {
-    // Count how many distinct team members hold this certification
-    const currentCount = completedCerts.filter(ac => ac.certification.name === req.certificationName).length;
+    // TT-107: this counted assignedCertification *rows* while the comment — and the
+    // partner requirement it is measured against — mean distinct people. A renewal, a
+    // re-issue or a duplicate assignment counted twice, so a requirement could report
+    // "Met" with fewer certified members than the minimum demands.
+    const currentCount = new Set(
+      completedCerts
+        .filter(ac => ac.certification.name === req.certificationName)
+        .map(ac => ac.memberId)
+    ).size;
     const min = req.minimumCount;
     let status: 'Met' | 'At Risk' | 'Not Met' = 'Not Met';
 

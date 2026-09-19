@@ -471,6 +471,11 @@ model PreSalesOpportunity {
   others                 String?   @db.Text
   sourceDocuments        Json? // array of { fileName, blobUrl, uploadedAt }
   descriptionGeneratedAt DateTime?
+
+  // TT-051: conversion to a Project was not recorded anywhere, so calling the endpoint
+  // twice created a second Project and re-pointed the same child rows at it. Set inside
+  // the conversion transaction; its presence is what makes a repeat call a 409.
+  convertedProjectId     String?
   // ────────────────────────────────────────────────────────────────────────────
 
   createdAt DateTime @default(now())
