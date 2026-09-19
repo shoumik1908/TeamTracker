@@ -11,6 +11,14 @@ Run the backend suite with `cd backend && npm test`.
 | Edit requests | Notification/request linkage; ordinary notifications remain unchanged; approved changes update valid/expired status; rejected requests make no assignment change. |
 | Certificate matching | Exact catalog match; tier mismatch is not auto-selected; ambiguous candidate requires manual selection. |
 | Member matching | Exact recipient match; partial-name match; unrelated name is rejected; transcript name correction. |
+| Password reset links | Token verifies against the hash it was minted from; stops verifying once the password changes (single use); does not verify against another user's hash; a tampered token is rejected; garbage input does not throw. |
+| Blob naming and signing | Two uploads of one filename never share a key; the original filename stays recognisable; a caller prefix is kept; signing refuses an unknown container, a path containing `..`, an absolute path and backslash separators, while allowing a literal `..` inside a filename. |
+| LinkedIn URLs | A bare host gains https; http is upgraded; a subdomain is accepted; blank clears the field; an omitted field leaves it untouched; `javascript:`, a lookalike host and an over-length value are rejected. |
+| Meeting continuity | Model-returned ids are intersected with the ids the model was shown, so another project's id and a hallucinated id are both dropped; only items marked completed are collected; malformed model output yields nothing; action-item status is validated against the allowed set. |
+| Pagination and sorting | Absent paging uses the defaults; a non-numeric, negative, zero or fractional page is a 400; an oversized limit is capped; an unknown sort field is a 400; sort order defaults to ascending. |
+| CSV export safety | Values leading with `=`, `+`, `-`, `@` or a tab are neutralised so a spreadsheet does not execute them; ordinary values are unchanged. |
+| Chat message rendering | Script tags and image-onerror payloads are escaped rather than rendered; bold, italic, bullets and line breaks still render; ampersands are not double-escaped. |
+| Name correction | A misspelled full name is corrected; an ordinary two-word phrase, short words and stopwords are left alone; an unrelated transcript is returned byte-identical; a large transcript completes within a time bound. |
 
 ## API integration cases
 
@@ -34,7 +42,13 @@ Run each case against an isolated PostgreSQL database with Azure/AI clients stub
 | GTM | Plan CRUD; stage changes/audit log; partners, requirements, campaigns and collateral CRUD; upload/download URL validation. |
 | Meetings and Teams | Sync/list meetings; summary; meeting-record upload, transcript edit/reanalysis, action-item status and deletion; retry job idempotence. |
 | Resume and chat | Generate standard/tailored resumes; invalid job-description uploads; provider fallback/error behaviour; chat auth and malformed prompt handling. |
-| Logs | Pagination, filters, masking of sensitive fields, admin-only access. |
+| Logs | Pagination, filters, masking of sensitive fields, admin-only access; a negative page is a 400 and the limit is capped. |
+| Meeting reports | `/meeting-report` rejects an anonymous caller and a signed-in non-member of the project; a project member and an admin succeed; an unparseable date, an inverted range and missing params are each a 400. |
+| Meeting records | Re-analysis that fails part-way leaves the existing attendees, decisions and action items intact; a create that cannot be persisted leaves no partial record; `createdBy` records the uploader so the uploader can delete their own record; a non-member's delete is refused and the record survives. |
+| Member self-service | A member may edit their own contact details but not `allocationPercentage`, `status`, `designation` or `joiningDate`; an admin may change all of them. |
+| Member accounts | Creating a member with an email returns a single-use reset link rather than a generated password; the old `firstname+xebia` form no longer authenticates; the link works once and is refused on replay; a member without an email gets no account. |
+| Environment-gated endpoints | The mock Teams sync refuses to write demonstration rows when `NODE_ENV=production`. |
+| Error responses | A failed lookup in a production process returns a generic message rather than Prisma internals; CORS does not trust a localhost origin in production. |
 
 ## Frontend workflow cases
 
@@ -42,7 +56,9 @@ Run these in a browser test runner against mocked API responses, then once again
 
 | Screen | Required cases |
 | --- | --- |
-| Login and protected routes | Valid/invalid login, token expiry logout, redirect preservation, role-based navigation. |
+| Login and protected routes | Valid/invalid login, token expiry logout, redirect preservation, role-based navigation; a forced password change redirects and cannot be skipped; `/reset-password` opens without a session. |
+| Sign-out and handover | Signing out discards the cached admin user list, current user and notifications, so the next person to sign in on the same machine sees none of the previous user's data; a corrupted stored session recovers to the login page instead of hanging on the loading spinner. |
+| API error surfaces | A gateway HTML error page is reported as a server-unavailable message rather than a JSON parse error; a JSON error body still shows the server's own message. |
 | Dashboard | Admin and member dashboards, loading/error/empty states, KPI and chart navigation. |
 | Members/profile | Create/edit/delete member, image/CV upload errors, certification/project accordions, responsive layout. |
 | Certification tracker | Filter/search/expand rows; upload with OCR credential; manual credential fallback; verified/unverified tag; duplicate guard; delete file; edit-request submission. |

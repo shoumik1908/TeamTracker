@@ -13,8 +13,18 @@ router.use(requirePermission('manageTeam'));
 
 type ExportFormat = 'json' | 'csv' | 'excel' | 'pdf';
 
+// TT-115: quoting alone stops a value breaking out of its cell, but not Excel and
+// Sheets treating a leading =, +, - or @ as a formula. A member name or project title
+// beginning with one of those is executed on open — the classic route to
+// =HYPERLINK(...) exfiltration or a DDE prompt in a report an admin exports and shares.
+// Prefixing an apostrophe is the standard mitigation: spreadsheets treat the cell as
+// text and do not display the apostrophe.
+function neutralizeFormula(val: string): string {
+  return /^[=+\-@\t\r]/.test(val) ? `'${val}` : val;
+}
+
 function toCSV(headers: string[], rows: string[][]): string {
-  const escape = (val: string) => `"${val.replace(/"/g, '""')}"`;
+  const escape = (val: string) => `"${neutralizeFormula(String(val ?? '')).replace(/"/g, '""')}"`;
   return [headers.map(escape).join(','), ...rows.map(r => r.map(escape).join(','))].join('\n');
 }
 

@@ -1,7 +1,7 @@
 import prisma from '../lib/prisma';
 import { Router, Request, Response } from 'express';
 import { PrismaClient, Prisma } from '@prisma/client';
-import { generateSasUrl, extractBlobName, CONTAINERS, deleteFile } from '../services/blobStorage';
+import { generateSasUrl, extractBlobName, CONTAINERS, deleteFile, getContainerNameFromUrl } from '../services/blobStorage';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
 import { AppError } from '../middleware/errorHandler';
 import { verifyContextMember, scopedMemberId } from '../lib/contextAccess';
@@ -385,22 +385,25 @@ router.delete('/:id', async (req: Request, res: Response) => {
         }
       });
     } 
-    else if (id.startsWith('opp-file-')) {
-      const fileId = id.substring(9);
+    // TT-106: the listing emits project files as `file-<id>` (see the GET above), but
+    // only `opp-file-` was handled here, so every project file fell through to the
+    // "Invalid file ID format" branch below and could never be deleted from this page.
+    // Both prefixes address the same ProjectFile row and need identical handling.
+    else if (id.startsWith('opp-file-') || id.startsWith('file-')) {
+      const isOpportunityFile = id.startsWith('opp-file-');
+      const fileId = id.substring(isOpportunityFile ? 'opp-file-'.length : 'file-'.length);
       const dbFile = await prisma.projectFile.findUnique({ where: { id: fileId } });
       if (!dbFile) return res.status(404).json({ error: 'File not found in database.' });
-      
-      const container = dbFile.url.includes(`/${CONTAINERS.PROJECT_DOCS}/`)
-        ? CONTAINERS.PROJECT_DOCS
-        : CONTAINERS.PRESALES_DOCS;
-        
+
+      // Read the container off the stored URL rather than guessing — same reasoning as
+      // TT-036, and it covers whichever container the file actually landed in.
       const blobName = extractBlobName(dbFile.url);
-      if (blobName) await deleteFile(container, blobName);
-      
+      if (blobName) await deleteFile(getContainerNameFromUrl(dbFile.url), blobName);
+
       await prisma.projectFile.delete({ where: { id: fileId } });
       await prisma.activityLog.create({
         data: {
-          category: 'PreSales',
+          category: isOpportunityFile ? 'PreSales' : 'Projects',
           action: 'DELETE',
           details: `Deleted file "${dbFile.name}" (File ID: ${dbFile.id})`,
         }

@@ -34,7 +34,9 @@ export const errorHandler = (
       LIMIT_FILE_COUNT: 'Too many files in one upload.',
       LIMIT_UNEXPECTED_FILE: `Unexpected upload field "${err.field ?? ''}".`,
     };
-    return res.status(400).json({ error: readable[err.code] ?? err.message });
+    // Same reasoning: fall back to the code, not the raw message, which carries the
+    // query and its arguments.
+    return res.status(400).json({ error: readable[err.code] ?? `Request rejected (${err.code}).` });
   }
 
   // Prisma errors
@@ -45,7 +47,15 @@ export const errorHandler = (
     return res.status(404).json({ error: 'Record not found' });
   }
 
+  // TT-099: this leaked err.message — Prisma messages quote the failing query and its
+  // arguments — unless NODE_ENV was exactly the string "production". An unset NODE_ENV,
+  // or "Production", or a process started without it, served internals to the caller.
+  // Inverting the test makes the safe branch the default: only an explicitly
+  // non-production environment gets the detail, and it is always logged either way.
+  const isDevelopmentLike = ['development', 'test', 'local'].includes(
+    (process.env.NODE_ENV || '').toLowerCase(),
+  );
   return res.status(500).json({
-    error: process.env.NODE_ENV === 'production' ? 'Internal server error' : err.message,
+    error: isDevelopmentLike ? err.message : 'Internal server error',
   });
 };

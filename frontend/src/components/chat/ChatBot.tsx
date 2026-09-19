@@ -18,9 +18,26 @@ const SUGGESTED_QUESTIONS = [
   'Which members have no certifications?',
 ];
 
-function formatMessage(text: string) {
-  // Convert markdown-like formatting to JSX-friendly HTML
+// TT-067: this built HTML out of the message text and handed it to
+// dangerouslySetInnerHTML with no escaping at all. Both roles go through it — the
+// user's own typed message and the assistant's reply — and the assistant has live
+// access to team data, so a member, project or certification named
+// `<img src=x onerror=...>` became script execution in every other user's browser
+// the moment the bot mentioned it. Escaping first, then applying the handful of
+// markdown substitutions, keeps the formatting and closes the hole: any angle
+// bracket in the source text is already an entity by the time the tags go in.
+function escapeHtml(text: string) {
   return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+export function formatMessage(text: string) {
+  // Convert markdown-like formatting to JSX-friendly HTML
+  return escapeHtml(text)
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.*?)\*/g, '<em>$1</em>')
     .replace(/^• /gm, '&bull; ')
