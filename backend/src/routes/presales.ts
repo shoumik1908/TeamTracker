@@ -9,6 +9,7 @@ import { generateProposalSummary, generateSingleSection } from '../services/azur
 import { AppError } from '../middleware/errorHandler';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
 import { verifyContextMember, scopedMemberId } from '../lib/contextAccess';
+import { assertPresalesTrack, assertStageChangeSource } from '../lib/presalesEnums';
 
 const router = Router();
 
@@ -189,7 +190,7 @@ router.patch('/:id/stage', async (req: Request, res: Response) => {
       track: opportunity.account,
       previousStage,
       newStage,
-      source: source || 'manual',
+      source: source ? assertStageChangeSource(source) : 'manual',
       reasoning: reasoning || null,
       blobUrl: blobUrl || null,
     },
@@ -297,7 +298,7 @@ router.patch('/:id/progress', async (req: Request, res: Response) => {
         track: opportunity.account,
         previousStage: opportunity.stages[oldStageIndex],
         newStage: settled.stages[landedStageIndex],
-        source: source || 'ai_suggested',
+        source: source ? assertStageChangeSource(source) : 'ai_suggested',
         reasoning: reasoning ? `${reasoning} (Progress: ${oldPercent}% -> ${clamped}%)` : `Progress: ${oldPercent}% -> ${clamped}%`,
         blobUrl: blobUrl || null,
         originalFilename: originalFilename || null,
@@ -487,7 +488,10 @@ router.delete('/', async (req: Request, res: Response) => {
   };
 
   if (account) {
-    whereClause.account = { equals: account.trim(), mode: 'insensitive' };
+    // Was `{ equals: ..., mode: 'insensitive' }`. Prisma rejects `mode` on an enum field,
+    // so with the column converted this threw at runtime and the endpoint 500'd whenever
+    // an account was supplied. `whereClause` is typed `any`, so nothing caught it.
+    whereClause.account = assertPresalesTrack(account);
   }
 
   await prisma.preSalesOpportunity.deleteMany({
