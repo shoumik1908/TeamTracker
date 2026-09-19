@@ -30,21 +30,40 @@ export default function AddCertificationModal({ memberId, memberName, onClose, o
 
   // TT-123: these four writes are chained with no rollback, and there is no endpoint that
   // performs them as one unit. What could be fixed here is the part that actually harms
-  // the data: a failure part-way used to leave the created catalog entry and assignment
-  // behind, and pressing Save again created *another* catalog certification and another
-  // assignment. Remembering what has already succeeded makes a retry resume rather than
-  // duplicate. The remaining gap — a genuine rollback — needs a transactional endpoint,
-  // which is noted in the PR rather than faked here.
-  const createdCertIdRef = useRef<string | null>(null);
+  // the data: a failure part-way used to leave the created catalog entry behind, and
+  // pressing Save again created *another* catalog certification.
+  //
+  // Remembering the id within one save is not enough on its own — the modal is mounted
+  // only while open, so closing it after a failure threw the id away and a retry
+  // duplicated anyway. The catalog is therefore consulted first: an entry with the same
+  // name and provider is reused rather than recreated, which holds across a reopen. The
+  // remembered id is keyed to the fields it was created from, so correcting a typo in the
+  // name after a failure creates the corrected entry instead of silently keeping the old
+  // one. The assignment step needs neither — POST /assign updates an existing assignment
+  // rather than creating a second one.
+  //
+  // The remaining gap — a genuine rollback — needs a transactional endpoint, which is
+  // noted in the PR rather than faked here.
+  const createdCertRef = useRef<{ key: string; id: string } | null>(null);
   const createdAssignmentIdRef = useRef<string | null>(null);
+
+  const newCertKey = `${newCert.name.trim().toLowerCase()}|${newCert.provider.trim().toLowerCase()}`;
 
   const save = useMutation({
     mutationFn: async () => {
       let certId = certificationId;
       // If the member is logging a brand-new certification, create the catalog entry first
       if (mode === 'new') {
-        if (createdCertIdRef.current) {
-          certId = createdCertIdRef.current;
+        const remembered = createdCertRef.current?.key === newCertKey ? createdCertRef.current.id : null;
+        const alreadyInCatalog = catalog?.data?.find(c =>
+          c.name.trim().toLowerCase() === newCert.name.trim().toLowerCase() &&
+          (c.provider || '').trim().toLowerCase() === newCert.provider.trim().toLowerCase()
+        );
+        if (remembered) {
+          certId = remembered;
+        } else if (alreadyInCatalog) {
+          certId = alreadyInCatalog.id;
+          createdCertRef.current = { key: newCertKey, id: certId };
         } else {
           const created = await certificationsApi.create({
             name: newCert.name.trim(),
@@ -52,7 +71,10 @@ export default function AddCertificationModal({ memberId, memberName, onClose, o
             learningLink: newCert.learningLink.trim() || undefined,
           });
           certId = created.data.id;
-          createdCertIdRef.current = certId;
+          createdCertRef.current = { key: newCertKey, id: certId };
+          // Refresh the catalog now, not just on success: if a later step fails and the
+          // user closes and reopens the modal, the reopened one must see this entry.
+          qc.invalidateQueries({ queryKey: ['certs-catalog'] });
         }
       }
       // Assign, anchoring the required deadline to the completion date, then mark it complete with dates
@@ -84,7 +106,7 @@ export default function AddCertificationModal({ memberId, memberName, onClose, o
     },
     onSuccess: () => {
       // The saved ids belong to that save only; a reopened modal must start clean.
-      createdCertIdRef.current = null;
+      createdCertRef.current = null;
       createdAssignmentIdRef.current = null;
       qc.invalidateQueries({ queryKey: ['member'] });
       qc.invalidateQueries({ queryKey: ['tracker'] });
