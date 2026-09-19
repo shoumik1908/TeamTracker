@@ -64,7 +64,13 @@ export function TaskFormDialog({ initial, members, isAdmin, onClose, onSave }: T
       setStatus("TODO");
       setOnBehalfOfId("");
     }
-  }, [initial, members]);
+  // TT-162: this depended on `members`, an array prop that is a fresh reference on every
+  // parent render, so any unrelated re-render — refetching the member list while the
+  // dialog sits open, tabbing away and back — re-ran the effect and reset the form,
+  // silently discarding whatever had been typed. It seeds the form from the task being
+  // edited, so the task's identity is what it should key on.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initial?.id]);
 
   // Close dropdowns on outside click
   useEffect(() => {

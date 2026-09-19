@@ -527,16 +527,37 @@ export default function MembersPage() {
       <div className="bg-[#1c1926]/80 backdrop-blur-md rounded-xl border border-white/5 table-container overflow-hidden">
         <table className="w-full data-table">
           <thead>
+            {/* TT-147: these were bare <th onClick>, so the table could only be sorted with
+                a mouse and a screen reader was told nothing about the current sort. The
+                button is the focusable control; aria-sort on the cell announces the state. */}
             <tr>
-              <th className="text-left cursor-pointer hover:text-azure-400 select-none" onClick={() => handleSort('name')}>
-                Member {sortBy === 'name' && (sortOrder === 'asc' ? '▲' : '▼')}
+              <th className="text-left" aria-sort={sortBy === 'name' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                <button
+                  type="button"
+                  onClick={() => handleSort('name')}
+                  className="inline-flex items-center gap-1 hover:text-azure-400 select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-azure-500/50 rounded"
+                >
+                  Member {sortBy === 'name' && (sortOrder === 'asc' ? '▲' : '▼')}
+                </button>
               </th>
               <th className="text-left">Designation</th>
-              <th className="text-left cursor-pointer hover:text-azure-400 select-none" onClick={() => handleSort('status')}>
-                Allocation Status {sortBy === 'status' && (sortOrder === 'asc' ? '▲' : '▼')}
+              <th className="text-left" aria-sort={sortBy === 'status' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                <button
+                  type="button"
+                  onClick={() => handleSort('status')}
+                  className="inline-flex items-center gap-1 hover:text-azure-400 select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-azure-500/50 rounded"
+                >
+                  Allocation Status {sortBy === 'status' && (sortOrder === 'asc' ? '▲' : '▼')}
+                </button>
               </th>
-              <th className="text-left cursor-pointer hover:text-azure-400 select-none" onClick={() => handleSort('project')}>
-                Current Project {sortBy === 'project' && (sortOrder === 'asc' ? '▲' : '▼')}
+              <th className="text-left" aria-sort={sortBy === 'project' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                <button
+                  type="button"
+                  onClick={() => handleSort('project')}
+                  className="inline-flex items-center gap-1 hover:text-azure-400 select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-azure-500/50 rounded"
+                >
+                  Current Project {sortBy === 'project' && (sortOrder === 'asc' ? '▲' : '▼')}
+                </button>
               </th>
               <th className="text-left">CV</th>
               <th className="text-left"></th>
@@ -553,9 +574,21 @@ export default function MembersPage() {
             {processedMembers.map(member => (
               <tr key={member.id} className="hover:bg-muted/10 transition-colors">
                 <td>
+                  {/* TT-147: a plain div with onClick — not focusable, not announced as a
+                      control, and unreachable without a mouse. role + tabIndex + key
+                      handling make it operable; the label says where it goes. */}
                   <div
+                    role="link"
+                    tabIndex={0}
+                    aria-label={`Open ${member.name}'s profile`}
                     onClick={() => navigate(`/members/${member.id}`)}
-                    className="flex items-center gap-3 cursor-pointer group/member"
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        navigate(`/members/${member.id}`);
+                      }
+                    }}
+                    className="flex items-center gap-3 cursor-pointer group/member focus:outline-none focus-visible:ring-2 focus-visible:ring-azure-500/50 rounded-lg"
                   >
                     <div className="w-9 h-9 rounded-full bg-azure-50 flex items-center justify-center flex-shrink-0 overflow-hidden border border-azure-200 group-hover/member:border-azure-500/50 transition-colors">
                       {member.profilePictureUrl

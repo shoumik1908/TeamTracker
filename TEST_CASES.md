@@ -62,13 +62,13 @@ Run these in a browser test runner against mocked API responses, then once again
 | Login and protected routes | Valid/invalid login, token expiry logout, redirect preservation, role-based navigation; a forced password change redirects and cannot be skipped; `/reset-password` opens without a session. |
 | Sign-out and handover | Signing out discards the cached admin user list, current user and notifications, so the next person to sign in on the same machine sees none of the previous user's data; a corrupted stored session recovers to the login page instead of hanging on the loading spinner. |
 | API error surfaces | A gateway HTML error page is reported as a server-unavailable message rather than a JSON parse error; a JSON error body still shows the server's own message. |
-| Dashboard | Admin and member dashboards, loading/error/empty states, KPI and chart navigation. |
+| Dashboard | Admin and member dashboards, loading/error/empty states, KPI and chart navigation; "Tasks due this week" counts every open task actually due in the next seven days and reports a real overdue figure; a render error shows a recovery message, never a stack trace. |
 | Members/profile | Create/edit/delete member, image/CV upload errors, certification/project accordions, responsive layout; saved skills replace the CV-extracted list immediately; cancelling the CV file picker leaves no stuck spinner. |
-| Certification tracker | Filter/search/expand rows; upload with OCR credential; manual credential fallback; verified/unverified tag; duplicate guard; delete file; edit-request submission; a certification with no expiry date can still be uploaded. |
+| Certification tracker | Filter/search/expand rows; upload with OCR credential; manual credential fallback; verified/unverified tag; duplicate guard; delete file; edit-request submission; a certification with no expiry date can still be uploaded; typing in search issues one query, not one per keystroke. |
 | Notifications | Unread/read state, delete action, admin View edit request, Accept applies changes, Reject discards changes, buttons disappear after review. |
 | Projects, updates, files | CRUD dialogs, validation, upload/download links, optimistic/query refresh behaviour; files, links and notes are attributed to the signed-in user, and their author can delete their own note. |
 | Tasks | Create/edit/delete, assignment, feedback attachment, status and permission state. |
-| Pre-sales and GTM | Stage timeline, progress updates, collaborators, generated docs, partner/campaign/collateral workflows. |
+| Pre-sales and GTM | Stage timeline, progress updates, collaborators, generated docs, partner/campaign/collateral workflows; a proposal section that already has AI-generated text can be edited in place; a progress update only reports success once the write lands. |
 | Reports, logs, deadlines | Filters, exports, empty/error states, date-boundary display; the log feed recovers after a transient failure, search is debounced, and infinite scroll does not duplicate a page; meeting report windows use local calendar dates, not UTC. |
 | CV generation and meetings | Upload, AI loading/failure states, generated document download, transcript/action-item edits. |
 
@@ -78,4 +78,5 @@ Run these in a browser test runner against mocked API responses, then once again
 - Verify all roles cannot access another member's records or admin-only endpoints.
 - Test network timeout, Azure Blob outage, PostgreSQL outage, OCR/AI provider outage, and retry/idempotency paths.
 - Test Chrome, Safari, and Firefox at desktop and mobile widths; keyboard-only navigation; focus order; labels; contrast; screen-reader names.
+- Keyboard-only checks with coverage today: the members table sorts via its column headers and announces the sort through `aria-sort`; a member row opens with Enter; CoE dialogs expose `role="dialog"`, take focus on open, close on Escape and return focus to the control that opened them.
 - Run production builds, `backend npm test`, migration deploy against staging, smoke test `/health`, and upload/report/download flows before release.

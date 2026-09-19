@@ -10,18 +10,40 @@ import { TaskFormDialog } from './tasks/TaskFormDialog';
 import { useAssignableMembers, useUpdateTask } from '../api/tasksQueries';
 import { toast } from 'sonner';
 import { TaskRow } from '../types/tasks';
+import { AlertTriangle } from 'lucide-react';
 import { errorMessage } from '@/lib/errors';
 
 class ErrorBoundary extends React.Component<any, { hasError: boolean, error: any }> {
   constructor(props: any) { super(props); this.state = { hasError: false, error: null }; }
   static getDerivedStateFromError(error: any) { return { hasError: true, error }; }
+  componentDidCatch(error: any, info: any) { console.error('[Dashboard] render error:', error, info); }
   render() {
     if (this.state.hasError) {
-      return <div style={{ color: 'red', padding: '2rem', background: 'black', position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999 }}>
-        <h1>Dashboard Crash!</h1>
-        <pre>{this.state.error?.toString()}</pre>
-        <pre>{this.state.error?.stack}</pre>
-      </div>;
+      // TT-158: this rendered the raw error and its full stack to whoever hit it —
+      // internal frames, bundle paths, and whatever values the message happened to
+      // carry — as a black "Dashboard Crash!" panel over the whole page. The detail
+      // belongs in the console, where a developer can reach it; the person using the
+      // app needs to know it broke and how to get out.
+      return (
+        <div className="min-h-[60vh] flex items-center justify-center p-8">
+          <div className="max-w-md w-full text-center space-y-4">
+            <div className="mx-auto w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center">
+              <AlertTriangle className="w-6 h-6 text-amber-400" />
+            </div>
+            <h2 className="text-lg font-semibold text-foreground">This dashboard could not be displayed</h2>
+            <p className="text-sm text-white/60">
+              Something went wrong while rendering your dashboard. Reloading usually clears it.
+              If it keeps happening, let an administrator know.
+            </p>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 text-sm font-medium bg-azure-500 text-white rounded-lg hover:bg-azure-600"
+            >
+              Reload
+            </button>
+          </div>
+        </div>
+      );
     }
     return this.props.children;
   }
@@ -98,6 +120,26 @@ function TeamMemberDashboardContent() {
   const activeProjectsCount = member?.activeProjectsCount || 0;
   const completedProjectsCount = member?.projectMembers?.filter((pm: any) => pm.project?.status === 'COMPLETED' || pm.opportunity?.status === 'COMPLETED').length || 0;
   const activeCertsCount = (member?.stats?.completedCertifications || 0) + (member?.stats?.inProgressCertifications || 0);
+
+  // TT-157: this KPI read `tasks`, which is the display list — sliced to five and never
+  // filtered by date. A member with twenty open tasks saw "5", and the number had nothing
+  // to do with the current week. "0 overdue" was hardcoded. Both are computed here from
+  // the full set, before any slicing.
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  const endOfWeek = new Date(startOfToday);
+  endOfWeek.setDate(endOfWeek.getDate() + 7);
+
+  const openTasks = (tasksRes || []).filter((t: any) => t.status !== 'DONE');
+  const dueThisWeekCount = openTasks.filter((t: any) => {
+    if (!t.dueDate) return false;
+    const due = new Date(t.dueDate);
+    return due >= startOfToday && due < endOfWeek;
+  }).length;
+  const overdueCount = openTasks.filter((t: any) => {
+    if (!t.dueDate) return false;
+    return new Date(t.dueDate) < startOfToday;
+  }).length;
 
   // Parse Action Items (Tasks)
   const tasks = [...(tasksRes || [])]
@@ -226,8 +268,8 @@ function TeamMemberDashboardContent() {
           </Link>
           <Link to="/tasks" className="kpi">
             <div className="label">Tasks due this week</div>
-            <div className="value">{tasks.filter((t: any) => t.status === 'open').length}</div>
-            <div className="sub mono">0 overdue</div>
+            <div className="value">{dueThisWeekCount}</div>
+            <div className="sub mono">{overdueCount} overdue</div>
           </Link>
         </div>
 

@@ -104,6 +104,10 @@ export default function AiGeneratedMinutesBox({
   const [showDecisionsMoM, setShowDecisionsMoM] = useState(false);
   const [showActionItemsMoM, setShowActionItemsMoM] = useState(true); // Action Items expanded by default
   const [showRisksMoM, setShowRisksMoM] = useState(false);
+  // TT-164: Progress Updates reused showRisksMoM ("sharing toggle for now"), so opening
+  // or closing either section toggled the other and Expand All could not address them
+  // independently — the two behaved as one accordion.
+  const [showProgressMoM, setShowProgressMoM] = useState(false);
 
   // Individual item detail toggles
   const [expandedDecisions, setExpandedDecisions] = useState<Record<number, boolean>>({});
@@ -140,7 +144,7 @@ export default function AiGeneratedMinutesBox({
 
   // Check if everything is currently expanded
   const allExpandedLegacy = showSummary && showAttendees && showAgenda && showDecisions && showActionItems && showBlockers && showQuestions;
-  const allExpandedMoM = showSummaryMoM && showDecisionsMoM && showActionItemsMoM && showRisksMoM;
+  const allExpandedMoM = showSummaryMoM && showDecisionsMoM && showActionItemsMoM && showRisksMoM && showProgressMoM;
   const allExpanded = isMoM ? allExpandedMoM : allExpandedLegacy;
 
   const handleExpandCollapseAll = (e: React.MouseEvent) => {
@@ -152,6 +156,7 @@ export default function AiGeneratedMinutesBox({
       setShowDecisionsMoM(target);
       setShowActionItemsMoM(target);
       setShowRisksMoM(target);
+      setShowProgressMoM(target);
     } else {
       const target = !allExpandedLegacy;
       setShowSummary(target);
@@ -541,8 +546,8 @@ export default function AiGeneratedMinutesBox({
             {/* ────────── PROGRESS UPDATES ────────── */}
             {aiMinutes.progress_updates && aiMinutes.progress_updates.length > 0 && (
               <details 
-                open={showRisksMoM} // sharing toggle for now
-                onToggle={(e) => setShowRisksMoM(e.currentTarget.open)} 
+                open={showProgressMoM}
+                onToggle={(e) => setShowProgressMoM(e.currentTarget.open)} 
                 className="group/mom-prog border-b border-border/30 pb-4 [&_summary::-webkit-details-marker]:hidden"
               >
                 <summary className="cursor-pointer list-none flex items-center justify-between hover:text-foreground/90 transition-colors">

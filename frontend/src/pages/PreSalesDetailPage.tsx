@@ -523,7 +523,11 @@ export default function PreSalesDetailPage() {
       const q = assignSearchQuery.toLowerCase();
       filtered = filtered.filter((m: any) => m.name.toLowerCase().includes(q));
     }
-    return filtered.sort((a: any, b: any) => {
+    // TT-149/TT-153: when the search box is empty, `filtered` IS the array React Query
+    // handed back, and .sort() sorts in place — so this reordered the shared ['members']
+    // cache as a side effect of rendering. Any other consumer of that query silently got
+    // reordered data with no re-render to tell it. Copying first keeps the sort local.
+    return [...filtered].sort((a: any, b: any) => {
       const aAssigned = assignedMembers.some((am: any) => am.member.id === a.id);
       const bAssigned = assignedMembers.some((am: any) => am.member.id === b.id);
       if (aAssigned && !bAssigned) return 1;
@@ -762,18 +766,26 @@ export default function PreSalesDetailPage() {
                         <div className="mt-2">
                           {formatContent(content)}
                         </div>
-                        {isBlank && (
-                          <div className="flex items-center gap-3 mt-4 pt-4 border-t border-zinc-800/50">
-                            <button
-                              onClick={() => {
-                                setEditingSectionKey(key);
-                                setEditingSectionValue(content && content !== 'Not specified in provided documents.' ? content : '');
-                              }}
-                              className="flex items-center gap-1.5 text-xs font-semibold bg-zinc-800 hover:bg-zinc-700 text-foreground px-3 py-1.5 rounded-lg transition-colors"
-                            >
-                              <Edit3 className="w-3.5 h-3.5" />
-                              Edit Manually
-                            </button>
+                        {/* TT-150: this whole block was gated on isBlank, so "Edit Manually"
+                            only appeared for a section the AI had left empty. Once a section
+                            had text — Scope of Work, Commercials — there was no way to
+                            correct a wrong figure in place; the only route was the
+                            destructive full "Re-generate Proposal Summary". Editing is
+                            always available now. The PDF-fill action stays blank-only: it
+                            is for filling a gap, and offering it over existing text invites
+                            overwriting work someone has just done. */}
+                        <div className="flex items-center gap-3 mt-4 pt-4 border-t border-zinc-800/50">
+                          <button
+                            onClick={() => {
+                              setEditingSectionKey(key);
+                              setEditingSectionValue(content && content !== 'Not specified in provided documents.' ? content : '');
+                            }}
+                            className="flex items-center gap-1.5 text-xs font-semibold bg-zinc-800 hover:bg-zinc-700 text-foreground px-3 py-1.5 rounded-lg transition-colors"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                            Edit Manually
+                          </button>
+                          {isBlank && (
                             <button
                               onClick={() => {
                                 setUploadSectionKey(key);
@@ -784,8 +796,8 @@ export default function PreSalesDetailPage() {
                               <FilePlus2 className="w-3.5 h-3.5" />
                               Upload PDF to Fill This In
                             </button>
-                          </div>
-                        )}
+                          )}
+                        </div>
                       </>
                     )}
                   </div>
