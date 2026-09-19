@@ -37,6 +37,34 @@ npx prisma migrate resolve --applied 0_init
 If step 1 prints any SQL, the live database has drifted from `schema.prisma`. Review
 that SQL and apply it (or fold it into a follow-up migration) before running step 2.
 
+## If a migration fails part-way (enum conversions especially)
+
+`20260920120000_promote_status_columns_to_enums` converts seven free-text columns to
+real enums with a `USING` cast. The cast fails if any existing row holds a value outside
+its enum, naming the column and the offending value:
+
+```
+ERROR: invalid input value for enum "PresalesTrack": "Contoso Account"
+```
+
+The failure is safe — Postgres runs the migration in a transaction, so nothing is
+converted and no data is touched. But Prisma records the attempt and **refuses every
+later migration until you clear it**:
+
+```bash
+# 1. Find the offending rows (read-only). Repeat per column as the error names them.
+psql "$DATABASE_URL" -c \
+  "SELECT DISTINCT account FROM presales_opportunities WHERE account NOT IN ('PNB','TNM');"
+
+# 2. Correct or remove those rows.
+
+# 3. Clear the failed attempt, then deploy again.
+npx prisma migrate resolve --rolled-back 20260920120000_promote_status_columns_to_enums
+npx prisma migrate deploy
+```
+
+Check for off-enum values *before* deploying rather than discovering this during one.
+
 ## Going forward
 
 Create migrations with `npx prisma migrate dev --name <change>` and commit them.
