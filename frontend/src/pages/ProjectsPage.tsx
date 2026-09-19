@@ -515,6 +515,7 @@ function ManageTeamModal({ project, onClose }: { project: Project; onClose: () =
       setSelectedMemberId('');
       setRole('DEVELOPER');
     },
+    onError: (err) => notifyError(err, 'Could not add the member to this project.'),
   });
 
   const removeMember = useMutation({
@@ -523,6 +524,7 @@ function ManageTeamModal({ project, onClose }: { project: Project; onClose: () =
       qc.invalidateQueries({ queryKey: ['projects'] });
       qc.invalidateQueries({ queryKey: ['project-detail', project.id] });
     },
+    onError: (err) => notifyError(err, 'Could not remove the member from this project.'),
   });
 
   const currentMemberIds = projectDetail.members?.map(pm => pm.memberId) || [];
@@ -700,6 +702,7 @@ function ProjectMeetingsModal({ project, onClose }: { project: Project; onClose:
   const generateSummary = useMutation({
     mutationFn: (meetingId: string) => api.post(`/meetings/${meetingId}/summary`).then(r => r.data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['project-meetings', project.id] }),
+    onError: (err) => notifyError(err, 'Could not generate the summary.'),
   });
 
   return (
