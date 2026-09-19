@@ -1,5 +1,14 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { toLocalDateString } from './MeetingReportView';
+
+// The suite runs under TZ=UTC (package.json), where local midnight and UTC midnight are
+// the same instant — so the bug these tests exist for is unreachable and the previous
+// implementation passed them unchanged. Only zones east of Greenwich expose it, so pin
+// one for this file. Node re-reads process.env.TZ, and it is restored afterwards so the
+// other suites (DashboardGreeting's, which genuinely need UTC) are unaffected.
+const originalTZ = process.env.TZ;
+beforeAll(() => { process.env.TZ = 'Asia/Kolkata'; });
+afterAll(() => { process.env.TZ = originalTZ; });
 
 // TT-126: getRange builds its boundaries at *local* midnight, and the report then sent
 // them through toISOString().split('T')[0]. East of Greenwich — IST, which this component
