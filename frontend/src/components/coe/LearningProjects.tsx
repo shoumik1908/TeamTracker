@@ -4,14 +4,19 @@ import { Download, FileText, Github, Link, Loader2, Plus, Trash2, Upload, Users,
 import { coeApi, membersApi } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
+import { useDialogA11y } from '@/lib/useDialogA11y';
 
 type Member = { id: string; name: string; designation?: string | null };
 type Milestone = { id: string; title: string; description?: string | null; completed: boolean; updates: Array<{ id: string; body: string }> };
 type Asset = { id: string; kind: 'LINK' | 'FILE'; label: string; url?: string | null; fileName?: string | null };
 type LearningProject = { id: string; title: string; description?: string | null; createdById: string; members: Array<{ memberId: string; member: Member }>; milestones: Milestone[]; assets: Asset[] };
 
+// TT-139: the CoE work gave CoePage's Modal dialog semantics, but the learning-project
+// dialogs go through this second Modal and were left as a plain div — no dialog role, no
+// Escape, no focus handling. Both now share the one hook so they cannot drift again.
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
-  return <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/45 p-4"><div className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-2xl border border-border bg-card shadow-2xl"><div className="flex items-center justify-between border-b border-border px-5 py-4"><h2 className="font-semibold text-foreground">{title}</h2><button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X className="h-5 w-5" /></button></div>{children}</div></div>;
+  const { titleId, panelRef } = useDialogA11y(onClose);
+  return <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/45 p-4"><div ref={panelRef} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1} className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-2xl border border-border bg-card shadow-2xl focus:outline-none"><div className="flex items-center justify-between border-b border-border px-5 py-4"><h2 id={titleId} className="font-semibold text-foreground">{title}</h2><button onClick={onClose} aria-label="Close" className="text-muted-foreground hover:text-foreground"><X className="h-5 w-5" /></button></div>{children}</div></div>;
 }
 
 export default function LearningProjects() {
