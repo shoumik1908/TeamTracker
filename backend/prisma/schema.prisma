@@ -55,6 +55,24 @@ enum StageChangeSource {
   ai_suggested
 }
 
+// The stored values are hyphenated, so the enum members are mapped rather than renaming
+// data that other tooling may already read.
+enum EnrollmentType {
+  assigned
+  self_enrolled  @map("self-enrolled")
+  auto_assigned  @map("auto-assigned")
+}
+
+enum RecordingType {
+  file
+  link
+}
+
+enum TranscriptSource {
+  pasted
+  uploaded_file
+}
+
 model TeamMember {
   id                   String   @id @default(cuid())
   name                 String
@@ -106,6 +124,8 @@ model TeamMember {
   coeSessionAttendance CoeSessionAttendance[]
   learningProjectMemberships LearningProjectMember[]
   @@index([managerId])
+  uploadedProjectFiles ProjectFile[] @relation("ProjectFileUploader")
+  addedProjectLinks    ProjectLink[] @relation("ProjectLinkAuthor")
 
   @@map("team_members")
 }
@@ -121,6 +141,13 @@ model Certification {
   updatedAt    DateTime @updatedAt
 
   assignedCertifications AssignedCertification[]
+  // TT-093: the code treats a certification's name as identifying it — the seed looks it
+  // up by name, and the GTM partner audit counts holders by matching
+  // `certification.name`. Nothing stopped two rows with the same name and provider, and
+  // production had eight rows where there should have been two: five people were counted
+  // against five *different* catalog entries for the same certification, so the audit
+  // undercounted and any name lookup bound to an arbitrary one.
+  @@unique([name, provider])
 
   @@map("certifications")
 }
@@ -197,7 +224,7 @@ model ProjectMember {
   opportunityId String?
   memberId      String
   role          String?
-  enrollmentType String?  @default("assigned") // 'assigned', 'self-enrolled', 'auto-assigned'
+  enrollmentType EnrollmentType? @default(assigned)
   joinedAt      DateTime @default(now())
 
   project     Project?             @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -377,11 +404,11 @@ model MeetingRecord {
   opportunityId    String?
   meetingTitle     String
   meetingDate      DateTime?
-  recordingType    String? // 'file' | 'link'
+  recordingType    RecordingType?
   recordingUrl     String?
   transcriptUrl    String?
   transcriptText   String?   @db.Text
-  transcriptSource String? // 'pasted' | 'uploaded_file'
+  transcriptSource TranscriptSource?
   aiMinutes        Json?
   createdBy        String?
   createdAt        DateTime  @default(now())
@@ -718,13 +745,20 @@ model ProjectFile {
   url           String
   type          String
   size          Int
-  uploadedBy    String
+  // TT-092: this held a team-member id as a bare string with no foreign key, so deleting
+  // a member left a dangling reference the UI silently rendered as nobody. It is a real
+  // relation now, and nullable: SetNull keeps the record when the member goes rather than
+  // blocking the deletion or taking the file with it. Null also carries meaning — see the
+  // system-generated case in routes/presales.ts.
+  uploadedBy    String?
   uploadedAt    DateTime @default(now())
 
   project     Project?             @relation(fields: [projectId], references: [id], onDelete: Cascade)
   opportunity PreSalesOpportunity? @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  uploader    TeamMember?          @relation("ProjectFileUploader", fields: [uploadedBy], references: [id], onDelete: SetNull)
   @@index([opportunityId])
   @@index([projectId])
+  @@index([uploadedBy])
 
   @@map("project_files")
 }
@@ -736,13 +770,16 @@ model ProjectLink {
   title         String
   url           String
   description   String?
-  addedBy       String
+  // Same as ProjectFile.uploadedBy above (TT-092).
+  addedBy       String?
   addedAt       DateTime @default(now())
 
   project     Project?             @relation(fields: [projectId], references: [id], onDelete: Cascade)
   opportunity PreSalesOpportunity? @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  author      TeamMember?          @relation("ProjectLinkAuthor", fields: [addedBy], references: [id], onDelete: SetNull)
   @@index([opportunityId])
   @@index([projectId])
+  @@index([addedBy])
 
   @@map("project_links")
 }
@@ -753,13 +790,16 @@ model ProjectNote {
   opportunityId String?
   title         String
   content       String   @db.Text
-  updatedBy     String
+  // Same as ProjectFile.uploadedBy above (TT-092). Note that an admin without a team
+  // member record writes their user id here, so this does not always resolve.
+  updatedBy     String?
   updatedAt     DateTime @updatedAt
 
   project     Project?             @relation(fields: [projectId], references: [id], onDelete: Cascade)
   opportunity PreSalesOpportunity? @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
   @@index([opportunityId])
   @@index([projectId])
+  @@index([updatedBy])
 
   @@map("project_notes")
 }
@@ -786,8 +826,19 @@ model ActivityLog {
   category    String // e.g., 'Certificate', 'CV', 'GTM', 'Project'
   action      String // e.g., 'UPLOAD', 'DELETE', 'UPDATE', 'CREATE'
   details     String   @db.Text
-  performedBy String   @default("System")
+  // TT-092: performedBy holds the actor's display *name*, so renaming someone leaves
+  // stale names scattered through the audit trail and "everything X did" cannot be
+  // answered reliably — two people sharing a name are indistinguishable.
+  //
+  // The name stays: an audit entry should record what was true at the time, and it must
+  // survive the actor's account being deleted. What is added is a reference alongside it,
+  // nullable because system-performed actions have no user and because SetNull keeps the
+  // log intact when an account goes.
+  performedBy   String  @default("System")
+  performedById String?
+  performedByUser User? @relation(fields: [performedById], references: [id], onDelete: SetNull)
   createdAt   DateTime @default(now())
+  @@index([performedById])
 
   @@map("activity_logs")
 }
@@ -824,6 +875,7 @@ model User {
   coeKnowledgeSessions CoeKnowledgeSession[] @relation("CoeSessionOrganizer")
   coeSessionMeetingNotes CoeSessionMeetingNote[]
   notificationReads      NotificationRead[]
+  activityLogs           ActivityLog[]
   learningProjects LearningProject[] @relation("LearningProjectCreator")
   learningProjectUpdates LearningProjectMilestoneUpdate[] @relation("LearningProjectUpdateCreator")
   learningProjectAssets LearningProjectAsset[] @relation("LearningProjectAssetUploader")
