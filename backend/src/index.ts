@@ -3,6 +3,7 @@ import 'express-async-errors';
 import express from 'express';
 import http from 'http';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import morgan from 'morgan';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
@@ -66,10 +67,14 @@ const allowedOrigins = isProduction
   ? [FRONTEND_URL]
   : [FRONTEND_URL, 'http://localhost:5173', 'http://localhost:5174'];
 
+// TT-069: the session cookie only travels if the browser is told to send credentials,
+// and the server must say it accepts them.
+app.use(cookieParser());
 app.use(cors({
   origin: allowedOrigins,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
   // Content-Disposition is not a CORS-safelisted response header, so without this the
   // browser hides it from JavaScript on a cross-origin call — which is every call in the
   // deployed setup, with the frontend on Vercel and the API on Render. The download

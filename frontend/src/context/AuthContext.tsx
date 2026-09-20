@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { queryClient } from '../lib/queryClient';
-import { SESSION_EXPIRED_EVENT, type SessionExpiredDetail } from '../lib/api';
+import { SESSION_EXPIRED_EVENT, authApi, getSessionToken, setSessionToken, type SessionExpiredDetail } from '../lib/api';
 
 const INACTIVITY_TIMEOUT_MS = 12 * 60 * 1000;
 const LAST_ACTIVITY_KEY = 'sessionLastActivity';
@@ -47,34 +47,61 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const inactivityTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    // Load from localStorage on mount
-    const storedToken = localStorage.getItem('token');
-    const storedUser = localStorage.getItem('user');
+    // TT-069: the session used to be restored from localStorage, which is exactly where
+    // it should not have been — any script on the page could read the token. The durable
+    // session is now an httpOnly cookie the browser sends on its own and JavaScript
+    // cannot read, so the way to find out who is signed in is to ask the server.
+    //
+    // The cached user is still read first, purely so the shell can render without a
+    // flash while /auth/me is in flight. It is not a credential: nothing is authorised
+    // on the strength of it, and the server's answer replaces it either way.
+    let cancelled = false;
 
-    // TT-135: this was a bare JSON.parse. A truncated or tampered 'user' entry threw
-    // before setIsLoading(false) ever ran, so the app sat on the ProtectedRoute spinner
-    // forever with no in-app way out — the user had to clear site data by hand. A
-    // corrupt entry is now treated as no session at all, which lands them on /login.
-    if (storedToken && storedUser) {
+    const cachedUser = localStorage.getItem('user');
+    if (cachedUser) {
       try {
-        setUser(JSON.parse(storedUser));
-        setToken(storedToken);
-        if (!localStorage.getItem(LAST_ACTIVITY_KEY)) {
-          localStorage.setItem(LAST_ACTIVITY_KEY, String(Date.now()));
-        }
+        setUser(JSON.parse(cachedUser));
       } catch {
-        localStorage.removeItem('token');
+        // TT-135: a truncated entry must not stop the bootstrap; treat it as absent.
         localStorage.removeItem('user');
-        localStorage.removeItem(LAST_ACTIVITY_KEY);
       }
     }
-    setIsLoading(false);
+
+    authApi.getMe()
+      .then(res => {
+        if (cancelled) return;
+        const me = (res.data as any)?.user;
+        if (me) {
+          setUser(me);
+          localStorage.setItem('user', JSON.stringify(me));
+          if (!localStorage.getItem(LAST_ACTIVITY_KEY)) {
+            localStorage.setItem(LAST_ACTIVITY_KEY, String(Date.now()));
+          }
+        } else {
+          setUser(null);
+          localStorage.removeItem('user');
+        }
+      })
+      .catch(() => {
+        // No cookie, or it is no longer valid: there is no session to restore.
+        if (cancelled) return;
+        setUser(null);
+        localStorage.removeItem('user');
+        localStorage.removeItem(LAST_ACTIVITY_KEY);
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+
+    return () => { cancelled = true; };
   }, []);
 
   const login = (newToken: string, newUser: User) => {
     setToken(newToken);
     setUser(newUser);
-    localStorage.setItem('token', newToken);
+    // TT-069: the token is held in memory only; the cookie the server just set is what
+    // survives a reload. The user object is a render cache, not a credential.
+    setSessionToken(newToken);
     localStorage.setItem('user', JSON.stringify(newUser));
     localStorage.setItem(LAST_ACTIVITY_KEY, String(Date.now()));
   };
@@ -82,9 +109,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = () => {
     setToken(null);
     setUser(null);
-    localStorage.removeItem('token');
+    setSessionToken(null);
     localStorage.removeItem('user');
     localStorage.removeItem(LAST_ACTIVITY_KEY);
+    // The cookie is httpOnly, so only the server can clear it.
+    authApi.logout().catch(() => { /* signing out locally must succeed regardless */ });
     // TT-068: the QueryClient outlives the session, so signing out left every cached
     // response in place — ['admin-users'], ['tasks'], ['current-user'], notifications.
     // On a shared machine the next person to sign in rendered the previous user's data
@@ -123,8 +152,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const rejected = (event as CustomEvent<SessionExpiredDetail>).detail?.token;
       // Ignore duplicates, and ignore a late failure belonging to a session the
       // user has already replaced by signing back in.
-      if (rejected && rejected !== localStorage.getItem('token')) return;
-      if (!localStorage.getItem('token')) return;
+      // Ignore a late failure belonging to a session already replaced by signing back in.
+      if (rejected && rejected !== getSessionToken()) return;
       logout();
       toast.error('Your session has expired. Please sign in again.');
     };
@@ -165,7 +194,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (event.key === LAST_ACTIVITY_KEY && event.newValue) {
         scheduleSignOut(Number(event.newValue));
       }
-      if (event.key === 'token' && !event.newValue) logout();
+      // TT-069: 'token' is no longer written, so cross-tab sign-out keys off the cached
+      // user being cleared instead.
+      if (event.key === 'user' && !event.newValue) logout();
     };
 
     const events: (keyof WindowEventMap)[] = ['pointerdown', 'keydown', 'scroll', 'touchstart'];

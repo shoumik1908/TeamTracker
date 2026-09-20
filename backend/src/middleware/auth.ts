@@ -5,6 +5,7 @@ import { PrismaClient } from '@prisma/client';
 import { AppError } from './errorHandler';
 import { requestContext } from '../lib/context';
 import { JWT_SECRET } from '../lib/jwtSecret';
+import { AUTH_COOKIE_NAME } from '../lib/authCookie';
 
 export interface AuthRequest extends Request {
   user?: {
@@ -19,8 +20,14 @@ export interface AuthRequest extends Request {
 }
 
 export const authenticateToken = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  // TT-069: the session now travels in an httpOnly cookie, which no script on the page
+  // can read. The Authorization header is still accepted — a client mid-deploy, and any
+  // non-browser caller, keeps working — but the cookie is preferred when both are
+  // present, because it is the one the browser sends automatically.
   const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
+  const headerToken = authHeader && authHeader.split(' ')[1];
+  const cookieToken = (req as any).cookies?.[AUTH_COOKIE_NAME];
+  const token = cookieToken || headerToken;
 
   if (!token) {
     return next(new AppError('No auth token provided', 401));
