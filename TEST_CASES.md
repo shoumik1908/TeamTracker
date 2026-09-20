@@ -66,6 +66,7 @@ Run these in a browser test runner against mocked API responses, then once again
 
 | Screen | Required cases |
 | --- | --- |
+| Session handling | Signing in sets an httpOnly session cookie and leaves no token in localStorage; page scripts cannot read the cookie; a reload keeps the session by asking the server; an authorised page loads with the cookie alone; signing out clears it server-side; the Authorization header still authorises for non-browser callers. |
 | Login and protected routes | Valid/invalid login, token expiry logout, redirect preservation, role-based navigation; a forced password change redirects and cannot be skipped; `/reset-password` opens without a session. |
 | Sign-out and handover | Signing out discards the cached admin user list, current user and notifications, so the next person to sign in on the same machine sees none of the previous user's data; a corrupted stored session recovers to the login page instead of hanging on the loading spinner. |
 | API error surfaces | A gateway HTML error page is reported as a server-unavailable message rather than a JSON parse error; a JSON error body still shows the server's own message. |

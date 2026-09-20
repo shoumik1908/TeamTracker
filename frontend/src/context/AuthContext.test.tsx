@@ -1,7 +1,11 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AuthProvider, type User, useAuth } from './AuthContext';
-import { SESSION_EXPIRED_EVENT } from '../lib/api';
+import { SESSION_EXPIRED_EVENT, getSessionToken } from '../lib/api';
+
+// TT-069: the token moved out of localStorage into memory, with an httpOnly cookie
+// carrying the session across reloads. These assertions are the same; they just read
+// the session from where it now lives.
 
 const user: User = {
   id: 'user-1',
@@ -46,7 +50,7 @@ describe('AuthProvider inactivity timeout', () => {
     act(() => vi.advanceTimersByTime(12 * 60 * 1000));
 
     expect(screen.getByText('signed-out')).toBeInTheDocument();
-    expect(localStorage.getItem('token')).toBeNull();
+    expect(getSessionToken()).toBeNull();
   });
 
   it('resets the 12-minute timeout when the user interacts with the app', () => {
@@ -82,7 +86,7 @@ describe('AuthProvider session-expiry handling', () => {
     });
 
     expect(screen.getByText('signed-out')).toBeInTheDocument();
-    expect(localStorage.getItem('token')).toBeNull();
+    expect(getSessionToken()).toBeNull();
     expect(localStorage.getItem('user')).toBeNull();
   });
 
@@ -95,7 +99,7 @@ describe('AuthProvider session-expiry handling', () => {
     });
 
     expect(screen.getByText('signed-in')).toBeInTheDocument();
-    expect(localStorage.getItem('token')).toBe('test-token');
+    expect(getSessionToken()).toBe('test-token');
   });
 
   it('ignores the event when nobody is signed in', () => {

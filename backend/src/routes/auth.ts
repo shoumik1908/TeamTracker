@@ -4,6 +4,7 @@ import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { AppError } from '../middleware/errorHandler';
+import { setAuthCookie, clearAuthCookie } from '../lib/authCookie';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
 import { JWT_SECRET } from '../lib/jwtSecret';
 import { readUserIdFromToken, verifyResetToken } from '../services/passwordResetToken';
@@ -128,6 +129,10 @@ router.post('/register', async (req: Request, res: Response, next: NextFunction)
       },
     });
 
+    // TT-069: also set as an httpOnly cookie, which no script on the page can read. The
+    // body still carries the token so nothing breaks for a client mid-deploy.
+    setAuthCookie(res, token);
+
     res.status(201).json({
       token,
       user: {
@@ -175,6 +180,7 @@ router.post('/login', async (req: Request, res: Response, next: NextFunction) =>
     }
 
     const token = generateToken(user, user.role);
+    setAuthCookie(res, token);
 
     res.json({
       token,
@@ -220,6 +226,7 @@ router.post('/change-password', authenticateToken, async (req: AuthRequest, res:
 
     // Re-issue token so mustChangePassword is false
     const token = generateToken(updatedUser, updatedUser.role);
+    setAuthCookie(res, token);
 
     res.json({ message: 'Password updated successfully', token, user: { ...updatedUser, passwordHash: undefined } });
   } catch (error) {
@@ -265,6 +272,16 @@ router.post('/reset-password', async (req: Request, res: Response, next: NextFun
 });
 
 // GET /api/auth/me
+// POST /api/auth/logout
+// TT-069: an httpOnly cookie is precisely what the page cannot clear for itself, so
+// signing out needs a round trip. Deliberately unauthenticated: clearing a session must
+// work even when the token it carries has already expired or been revoked, which is
+// exactly when someone is most likely to be pressing sign out.
+router.post('/logout', (_req: Request, res: Response) => {
+  clearAuthCookie(res);
+  res.json({ message: 'Signed out' });
+});
+
 router.get('/me', authenticateToken, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const user = await prisma.user.findUnique({
