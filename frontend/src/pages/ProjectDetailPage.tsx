@@ -18,6 +18,7 @@ import { cn } from '@/lib/utils';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { errorMessage, notifyError } from '../lib/errors';
 import api from '@/lib/api';
+import { sortMembersForAssignment } from '@/lib/memberAssignmentSort';
 
 // Helper to format byte sizes
 function formatBytes(bytes: number, decimals = 2) {
@@ -487,40 +488,10 @@ export default function ProjectDetailPage() {
     setSelectedMembersToAssign(next);
   };
 
-  const sortedMembers = useMemo(() => {
-    let filtered = allMembers;
-    if (assignSearchQuery) {
-      const q = assignSearchQuery.toLowerCase();
-      filtered = filtered.filter((m: any) => m.name.toLowerCase().includes(q));
-    }
-    // TT-149/TT-153: when the search box is empty, `filtered` IS the array React Query
-    // handed back, and .sort() sorts in place — so this reordered the shared ['members']
-    // cache as a side effect of rendering. Any other consumer of that query silently got
-    // reordered data with no re-render to tell it. Copying first keeps the sort local.
-    return [...filtered].sort((a: any, b: any) => {
-      const aAssigned = assignedMembers.some((am: any) => am.member.id === a.id);
-      const bAssigned = assignedMembers.some((am: any) => am.member.id === b.id);
-      if (aAssigned && !bAssigned) return 1;
-      if (!aAssigned && bAssigned) return -1;
-
-      const aSel = selectedMembersToAssign.has(a.id);
-      const bSel = selectedMembersToAssign.has(b.id);
-      if (aSel && !bSel) return -1;
-      if (!aSel && bSel) return 1;
-
-      const aBenched = a.allocationStatus === 'BENCHED';
-      const bBenched = b.allocationStatus === 'BENCHED';
-      if (aBenched && !bBenched) return -1;
-      if (!aBenched && bBenched) return 1;
-
-      const aAllocated = a.allocationStatus === 'ALLOCATED';
-      const bAllocated = b.allocationStatus === 'ALLOCATED';
-      if (aAllocated && !bAllocated) return -1;
-      if (!aAllocated && bAllocated) return 1;
-
-      return a.name.localeCompare(b.name);
-    });
-  }, [allMembers, assignSearchQuery, selectedMembersToAssign, assignedMembers]);
+  const sortedMembers = useMemo(
+    () => sortMembersForAssignment(allMembers, assignSearchQuery, assignedMembers, selectedMembersToAssign),
+    [allMembers, assignSearchQuery, selectedMembersToAssign, assignedMembers],
+  );
 
   // Handle File Upload Change
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {

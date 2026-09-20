@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { TaskRow } from '../types/tasks';
 import { AlertTriangle } from 'lucide-react';
 import { errorMessage } from '@/lib/errors';
+import { countTaskDueKpis } from '@/lib/taskKpi';
 
 class ErrorBoundary extends React.Component<any, { hasError: boolean, error: any }> {
   constructor(props: any) { super(props); this.state = { hasError: false, error: null }; }
@@ -123,23 +124,9 @@ function TeamMemberDashboardContent() {
 
   // TT-157: this KPI read `tasks`, which is the display list — sliced to five and never
   // filtered by date. A member with twenty open tasks saw "5", and the number had nothing
-  // to do with the current week. "0 overdue" was hardcoded. Both are computed here from
-  // the full set, before any slicing.
-  const startOfToday = new Date();
-  startOfToday.setHours(0, 0, 0, 0);
-  const endOfWeek = new Date(startOfToday);
-  endOfWeek.setDate(endOfWeek.getDate() + 7);
-
-  const openTasks = (tasksRes || []).filter((t: any) => t.status !== 'DONE');
-  const dueThisWeekCount = openTasks.filter((t: any) => {
-    if (!t.dueDate) return false;
-    const due = new Date(t.dueDate);
-    return due >= startOfToday && due < endOfWeek;
-  }).length;
-  const overdueCount = openTasks.filter((t: any) => {
-    if (!t.dueDate) return false;
-    return new Date(t.dueDate) < startOfToday;
-  }).length;
+  // to do with the current week. "0 overdue" was hardcoded. Both are computed over the
+  // full set, by calendar day so the answer does not depend on the reader's timezone.
+  const { dueThisWeek: dueThisWeekCount, overdue: overdueCount } = countTaskDueKpis(tasksRes || []);
 
   // Parse Action Items (Tasks)
   const tasks = [...(tasksRes || [])]
