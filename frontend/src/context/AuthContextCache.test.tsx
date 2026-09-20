@@ -1,5 +1,5 @@
-import { act, cleanup, render, screen } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AuthProvider, type User, useAuth } from './AuthContext';
 import { queryClient } from '../lib/queryClient';
 
@@ -56,28 +56,51 @@ describe('bootstrap with a corrupted stored user (TT-135)', () => {
     queryClient.clear();
   });
 
-  afterEach(cleanup);
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+  });
 
-  it('recovers to a signed-out state instead of hanging on the spinner', () => {
-    // A truncated write used to throw before setIsLoading(false), leaving the app on
-    // ProtectedRoute's spinner forever with no in-app way to recover.
-    localStorage.setItem('token', 'tok');
+  // TT-069 changed how a session is restored: there is no token in localStorage any
+  // more, and the provider asks the server who is signed in using the httpOnly cookie.
+  // The cached user object survives only so the shell can render without a flash. These
+  // tests were rewritten for that, deliberately — the property under test is unchanged:
+  // a corrupt cache must not leave the app stuck on the loading spinner.
+  const mockMe = (status: number, body: unknown) => vi.stubGlobal('fetch', vi.fn(async () => ({
+    ok: status >= 200 && status < 300,
+    status,
+    headers: new Headers(),
+    text: async () => JSON.stringify(body),
+    blob: async () => new Blob(),
+  })));
+
+  it('recovers to a signed-out state instead of hanging on the spinner', async () => {
+    // A truncated write used to throw before setIsLoading(false).
     localStorage.setItem('user', '{"id":"user-1","name":"Ali');
+    mockMe(401, { error: 'No auth token provided' });
 
     render(<AuthProvider><Harness /></AuthProvider>);
 
-    expect(screen.getByText('nobody')).toBeTruthy();
-    expect(localStorage.getItem('token')).toBeNull();
+    await waitFor(() => expect(screen.getByText('nobody')).toBeTruthy());
     expect(localStorage.getItem('user')).toBeNull();
   });
 
-  it('still restores a valid stored session', () => {
-    localStorage.setItem('token', 'tok');
-    localStorage.setItem('user', JSON.stringify(alice));
+  it('restores the session the server reports, not one read from storage', async () => {
+    // The cached copy is deliberately stale: the server's answer must win.
+    localStorage.setItem('user', JSON.stringify({ ...alice, name: 'Stale Name' }));
+    mockMe(200, { user: alice });
 
     render(<AuthProvider><Harness /></AuthProvider>);
 
-    expect(screen.getByText('Alice')).toBeTruthy();
-    expect(localStorage.getItem('token')).toBe('tok');
+    await waitFor(() => expect(screen.getByText('Alice')).toBeTruthy());
+  });
+
+  it('signs out when the cookie no longer identifies anyone', async () => {
+    localStorage.setItem('user', JSON.stringify(alice));
+    mockMe(401, { error: 'Invalid or expired token' });
+
+    render(<AuthProvider><Harness /></AuthProvider>);
+
+    await waitFor(() => expect(screen.getByText('nobody')).toBeTruthy());
   });
 });

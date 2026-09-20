@@ -9,6 +9,7 @@ import { authenticateToken, AuthRequest } from '../middleware/auth';
 import { verifyContextMember, verifyMeetingRecordAccess, verifyActionItemAccess } from '../lib/contextAccess';
 import { assertActionItemStatus, onlyIdsOfferedToTheModel, completedActionItemIds, normalizeActionItemStatus, normalizeActionItemPriority, normalizeBlockerStatus } from '../lib/meetingContinuity';
 import { AppError } from '../middleware/errorHandler';
+import { normalizeRecordingType, normalizeTranscriptSource } from '../lib/meetingRecordEnums';
 
 // TT-044: this multer instance had no limits and no filter whatsoever. Combined with
 // memoryStorage that is an out-of-memory vector — an unbounded body is buffered in
@@ -151,6 +152,11 @@ router.get('/', async (req, res) => {
 
     res.json({ data: mapped });
   } catch (error: any) {
+    // TT-050 pattern, already used by the handlers above and below: this caught the
+    // AppErrors thrown deliberately inside the handler — a 400 for a bad recordingType,
+    // a 403 from verifyContextMember — and re-emitted every one as a 500, so the client
+    // could not tell a rejected input from a broken server.
+    if (error instanceof AppError) return res.status(error.statusCode).json({ error: error.message });
     console.error(error);
     res.status(500).json({ error: error.message });
   }
@@ -197,19 +203,10 @@ router.post('/', upload.fields([{ name: 'recordingFile', maxCount: 1 }, { name: 
 
     let finalRecordingUrl = null;
     // TT-090: recordingType and transcriptSource are enums now, so a value outside the
-    // set is rejected by the database — an unhandled 500 for what is a caller mistake.
-    // The checks below already only act on the known values; this makes an unknown one a
-    // 400 rather than storing it or blowing up.
-    const RECORDING_TYPES = ['file', 'link', 'none'];
-    const TRANSCRIPT_SOURCES = ['pasted', 'uploaded_file', 'none'];
-    if (recordingType !== undefined && recordingType !== null && recordingType !== '' && !RECORDING_TYPES.includes(recordingType)) {
-      throw new AppError(`recordingType must be one of: ${RECORDING_TYPES.join(', ')}.`, 400);
-    }
-    if (transcriptSource !== undefined && transcriptSource !== null && transcriptSource !== '' && !TRANSCRIPT_SOURCES.includes(transcriptSource)) {
-      throw new AppError(`transcriptSource must be one of: ${TRANSCRIPT_SOURCES.join(', ')}.`, 400);
-    }
-
-    let finalRecordingType = recordingType === 'none' ? null : recordingType;
+    // set is rejected by the database. Normalising and validating together keeps the
+    // "absent, blank and 'none' all mean NULL" rule in one place — the earlier inline
+    // version let '' through to Prisma, which failed as an unhandled 500.
+    let finalRecordingType = normalizeRecordingType(recordingType);
 
     // Handle Recording
     if (finalRecordingType === 'file' && recordingFile) {
@@ -233,7 +230,7 @@ router.post('/', upload.fields([{ name: 'recordingFile', maxCount: 1 }, { name: 
     // Handle Transcript
     let finalTranscriptText = null;
     let finalTranscriptUrl = null;
-    let finalTranscriptSource = transcriptSource === 'none' ? null : transcriptSource;
+    let finalTranscriptSource = normalizeTranscriptSource(transcriptSource);
 
     if (finalTranscriptSource === 'pasted' && transcriptPasted) {
       finalTranscriptText = transcriptPasted;
@@ -530,6 +527,11 @@ router.post('/', upload.fields([{ name: 'recordingFile', maxCount: 1 }, { name: 
 
     res.status(201).json(createdWithItems);
   } catch (error: any) {
+    // TT-050 pattern, already used by the handlers above and below: this caught the
+    // AppErrors thrown deliberately inside the handler — a 400 for a bad recordingType,
+    // a 403 from verifyContextMember — and re-emitted every one as a 500, so the client
+    // could not tell a rejected input from a broken server.
+    if (error instanceof AppError) return res.status(error.statusCode).json({ error: error.message });
     console.error(error);
     res.status(500).json({ error: error.message });
   }
@@ -588,6 +590,11 @@ router.delete('/:id', async (req, res) => {
 
     res.json({ success: true });
   } catch (error: any) {
+    // TT-050 pattern, already used by the handlers above and below: this caught the
+    // AppErrors thrown deliberately inside the handler — a 400 for a bad recordingType,
+    // a 403 from verifyContextMember — and re-emitted every one as a 500, so the client
+    // could not tell a rejected input from a broken server.
+    if (error instanceof AppError) return res.status(error.statusCode).json({ error: error.message });
     console.error(error);
     res.status(500).json({ error: error.message });
   }
@@ -613,6 +620,11 @@ router.patch('/:recordId/transcript', async (req, res) => {
 
     res.json({ success: true });
   } catch (error: any) {
+    // TT-050 pattern, already used by the handlers above and below: this caught the
+    // AppErrors thrown deliberately inside the handler — a 400 for a bad recordingType,
+    // a 403 from verifyContextMember — and re-emitted every one as a 500, so the client
+    // could not tell a rejected input from a broken server.
+    if (error instanceof AppError) return res.status(error.statusCode).json({ error: error.message });
     console.error(error);
     res.status(500).json({ error: error.message });
   }

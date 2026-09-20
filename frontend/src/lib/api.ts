@@ -4,6 +4,26 @@ const baseURL = (import.meta as any).env.VITE_API_URL || '/api';
 // out. This client runs outside React and cannot navigate on its own.
 export const SESSION_EXPIRED_EVENT = 'auth:session-expired';
 
+/**
+ * TT-069: the JWT used to live in localStorage, readable by any script on the page — one
+ * XSS or one compromised dependency and an attacker held a long-lived, fully privileged
+ * token usable from anywhere. It is now kept only in memory for the life of the tab; the
+ * durable session is the httpOnly cookie the server sets, which JavaScript cannot read.
+ *
+ * A reload therefore has no token until AuthContext re-establishes the session from the
+ * cookie, which is the intended behaviour: the credential is no longer sitting in
+ * storage waiting to be stolen.
+ */
+let sessionToken: string | null = null;
+
+export function setSessionToken(token: string | null) {
+  sessionToken = token;
+}
+
+export function getSessionToken(): string | null {
+  return sessionToken;
+}
+
 // Carries the token that was rejected, so a late failure from an already
 // replaced session cannot sign out a user who has since signed back in.
 export type SessionExpiredDetail = { token: string };
@@ -90,7 +110,11 @@ async function fetchApi(method: string, url: string, data?: any, config?: any) {
     headers.set('Content-Type', 'application/json');
   }
   
-  const token = localStorage.getItem('token');
+  // TT-069: the session is an httpOnly cookie now, sent automatically by the browser
+  // and unreadable from JavaScript. The header is still attached when a token happens to
+  // be held in memory, so a request made before the cookie lands still authorises, and
+  // the two are interchangeable on the server.
+  const token = getSessionToken();
   if (token) headers.set('Authorization', `Bearer ${token}`);
   
   if (config?.headers) {
@@ -100,7 +124,8 @@ async function fetchApi(method: string, url: string, data?: any, config?: any) {
     }
   }
 
-  const options: RequestInit = { method, headers };
+  // Without this the browser does not send the session cookie.
+  const options: RequestInit = { method, headers, credentials: 'include' };
   if (data && data instanceof FormData) options.body = data;
   else if (data) options.body = JSON.stringify(data);
 
@@ -427,7 +452,8 @@ export const authApi = {
   login: (data: Record<string, string>) => api.post('/auth/login', data),
   register: (data: Record<string, string>) => api.post('/auth/register', data),
   changePassword: (data: Record<string, string>) => api.post('/auth/change-password', data),
-  getMe: () => api.get('/auth/me')
+  getMe: () => api.get('/auth/me'),
+  logout: () => api.post('/auth/logout')
 };
 
 export const adminApi = {

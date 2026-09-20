@@ -1,5 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import api, { SESSION_EXPIRED_EVENT } from './api';
+import api, { SESSION_EXPIRED_EVENT, setSessionToken } from './api';
+
+// TT-069: these tests used to seed the token with localStorage.setItem('token', ...).
+// The token is deliberately no longer stored there — it is held in memory for the life
+// of the tab, with an httpOnly cookie carrying the durable session. The assertions are
+// unchanged; only the way the session is established has moved.
 
 function mockResponse(status: number, body: unknown) {
   return {
@@ -21,6 +26,7 @@ describe('api client session handling', () => {
   beforeEach(() => {
     expired = 0;
     localStorage.clear();
+    setSessionToken(null);
     window.addEventListener(SESSION_EXPIRED_EVENT, countEvent);
   });
 
@@ -30,7 +36,7 @@ describe('api client session handling', () => {
   });
 
   it('signals an expired session on 401 when a token was sent', async () => {
-    localStorage.setItem('token', 'stale-token');
+    setSessionToken('stale-token');
     vi.stubGlobal('fetch', vi.fn(async () => mockResponse(401, { error: 'No auth token provided' })));
 
     await expect(api.get('/members')).rejects.toThrow();
@@ -38,7 +44,7 @@ describe('api client session handling', () => {
   });
 
   it('signals an expired session on a 403 that names the token', async () => {
-    localStorage.setItem('token', 'stale-token');
+    setSessionToken('stale-token');
     vi.stubGlobal('fetch', vi.fn(async () => mockResponse(403, { error: 'Invalid or expired token' })));
 
     await expect(api.get('/members')).rejects.toThrow();
@@ -46,7 +52,7 @@ describe('api client session handling', () => {
   });
 
   it('does NOT sign out on a 403 permission denial', async () => {
-    localStorage.setItem('token', 'good-token');
+    setSessionToken('good-token');
     vi.stubGlobal('fetch', vi.fn(async () => mockResponse(403, { error: 'Forbidden: Missing manageTeam permission' })));
 
     await expect(api.get('/admin/users')).rejects.toThrow('Forbidden: Missing manageTeam permission');
@@ -54,7 +60,7 @@ describe('api client session handling', () => {
   });
 
   it('does NOT sign out on a route-specific 403', async () => {
-    localStorage.setItem('token', 'good-token');
+    setSessionToken('good-token');
     vi.stubGlobal('fetch', vi.fn(async () => mockResponse(403, { error: 'Only Admins can view logs' })));
 
     await expect(api.get('/logs')).rejects.toThrow('Only Admins can view logs');
@@ -69,7 +75,7 @@ describe('api client session handling', () => {
   });
 
   it('names the rejected token so a replaced session is not signed out', async () => {
-    localStorage.setItem('token', 'stale-token');
+    setSessionToken('stale-token');
     let detail: unknown;
     const capture = (e: Event) => { detail = (e as CustomEvent).detail; };
     window.addEventListener(SESSION_EXPIRED_EVENT, capture);
@@ -81,7 +87,7 @@ describe('api client session handling', () => {
   });
 
   it('leaves ordinary errors alone', async () => {
-    localStorage.setItem('token', 'good-token');
+    setSessionToken('good-token');
     vi.stubGlobal('fetch', vi.fn(async () => mockResponse(500, { error: 'Internal server error' })));
 
     await expect(api.get('/members')).rejects.toThrow('Internal server error');
@@ -89,7 +95,7 @@ describe('api client session handling', () => {
   });
 
   it('signals on a 401 for a blob download', async () => {
-    localStorage.setItem('token', 'stale-token');
+    setSessionToken('stale-token');
     vi.stubGlobal('fetch', vi.fn(async () => mockResponse(401, {})));
 
     await expect(api.get('/reports/team', { responseType: 'blob' })).rejects.toThrow();

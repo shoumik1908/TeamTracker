@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useId, useMemo, useRef, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   BookOpen,
@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { coeApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { useDialogA11y } from "@/lib/useDialogA11y";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import LearningProjects from "@/components/coe/LearningProjects";
@@ -153,29 +154,9 @@ function Modal({
 }) {
   // TT-139: this was a plain div — no dialog role, no Escape handling, and focus left
   // behind it in the page underneath. A screen reader never announced that a dialog had
-  // opened, and a keyboard user could neither reach the contents nor dismiss it. Every
-  // CoE dialog goes through this one component, so all of them were affected.
-  const titleId = useId();
-  const panelRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const previouslyFocused = document.activeElement as HTMLElement | null;
-    // Move focus into the dialog so the next Tab lands inside it, not behind it.
-    panelRef.current?.focus();
-
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.stopPropagation();
-        onClose();
-      }
-    };
-    document.addEventListener('keydown', onKeyDown);
-    return () => {
-      document.removeEventListener('keydown', onKeyDown);
-      // Hand focus back to whatever opened it, rather than dropping it on <body>.
-      previouslyFocused?.focus?.();
-    };
-  }, [onClose]);
+  // opened, and a keyboard user could neither reach the contents nor dismiss it.
+  // The learning-project dialogs have their own Modal and share the same hook.
+  const { titleId, panelRef } = useDialogA11y(onClose);
 
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/25 p-4 backdrop-blur-sm">
