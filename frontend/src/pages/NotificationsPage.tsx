@@ -38,6 +38,9 @@ export default function NotificationsPage() {
     staleTime: 60000,
   });
 
+  // Defence in depth: never index into a shape the cache might not hold.
+  const items = Array.isArray(data?.data) ? data.data : [];
+
   const markRead = useMutation({
     mutationFn: (id: string) => notificationsApi.markRead(id),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['notifications'] }); qc.invalidateQueries({ queryKey: ['notifications-count'] }); },
@@ -74,7 +77,7 @@ export default function NotificationsPage() {
         <div>
           <h2 className="page-title">Notifications</h2>
           <p className="page-subtitle">
-            {data?.unreadCount || 0} unread · {data?.pagination.total || 0} total
+            {data?.unreadCount || 0} unread · {data?.pagination?.total || 0} total
           </p>
         </div>
         {(data?.unreadCount || 0) > 0 && (
@@ -94,7 +97,7 @@ export default function NotificationsPage() {
         </div>
       )}
 
-      {!isLoading && data?.data.length === 0 && (
+      {!isLoading && items.length === 0 && (
         <div className="bg-[#1c1926]/80 backdrop-blur-md rounded-xl border border-white/5 py-16 text-center">
           <Bell className="w-12 h-12 text-white/50/30 mx-auto mb-3" />
           <p className="text-white/50 font-medium">No notifications yet</p>
@@ -103,7 +106,7 @@ export default function NotificationsPage() {
       )}
 
       <div className="space-y-2">
-        {data?.data.map(n => {
+        {items.map(n => {
           const editRequest = n.certificateEditRequest;
           const isPendingEditRequest = isAdmin && editRequest?.status === 'PENDING';
           const isExpanded = expandedRequestId === editRequest?.id;
