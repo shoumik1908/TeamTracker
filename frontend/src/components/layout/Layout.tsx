@@ -4,6 +4,7 @@ import Sidebar from './Sidebar';
 import Header from './Header';
 import ChatBot from '../chat/ChatBot';
 import SessionReminderToasts from '../coe/SessionReminderToasts';
+import { ErrorBoundary } from '../ErrorBoundary';
 
 const PAGE_TITLES: Record<string, string> = {
   '/': 'Dashboard',
@@ -39,7 +40,13 @@ export default function Layout() {
           setIsMobileMenuOpen={setIsMobileMenuOpen} 
         />
         <main className="flex-1 overflow-y-auto p-4 md:p-6 bg-transparent w-full">
-          <Outlet />
+          {/* A render error in one page used to unmount the whole tree, leaving a white
+              screen with no nav and no way to sign out. Scope it to the page area so the
+              shell survives and the rest of the app stays reachable. Keyed on the path so
+              navigating away clears the error state. */}
+          <ErrorBoundary key={location.pathname}>
+            <Outlet />
+          </ErrorBoundary>
         </main>
       </div>
       <ChatBot />

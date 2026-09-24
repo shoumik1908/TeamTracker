@@ -77,11 +77,18 @@ function TeamMemberDashboardContent() {
   const updateTask = useUpdateTask();
 
   // 2. Fetch Notifications
+  // The key is scoped to this card. It used to be plain ['notifications'], which
+  // NotificationsPage also uses — but that page stores the unwrapped body while this
+  // one stored the raw {data,status,headers} envelope. One shared QueryClient, so
+  // whichever rendered last won: a member landing here first poisoned the cache and
+  // NotificationsPage then crashed on data.pagination, blanking the whole app.
+  // Unwrapping with .then(r => r.data) also fixes this card, which read a
+  // `notifications` field the API has never returned and so was always empty.
   const { data: notifRes } = useQuery({
-    queryKey: ['notifications'],
-    queryFn: () => notificationsApi.list({ limit: '5' }),
+    queryKey: ['notifications', 'dashboard'],
+    queryFn: () => notificationsApi.list({ limit: '5' }).then(r => r.data),
   });
-  const notifications = notifRes?.data?.notifications || [];
+  const notifications = notifRes?.data ?? [];
 
   // 3. Fetch Recent Files
   const { data: filesRes } = useQuery({
